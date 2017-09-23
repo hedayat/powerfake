@@ -1,5 +1,5 @@
 /*
- * link_mocker.cpp
+ * bind_fakes.cpp
  *
  *  Created on: ۲۶ شهریور ۱۳۹۶
  *      Author: Hedayat Vatankhah <hedayat.fwd@gmail.com>
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         }
 
         {
-            ofstream link_flags("mocker.link_flags");
+            ofstream link_flags("powerfake.link_flags");
             for (const auto &syms: symmap)
                 link_flags << "-Wl,--wrap=" << syms.second << endl;
         }
