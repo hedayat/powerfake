@@ -135,7 +135,6 @@ class Wrapper: public WrapperBase
 #define DECLARE_WRAPPER(FN, ALIAS) extern PowerFake::Wrapper<decltype(&FN)> ALIAS
 
 #define WRAP_FUNCTION(FN, ALIAS) \
-    template class PowerFake::PrototypeExtractor<decltype(&FN)>; \
     PowerFake::Wrapper<decltype(&FN)> ALIAS(#ALIAS, \
         PowerFake::PrototypeExtractor<decltype(&FN)>::Extract(#FN)); \
     template <typename T> struct proxy_##ALIAS; \
