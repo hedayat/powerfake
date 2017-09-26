@@ -9,6 +9,13 @@
 #include "powerfake.h"
 #include <vector>
 
+/*
+ * These are actually used by bind_fakes, but is also needed to satisfy link
+ * time dependencies of main library. It is used so that we don't need to
+ * compile object files using WRAP_FUNCTION another time specifically for
+ * bind_fakes
+ */
+
 namespace PowerFake
 {
 

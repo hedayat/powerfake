@@ -18,6 +18,10 @@ namespace PowerFake
 {
 
 
+/**
+ * This class should be used to assign fake/mock functions. It'll be released
+ * automatically when destructed.
+ */
 template <typename T>
 class Mock
 {
@@ -32,6 +36,11 @@ class Mock
 template <typename T>
 class Wrapper;
 
+/**
+ * Mock<> specialization for member functions, allowing fakes which does not
+ * receive the original object pointer as their first parameter in addition to
+ * normal fakes which do.
+ */
 template <typename T, typename R , typename ...Args>
 class Mock<Wrapper<R (T::*)(Args...)>>
 {
@@ -50,12 +59,22 @@ class Mock<Wrapper<R (T::*)(Args...)>>
         WT &o;
 };
 
+/**
+ * Helper function to make creating Mocks (probably!) more conveniently.
+ * (Can probably be eliminated in C++17)
+ * @param alias the alias of the method to be faked
+ * @param f the fake function
+ * @return Mock object for faking the given function
+ */
 template <typename T, typename Functor>
-Mock<T> MakeMock(T &name, Functor f)
+Mock<T> MakeMock(T &alias, Functor f)
 {
-    return Mock<T>(name, f);
+    return Mock<T>(alias, f);
 }
 
+/**
+ * Stores components of a function prototype and the function alias
+ */
 struct FunctionPrototype
 {
     FunctionPrototype(std::string ret, std::string name, std::string params) :
@@ -68,8 +87,22 @@ struct FunctionPrototype
     std::string alias;
 };
 
+/**
+ * This class provides an Extract() method which extracts the FunctionPrototype
+ * for a given function. Can be used for both normal functions and member
+ * functions through the specializations.
+ *
+ * We cannot use class names as used in our code (e.g. std::string), as they
+ * are not necessarily the same name used when compiled. Therefore, we get
+ * the mangled name of the type using typeid (in GCC), and demangle that name
+ * to reach the actual name (e.g. std::basic_string<...> rather than
+ * std::string).
+ */
 template <typename T> struct PrototypeExtractor;
 
+/**
+ * PrototypeExtractor specialization for member functions
+ */
 template <typename T, typename R , typename ...Args>
 struct PrototypeExtractor<R (T::*)(Args...)>
 {
@@ -79,6 +112,10 @@ struct PrototypeExtractor<R (T::*)(Args...)>
     static FunctionPrototype Extract(const std::string &func_name);
 };
 
+/**
+ * PrototypeExtractor specialization for normal functions and static member
+ * functions
+ */
 template <typename R , typename ...Args>
 struct PrototypeExtractor<R (*)(Args...)>
 {
@@ -88,11 +125,20 @@ struct PrototypeExtractor<R (*)(Args...)>
     static FunctionPrototype Extract(const std::string &func_name);
 };
 
+/**
+ * Collects prototypes of all wrapped functions, to be used by bind_fakes
+ */
 class WrapperBase
 {
     public:
+        /**
+         * @return function prototype of all wrapped functions
+         */
         static const std::vector<FunctionPrototype> &WrappedFunctions();
 
+        /**
+         * Add wrapped function prototype and alias
+         */
         WrapperBase(std::string alias, FunctionPrototype prototype)
         {
             prototype.alias = alias;
@@ -107,6 +153,14 @@ class WrapperBase
 };
 
 
+/**
+ * Objects of this type are called 'alias'es for wrapped function, as it stores
+ * the function object which will be called instead of the wrapped function.
+ *
+ * To make sure that function objects are managed properly, the user should use
+ * Mock class and MakeMock() function rather than using the object of this class
+ * directly.
+ */
 template <typename T>
 class Wrapper: public WrapperBase
 {
@@ -124,6 +178,7 @@ class Wrapper: public WrapperBase
         friend class Mock;
 };
 
+// helper macors
 #define TMP_POSTFIX         __end__
 #define TMP_WRAPPER_PREFIX  __proxy_function_
 #define TMP_REAL_PREFIX     __real_function_
@@ -132,11 +187,22 @@ class Wrapper: public WrapperBase
 #define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 
+/**
+ * Declare wrapper for function FN with alias ALIAS. Should be used before
+ * creating fake/mock functions using MakeMock or Mock<> constructor
+ */
 #define DECLARE_WRAPPER(FN, ALIAS) extern PowerFake::Wrapper<decltype(&FN)> ALIAS
 
+/**
+ * Define wrapper for function FN with alias ALIAS. Must be used only once for
+ * each function in a cpp file.
+ */
 #define WRAP_FUNCTION(FN, ALIAS) \
     PowerFake::Wrapper<decltype(&FN)> ALIAS(#ALIAS, \
         PowerFake::PrototypeExtractor<decltype(&FN)>::Extract(#FN)); \
+    /* Fake functions which will be called rather than the real function.
+     * They call the function object in the alias Wrapper object
+     * if available, otherwise it'll call the real function. */  \
     template <typename T> struct proxy_##ALIAS; \
     template <typename T, typename R , typename ...Args> \
     struct proxy_##ALIAS<R (T::*)(Args...)> \
@@ -160,6 +226,10 @@ class Wrapper: public WrapperBase
             return TMP_REAL_NAME(ALIAS)(args...); \
         } \
     }; \
+    /* Explicitly instantiate the proxy_##ALIAS struct, so that the appropriate
+     * wrapper function and real function symbol is actually generated by the
+     * compiler. These symbols will be renamed to the name expected by 'ld'
+     * linker by bind_fakes binary. */ \
     template class proxy_##ALIAS<decltype(&FN)>;
 
 template<typename T, typename R, typename ...Args>
@@ -171,10 +241,12 @@ FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     const std::string ptr_type = boost::core::demangle(
         typeid(MemFuncPtrType).name());
 
+    // ptr_type example: char* (Folan::*)(int const*, int, int)
     std::string params = ptr_type.substr(ptr_type.rfind('('));
+
+    // strip scoping from func_name, we retrieve complete scoping (including
+    // namespace(s) if available) from class_type
     std::string f = func_name.substr(func_name.rfind("::"));
-    for (auto sp = f.find(' '); sp != std::string::npos; sp = f.find(' '))
-        f.erase(sp, 1);
     return FunctionPrototype(ret_type, class_type + f, params);
 }
 
@@ -186,7 +258,7 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
     const std::string ptr_type = boost::core::demangle(
         typeid(FuncPtrType).name());
 
-    std::cout << "PTR TYPE:" << ptr_type << std::endl;
+    // ptr_type example: char* (*)(int const*, int, int)
     std::string params = ptr_type.substr(ptr_type.rfind('('));
     return FunctionPrototype(ret_type, func_name, params);
 }

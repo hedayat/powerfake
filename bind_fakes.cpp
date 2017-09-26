@@ -101,6 +101,7 @@ int main(int argc, char **argv)
         for (int i = 2; i < argc; ++i)
             object_files.push_back(argv[i]);
 
+        // Found real symbols which we want to wrap
         {
             NMReader nm_reader(argv[1]);
 
@@ -109,12 +110,16 @@ int main(int argc, char **argv)
                 ParseNMSymbol(symbol);
         }
 
+        // Create powerfake.link_flags containing link flags for linking
+        // test binary
         {
             ofstream link_flags("powerfake.link_flags");
             for (const auto &syms: symmap)
                 link_flags << "-Wl,--wrap=" << syms.second << endl;
         }
 
+        // Rename our wrap/real symbols (which are mangled) to the ones expected
+        // by ld linker
         for (const auto &objfile: object_files)
         {
             NMReader nm_reader(objfile);
@@ -156,6 +161,12 @@ int main(int argc, char **argv)
     return 0;
 }
 
+/**
+ * For each symbol in the main library, finds its alias if it is wrapped and
+ * inserts the alias and the actual symbol of the target function in symmap.
+ *
+ * @param symbol_name the name of a symbol in main library, which might be faked
+ */
 void ParseNMSymbol(const char *symbol_name)
 {
     string demangled = boost::core::demangle(symbol_name);
@@ -175,7 +186,7 @@ void ParseNMSymbol(const char *symbol_name)
                         << demangled << ") " << endl;
             else if (inserted.first->second != symbol_name)
             {
-                cerr << "Error, duplicate symbols found for: "
+                cerr << "BUG: Error, duplicate symbols found for: "
                         << func.return_type << ' ' << sig << ":\n"
                         << '\t' << symmap[func.alias] << '\n'
                         << '\t' << symbol_name << endl;
