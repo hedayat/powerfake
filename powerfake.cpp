@@ -29,7 +29,7 @@ const std::vector<FunctionPrototype> &WrapperBase::WrappedFunctions()
 // TODO: GCC > 7 supports [[maybe_unused]] (C++17) for [[gnu::unused]]
 void WrapperBase::AddFunction(FunctionPrototype prototype [[gnu::unused]])
 {
-#ifdef LINK_MOCKER
+#ifdef BIND_FAKES
     std::cout << "Add function(" << prototype.alias << "): " << prototype.return_type
             << ' ' << prototype.name << prototype.params << std::endl;
     wrapped_funcs.push_back(prototype);

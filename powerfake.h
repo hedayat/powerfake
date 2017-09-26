@@ -19,16 +19,16 @@ namespace PowerFake
 
 
 /**
- * This class should be used to assign fake/mock functions. It'll be released
+ * This class should be used to assign fake functions. It'll be released
  * automatically when destructed.
  */
 template <typename T>
-class Mock
+class Fake
 {
     public:
         template <typename Functor>
-        Mock(T &o, Functor fake): o(o) { o.mock = fake; }
-        ~Mock() { o.mock = typename T::MockType(); }
+        Fake(T &o, Functor fake): o(o) { o.fake = fake; }
+        ~Fake() { o.fake = typename T::FakeType(); }
     private:
         T &o;
 };
@@ -37,39 +37,39 @@ template <typename T>
 class Wrapper;
 
 /**
- * Mock<> specialization for member functions, allowing fakes which does not
+ * Fake<> specialization for member functions, allowing fakes which does not
  * receive the original object pointer as their first parameter in addition to
  * normal fakes which do.
  */
 template <typename T, typename R , typename ...Args>
-class Mock<Wrapper<R (T::*)(Args...)>>
+class Fake<Wrapper<R (T::*)(Args...)>>
 {
     private:
         typedef Wrapper<R (T::*)(Args...)> WT;
 
     public:
-        Mock(WT &o, std::function<R (T *, Args...)> fake): o(o) {
-            o.mock = fake;
+        Fake(WT &o, std::function<R (T *, Args...)> fake): o(o) {
+            o.fake = fake;
         }
-        Mock(WT &o, std::function<R (Args...)> fake): o(o) {
-            o.mock = [fake](T *, Args... a) { return fake(a...); };
+        Fake(WT &o, std::function<R (Args...)> fake): o(o) {
+            o.fake = [fake](T *, Args... a) { return fake(a...); };
         }
-        ~Mock() { o.mock = typename WT::MockType(); }
+        ~Fake() { o.fake = typename WT::FakeType(); }
     private:
         WT &o;
 };
 
 /**
- * Helper function to make creating Mocks (probably!) more conveniently.
- * (Can probably be eliminated in C++17)
+ * Helper function to make creating Fakes more conveniently.
+ * (Can be eliminated in C++17)
  * @param alias the alias of the method to be faked
  * @param f the fake function
- * @return Mock object for faking the given function
+ * @return Fake object for faking the given function
  */
 template <typename T, typename Functor>
-Mock<T> MakeMock(T &alias, Functor f)
+Fake<T> MakeFake(T &alias, Functor f)
 {
-    return Mock<T>(alias, f);
+    return Fake<T>(alias, f);
 }
 
 /**
@@ -106,7 +106,7 @@ template <typename T> struct PrototypeExtractor;
 template <typename T, typename R , typename ...Args>
 struct PrototypeExtractor<R (T::*)(Args...)>
 {
-    typedef std::function<R (T *o, Args... args)> MockType;
+    typedef std::function<R (T *o, Args... args)> FakeType;
     typedef R (T::*MemFuncPtrType)(Args...);
 
     static FunctionPrototype Extract(const std::string &func_name);
@@ -119,7 +119,7 @@ struct PrototypeExtractor<R (T::*)(Args...)>
 template <typename R , typename ...Args>
 struct PrototypeExtractor<R (*)(Args...)>
 {
-    typedef std::function<R (Args... args)> MockType;
+    typedef std::function<R (Args... args)> FakeType;
     typedef R (*FuncPtrType)(Args...);
 
     static FunctionPrototype Extract(const std::string &func_name);
@@ -158,29 +158,34 @@ class WrapperBase
  * the function object which will be called instead of the wrapped function.
  *
  * To make sure that function objects are managed properly, the user should use
- * Mock class and MakeMock() function rather than using the object of this class
+ * Fake class and MakeFake() function rather than using the object of this class
  * directly.
  */
 template <typename T>
 class Wrapper: public WrapperBase
 {
     public:
-        typedef typename PrototypeExtractor<T>::MockType MockType;
+        typedef typename PrototypeExtractor<T>::FakeType FakeType;
 
         using WrapperBase::WrapperBase;
 
-        bool HasMock() const { return static_cast<bool>(mock); }
-        const MockType &Call() const { return mock; }
+        bool Callable() const { return static_cast<bool>(fake); }
+
+        template <typename ...Args>
+        typename FakeType::result_type Call(Args&&... args) const
+        {
+            return fake(std::forward<Args>(args)...);
+        }
 
     private:
-        MockType mock;
+        FakeType fake;
         template <typename Y>
-        friend class Mock;
+        friend class Fake;
 };
 
 // helper macors
 #define TMP_POSTFIX         __end__
-#define TMP_WRAPPER_PREFIX  __proxy_function_
+#define TMP_WRAPPER_PREFIX  __wrap_function_
 #define TMP_REAL_PREFIX     __real_function_
 #define BUILD_NAME_HELPER(A,B,C) A##B##C
 #define BUILD_NAME(A,B,C) BUILD_NAME_HELPER(A,B,C)
@@ -189,7 +194,7 @@ class Wrapper: public WrapperBase
 
 /**
  * Declare wrapper for function FN with alias ALIAS. Should be used before
- * creating fake/mock functions using MakeMock or Mock<> constructor
+ * creating fake functions using MakeFake or Fake<> constructor
  */
 #define DECLARE_WRAPPER(FN, ALIAS) extern PowerFake::Wrapper<decltype(&FN)> ALIAS
 
@@ -203,34 +208,34 @@ class Wrapper: public WrapperBase
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
-    template <typename T> struct proxy_##ALIAS; \
+    template <typename T> struct wrapper_##ALIAS; \
     template <typename T, typename R , typename ...Args> \
-    struct proxy_##ALIAS<R (T::*)(Args...)> \
+    struct wrapper_##ALIAS<R (T::*)(Args...)> \
     { \
         static R TMP_WRAPPER_NAME(ALIAS)(T *o, Args... args) \
         { \
             R TMP_REAL_NAME(ALIAS)(T *o, Args... args); \
-            if (ALIAS.HasMock()) \
-                return ALIAS.Call()(o, args...); \
+            if (ALIAS.Callable()) \
+                return ALIAS.Call(o, args...); \
             return TMP_REAL_NAME(ALIAS)(o, args...); \
         } \
     }; \
     template <typename R , typename ...Args> \
-    struct proxy_##ALIAS<R (*)(Args...)> \
+    struct wrapper_##ALIAS<R (*)(Args...)> \
     { \
         static R TMP_WRAPPER_NAME(ALIAS)(Args... args) \
         { \
             R TMP_REAL_NAME(ALIAS)(Args... args); \
-            if (ALIAS.HasMock()) \
-                return ALIAS.Call()(args...); \
+            if (ALIAS.Callable()) \
+                return ALIAS.Call(args...); \
             return TMP_REAL_NAME(ALIAS)(args...); \
         } \
     }; \
-    /* Explicitly instantiate the proxy_##ALIAS struct, so that the appropriate
+    /* Explicitly instantiate the wrapper_##ALIAS struct, so that the appropriate
      * wrapper function and real function symbol is actually generated by the
      * compiler. These symbols will be renamed to the name expected by 'ld'
      * linker by bind_fakes binary. */ \
-    template class proxy_##ALIAS<decltype(&FN)>;
+    template class wrapper_##ALIAS<decltype(&FN)>;
 
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
