@@ -7,13 +7,11 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
-#include <cstring>
-#include <cstdlib>
 #include <map>
 #include <boost/core/demangle.hpp>
 
 #include "powerfake.h"
+#include "nmreader.h"
 
 #define TO_STR(a) #a
 #define BUILD_NAME_STR(pref, base, post) TO_STR(pref) + base + TO_STR(post)
@@ -23,63 +21,6 @@
 using namespace std;
 using namespace PowerFake;
 
-
-class PipeRead
-{
-    public:
-        PipeRead(string cmd)
-        {
-            run_stream = popen(cmd.c_str(), "r");
-            if (!run_stream)
-                throw runtime_error("Error running nm on the library");
-        }
-        ~PipeRead()
-        {
-            pclose(run_stream);
-        }
-
-        const char *ReadLine()
-        {
-            ssize_t read = getline(&linebuf, &buf_size, run_stream);
-            if (read == -1)
-                return nullptr;
-            if (read > 0)
-                linebuf[read - 1] = '\0';
-            else // read = 0
-                linebuf[0] = '\0';
-            return linebuf;
-        }
-
-    private:
-        FILE *run_stream = nullptr;
-        size_t buf_size = 0;
-        char *linebuf = nullptr;
-};
-
-class NMReader
-{
-    public:
-        NMReader(string object_file): pipe_reader("nm -o " + object_file)
-        {}
-
-        const char *NextSymbol()
-        {
-            const char *nm_line = pipe_reader.ReadLine();
-            if (!nm_line)
-                return nullptr;
-
-            const char *symbol_name = strrchr(nm_line, ' ');
-            if (!symbol_name)
-            {
-                cerr << "Unknown input from nm: " << nm_line << endl;
-                return nullptr;
-            }
-            return ++symbol_name;
-        }
-
-    private:
-        PipeRead pipe_reader;
-};
 
 void ParseNMSymbol(const char *symbol_name);
 
