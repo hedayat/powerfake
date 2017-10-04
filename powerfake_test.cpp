@@ -18,22 +18,6 @@ using TestMemberFuncType = void (Tag::*)(int);
 
 namespace PowerFake
 {
-template <>
-class Wrapper<Tag>
-{
-    public:
-        typedef std::function<void (int)> FakeType;
-        FakeType fake;
-};
-
-template <>
-class Wrapper<TestMemberFuncType>
-{
-    public:
-        typedef typename PrototypeExtractor<TestMemberFuncType>::FakeType FakeType;
-        FakeType fake;
-};
-
 struct NsTag {};
 }  // namespace PowerFake
 
@@ -64,51 +48,84 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorTest)
 
 }
 
+#ifdef BIND_FAKES // AddFunction() only works when BIND_FAKES is defined
+BOOST_AUTO_TEST_CASE(WrapperBaseTest)
+{
+    FunctionPrototype fproto("void", "func_name", "(int, char)");
+    WrapperBase wb("WrapperBaseTest_alias", fproto);
+
+    bool found = false;
+    for (const auto &test_proto: WrapperBase::WrappedFunctions())
+    {
+        if (test_proto.alias == fproto.alias &&
+                test_proto.return_type == fproto.return_type &&
+                test_proto.name == fproto.name &&
+                test_proto.params == fproto.params)
+            found = true;
+    }
+    BOOST_TEST(found);
+}
+#endif
+
+BOOST_AUTO_TEST_CASE(WrapperTest)
+{
+    Wrapper<void (NsTag::*)(int)> sample("sample",
+        FunctionPrototype("", "", ""));
+
+    BOOST_TEST(!sample.Callable());
+
+    bool called_ok;
+    auto myfake = MakeFake(sample, [&called_ok](int a){ called_ok = (a == 4); });
+    BOOST_TEST(sample.Callable());
+
+    sample.Call(nullptr, 4);
+
+    BOOST_TEST(sample.Callable());
+    BOOST_TEST(called_ok);
+}
+
 BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 {
-    Wrapper<Tag> folan;
-    BOOST_TEST(!folan.fake);
+    Wrapper<void (*)(int)> folan("folan", FunctionPrototype("", "", ""));
 
     {
         bool called_ok = false;
         auto myfake = MakeFake(folan, [&called_ok](int a){ called_ok = (a == 4); });
-        BOOST_TEST(static_cast<bool>(folan.fake));
+        BOOST_TEST(folan.Callable());
 
-        folan.fake(4);
+        folan.Call(4);
         BOOST_TEST(called_ok);
     }
-    BOOST_TEST(!folan.fake);
+    BOOST_TEST(!folan.Callable());
 }
 
 BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan;
-    BOOST_TEST(!folan.fake);
+    Wrapper<TestMemberFuncType> folan("folan", FunctionPrototype("", "", ""));
 
     {
         bool called_ok = false;
         auto myfake = MakeFake(folan, [&called_ok](int a){ called_ok = (a == 4); });
-        BOOST_TEST(static_cast<bool>(folan.fake));
+        BOOST_TEST(folan.Callable());
 
-        folan.fake(nullptr, 4);
+        folan.Call(nullptr, 4);
         BOOST_TEST(called_ok);
     }
-    BOOST_TEST(!folan.fake);
+    BOOST_TEST(!folan.Callable());
 }
 
 BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan;
-    BOOST_TEST(!folan.fake);
+    Wrapper<TestMemberFuncType> folan("folan", FunctionPrototype("", "", ""));
 
     {
         bool called_ok = false;
         auto myfake = MakeFake(folan, [&called_ok](Tag *ptr, int a) {
             called_ok = (ptr == nullptr && a == 4); });
-        BOOST_TEST(static_cast<bool>(folan.fake));
+        BOOST_TEST(folan.Callable());
 
-        folan.fake(nullptr, 4);
+        folan.Call(nullptr, 4);
         BOOST_TEST(called_ok);
     }
-    BOOST_TEST(!folan.fake);
+    BOOST_TEST(!folan.Callable());
 }
