@@ -6,9 +6,11 @@
  */
 
 #include "powerfake.h"
+#include "piperead.h"
 
 #include <boost/test/unit_test.hpp>
 #include <type_traits>
+
 
 using namespace std;
 using namespace PowerFake;
@@ -128,4 +130,24 @@ BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
         BOOST_TEST(called_ok);
     }
     BOOST_TEST(!folan.Callable());
+}
+
+BOOST_AUTO_TEST_CASE(PipeReadTest)
+{
+    PipeRead pr("echo 'hi\nhoy\nhey'");
+
+    const char *line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hi"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hoy"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hey"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(!line);
 }
