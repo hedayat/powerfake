@@ -147,8 +147,11 @@ int main(int argc, char **argv)
                                 + syms.second;
                     }
                 }
-            string cmd = "objcopy" + objcopy_params + ' ' + objfile;
-            system(cmd.c_str());
+            if (!objcopy_params.empty())
+            {
+                string cmd = "objcopy" + objcopy_params + ' ' + objfile;
+                system(cmd.c_str());
+            }
             // todo: check return value
         }
     }
