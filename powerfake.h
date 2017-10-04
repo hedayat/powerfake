@@ -179,8 +179,7 @@ class Wrapper: public WrapperBase
 
     private:
         FakeType fake;
-        template <typename Y>
-        friend class Fake;
+        friend class Fake<Wrapper>;
 };
 
 // helper macors
