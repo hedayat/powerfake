@@ -7,9 +7,11 @@
 
 #include "powerfake.h"
 #include "piperead.h"
+#include "nmreader.h"
 
 #include <boost/test/unit_test.hpp>
 #include <type_traits>
+#include "../TestDirConfig.h"
 
 
 using namespace std;
@@ -157,4 +159,28 @@ BOOST_AUTO_TEST_CASE(PipeReadTest)
 
     line = pr.ReadLine();
     BOOST_TEST(!line);
+}
+
+BOOST_FIXTURE_TEST_CASE(NMReaderTest, TestDirConfig)
+{
+    NMReader nr(test_dir + "/powerfake/libsample_lib.a");
+
+    const char *sym = nr.NextSymbol();
+    BOOST_TEST(sym);
+    BOOST_TEST(sym == "test_function");
+
+    sym = nr.NextSymbol();
+    BOOST_TEST(sym);
+    BOOST_TEST(boost::core::demangle(sym) == "test_function2()");
+
+    sym = nr.NextSymbol();
+    BOOST_TEST(sym);
+    BOOST_TEST(boost::core::demangle(sym) == "char folan<char>(int)");
+
+    sym = nr.NextSymbol();
+    BOOST_TEST(sym);
+    BOOST_TEST(boost::core::demangle(sym) == "A::folani(int)");
+
+    sym = nr.NextSymbol();
+    BOOST_TEST(!sym);
 }
