@@ -24,10 +24,8 @@ struct NsTag {};
 }  // namespace PowerFake
 
 
-BOOST_AUTO_TEST_CASE(PrototypeExtractorTest)
+BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
 {
-    BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeType,
-            function<void (Tag *, int)>>::value));
     BOOST_TEST((std::is_same<PrototypeExtractor<void (*)(int)>::FakeType,
             function<void (int)>>::value));
 
@@ -35,13 +33,22 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorTest)
     BOOST_TEST(proto_normal.return_type == "void");
     BOOST_TEST(proto_normal.name == "folan");
     BOOST_TEST(proto_normal.params == "(int)");
+}
+
+BOOST_AUTO_TEST_CASE(PrototypeExtractorMemberFunctionTest)
+{
+    BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeType,
+            function<void (Tag *, int)>>::value));
 
     auto proto_mfn = PrototypeExtractor<TestMemberFuncType>::Extract(
         "Tag::folan");
     BOOST_TEST(proto_mfn.return_type == "void");
     BOOST_TEST(proto_mfn.name == "Tag::folan");
     BOOST_TEST(proto_mfn.params == "(int)");
+}
 
+BOOST_AUTO_TEST_CASE(PrototypeExtractorNamespaceMemberFunctionTest)
+{
     auto proto_ns_mfn = PrototypeExtractor<void (NsTag::*)(int)>::Extract(
         "NsTag::folan");
     BOOST_TEST(proto_ns_mfn.return_type == "void");
