@@ -165,22 +165,18 @@ BOOST_FIXTURE_TEST_CASE(NMReaderTest, TestDirConfig)
 {
     NMReader nr(test_dir + "/powerfake/libsample_lib.a");
 
-    const char *sym = nr.NextSymbol();
-    BOOST_TEST(sym);
-    BOOST_TEST(sym == "test_function");
+    string symbols[4];
+    for (int i = 0; i < 4; ++i)
+    {
+        symbols[i] = nr.NextSymbol();
+        BOOST_TEST(symbols[i].c_str());
+    }
+    BOOST_TEST(!nr.NextSymbol());
 
-    sym = nr.NextSymbol();
-    BOOST_TEST(sym);
-    BOOST_TEST(boost::core::demangle(sym) == "test_function2()");
+    sort(symbols, symbols+4);
+    BOOST_TEST(boost::core::demangle(symbols[0].c_str()) == "test_function2()");
+    BOOST_TEST(boost::core::demangle(symbols[1].c_str()) == "char folan<char>(int)");
+    BOOST_TEST(boost::core::demangle(symbols[2].c_str()) == "A::folani(int)");
+    BOOST_TEST(symbols[3] == "test_function");
 
-    sym = nr.NextSymbol();
-    BOOST_TEST(sym);
-    BOOST_TEST(boost::core::demangle(sym) == "char folan<char>(int)");
-
-    sym = nr.NextSymbol();
-    BOOST_TEST(sym);
-    BOOST_TEST(boost::core::demangle(sym) == "A::folani(int)");
-
-    sym = nr.NextSymbol();
-    BOOST_TEST(!sym);
 }
