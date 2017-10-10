@@ -13,6 +13,11 @@
 #include <type_traits>
 #include "../TestDirConfig.h"
 
+// A hack since we cannot test AddSymbol() directly
+#define private public
+#include "SymbolAliasMap.h"
+#undef private
+
 
 using namespace std;
 using namespace PowerFake;
@@ -169,7 +174,7 @@ BOOST_FIXTURE_TEST_CASE(NMReaderTest, TestDirConfig)
     for (int i = 0; i < 4; ++i)
     {
         symbols[i] = nr.NextSymbol();
-        BOOST_TEST(symbols[i].c_str());
+        BOOST_TEST_REQUIRE(symbols[i].c_str());
     }
     BOOST_TEST(!nr.NextSymbol());
 
@@ -179,4 +184,33 @@ BOOST_FIXTURE_TEST_CASE(NMReaderTest, TestDirConfig)
     BOOST_TEST(boost::core::demangle(symbols[2].c_str()) == "A::folani(int)");
     BOOST_TEST(symbols[3] == "test_function");
 
+}
+
+BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
+{
+    WrapperBase::Prototypes protos;
+    protos.push_back(FunctionPrototype("char", "folan<char>", "(int)",
+        "alias1"));
+    protos.push_back(FunctionPrototype("int", "test_function2", "()",
+        "alias2"));
+    protos.push_back(FunctionPrototype("int", "test_function", "()",
+        "alias3"));
+    protos.push_back(FunctionPrototype("void", "A::folani", "(int)",
+        "alias4"));
+
+    SymbolAliasMap sm;
+    sm.FindWrappedSymbol(protos, "char folan<char>(int)", "symbol_for_alias1");
+    sm.FindWrappedSymbol(protos, "test_function2()", "symbol_for_alias2");
+    sm.FindWrappedSymbol(protos, "test_function", "symbol_for_alias3");
+    sm.FindWrappedSymbol(protos, "A::folani", "symbol_for_alias4");
+    sm.FindWrappedSymbol(protos, "some_nonexistent_function",
+        "symbol_for_non_wrapped");
+
+    for (int i = 0; i < 4; ++i)
+    {
+        string no = to_string(i+1);
+        auto a = sm.Map().find("alias" + no);
+        BOOST_TEST(
+            (a != sm.Map().end() && a->second == "symbol_for_alias" + no));
+    }
 }

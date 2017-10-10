@@ -19,9 +19,9 @@
 namespace PowerFake
 {
 
-std::vector<FunctionPrototype> WrapperBase::wrapped_funcs;
+WrapperBase::Prototypes WrapperBase::wrapped_funcs;
 
-const std::vector<FunctionPrototype> &WrapperBase::WrappedFunctions()
+const WrapperBase::Prototypes &WrapperBase::WrappedFunctions()
 {
     return wrapped_funcs;
 }

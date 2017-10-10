@@ -77,8 +77,9 @@ Fake<T> MakeFake(T &alias, Functor f)
  */
 struct FunctionPrototype
 {
-    FunctionPrototype(std::string ret, std::string name, std::string params) :
-            return_type(ret), name(name), params(params)
+    FunctionPrototype(std::string ret, std::string name, std::string params,
+        std::string alias = "") :
+            return_type(ret), name(name), params(params), alias(alias)
     {
     }
     std::string return_type;
@@ -131,10 +132,13 @@ struct PrototypeExtractor<R (*)(Args...)>
 class WrapperBase
 {
     public:
+        typedef std::vector<FunctionPrototype> Prototypes;
+
+    public:
         /**
          * @return function prototype of all wrapped functions
          */
-        static const std::vector<FunctionPrototype> &WrappedFunctions();
+        static const Prototypes &WrappedFunctions();
 
         /**
          * Add wrapped function prototype and alias
@@ -149,7 +153,7 @@ class WrapperBase
         static void AddFunction(FunctionPrototype sig);
 
     private:
-        static std::vector<FunctionPrototype> wrapped_funcs;
+        static Prototypes wrapped_funcs;
 };
 
 
