@@ -11,7 +11,6 @@
 
 #include <boost/test/unit_test.hpp>
 #include <type_traits>
-#include "../TestDirConfig.h"
 
 // A hack since we cannot test AddSymbol() directly
 #define private public
@@ -29,6 +28,25 @@ namespace PowerFake
 {
 struct NsTag {};
 }  // namespace PowerFake
+
+#include <boost/test/framework.hpp>
+#include <string>
+
+struct SampleLibConfig
+{
+        SampleLibConfig()
+        {
+            auto &master_suite = boost::unit_test::framework::master_test_suite();
+            for (int i = 0; i < master_suite.argc; ++i)
+            {
+                std::string arg = master_suite.argv[i];
+                if (arg == "--sample-lib" && i + 1 < master_suite.argc)
+                    sample_lib = master_suite.argv[i+1];
+            }
+        }
+
+        std::string sample_lib;
+};
 
 
 BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
@@ -166,9 +184,9 @@ BOOST_AUTO_TEST_CASE(PipeReadTest)
     BOOST_TEST(!line);
 }
 
-BOOST_FIXTURE_TEST_CASE(NMReaderTest, TestDirConfig)
+BOOST_FIXTURE_TEST_CASE(NMReaderTest, SampleLibConfig)
 {
-    NMReader nr(test_dir + "/powerfake/libsample_lib.a");
+    NMReader nr(sample_lib);
 
     string symbols[4];
     for (int i = 0; i < 4; ++i)
