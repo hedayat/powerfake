@@ -1,8 +1,11 @@
-project(powerfake)
-
 cmake_minimum_required(VERSION 3.5.1)
+
+project(powerfake VERSION 1.0.0)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
 
 find_package(Boost REQUIRED)
 
@@ -53,25 +56,48 @@ add_library(pw_bindfakes_coverage STATIC EXCLUDE_FROM_ALL
     ${powerfake_sources} ${powerfake_headers})
 target_compile_options(pw_bindfakes_coverage PRIVATE --coverage -O0 -g)
 
-function(build_bind_fakes wrap_library_target)
-    
-    add_executable(bind_fakes)
-    
-    # Add flags to ignore undefined reference to __real_ function calls, which we
-    # don't use
-    set_property(TARGET bind_fakes APPEND PROPERTY
-        LINK_FLAGS "-Wl,--warn-unresolved-symbols -Wl,-z,lazy")
-    target_link_libraries(bind_fakes pw_bindfakes
-        -Wl,--whole-archive ${wrap_library_target} -Wl,--no-whole-archive)
-endfunction(build_bind_fakes)
-
-function(bind_fakes target_name test_lib wrapper_funcs_lib)
-    add_custom_command(TARGET ${target_name} PRE_LINK
-        COMMAND bind_fakes $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>)
-
-    # Add powerfake link flags
-    set_property(TARGET ${target_name} APPEND_STRING PROPERTY
-        LINK_FLAGS @${CMAKE_CURRENT_BINARY_DIR}/powerfake.link_flags)
-endfunction(bind_fakes)
-
 add_subdirectory(test EXCLUDE_FROM_ALL)
+
+# ============
+install(TARGETS powerfake pw_bindfakes EXPORT PowerFakeTargets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
+install(FILES powerfake.h DESTINATION include)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/PowerFake/PowerFakeConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT PowerFakeTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/PowerFake/PowerFakeTargets.cmake"
+  NAMESPACE PowerFake::
+)
+configure_file(PowerFakeConfig.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/PowerFake/PowerFakeConfig.cmake"
+  COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/PowerFake)
+install(EXPORT PowerFakeTargets
+  FILE
+    PowerFakeTargets.cmake
+  NAMESPACE
+    PowerFake::
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+
+install(
+  FILES
+    cmake/PowerFakeConfig.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/PowerFake/PowerFakeConfigVersion.cmake"
+  DESTINATION
+    ${ConfigPackageLocation}
+)
