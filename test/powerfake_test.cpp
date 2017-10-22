@@ -9,8 +9,11 @@
 #include "piperead.h"
 #include "nmreader.h"
 
-#include <boost/test/unit_test.hpp>
 #include <type_traits>
+#include <string>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/framework.hpp>
+
 
 // A hack since we cannot test AddSymbol() directly
 #define private public
@@ -28,9 +31,6 @@ namespace PowerFake
 {
 struct NsTag {};
 }  // namespace PowerFake
-
-#include <boost/test/framework.hpp>
-#include <string>
 
 struct SampleLibConfig
 {
