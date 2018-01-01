@@ -1,3 +1,7 @@
+#  Distributed under the Boost Software License, Version 1.0.
+#       (See accompanying file LICENSE_1_0.txt or copy at
+#             http://www.boost.org/LICENSE_1_0.txt)
+
 set(POWERFAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 include(${POWERFAKE_DIR}/cmake/PowerFakeFunctions.cmake)
