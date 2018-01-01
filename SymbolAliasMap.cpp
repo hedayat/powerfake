@@ -7,6 +7,7 @@
 
 #include "SymbolAliasMap.h"
 
+#include <cstring>
 #include "powerfake.h"
 
 using namespace PowerFake;
@@ -27,8 +28,14 @@ void SymbolAliasMap::AddSymbol(const char *symbol_name)
 }
 
 void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
-    const std::string& demangled, const char* symbol_name)
+    const std::string &demangled, const char *symbol_name)
 {
+    // skip decorated symbol names
+    if (strstr(symbol_name, "__PRETTY_FUNCTION__")
+            || strstr(symbol_name, "__FUNCTION__")
+            || strstr(symbol_name, "__func__"))
+        return;
+
     // todo: probably use a more efficient code, e.g. using a map
     for (auto func : protos)
     {

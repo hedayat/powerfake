@@ -27,7 +27,7 @@ class SymbolAliasMap
         MapType sym_map;
 
         void FindWrappedSymbol(WrapperBase::Prototypes protos,
-            const std::string& demangled, const char* symbol_name);
+            const std::string &demangled, const char *symbol_name);
 };
 
 
