@@ -49,6 +49,7 @@ target_compile_options(pw_bindfakes_coverage PRIVATE --coverage -O0 -g)
 set_property(TARGET pw_bindfakes_coverage APPEND PROPERTY
     COMPILE_DEFINITIONS BIND_FAKES)
 
+add_subdirectory(sample)
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 # =============================================================================
