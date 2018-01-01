@@ -19,11 +19,11 @@ DECLARE_WRAPPER(normal_func, normal_func_fake);
 void FakeOverloaded()
 {
     auto oifk = MakeFake(overloaded_int_fake,
-        [](int b) { cout << "Fake called for overloaded(int)" << endl; }
+        [](int) { cout << "Fake called for overloaded(int)" << endl; }
     );
 
     auto offk = MakeFake(overloaded_float_fake,
-        [](float b) { cout << "Fake called for overloaded(float)" << endl; }
+        [](float) { cout << "Fake called for overloaded(float)" << endl; }
     );
 
     overloaded(5);
@@ -36,7 +36,7 @@ void FakeOverloaded()
 }
 
 
-int main(int argc, char **argv)
+int main(/*int argc, char **argv*/)
 {
     FakeOverloaded();
 }
