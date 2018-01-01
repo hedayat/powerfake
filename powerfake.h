@@ -17,10 +17,15 @@
 namespace PowerFake
 {
 
+template <typename T>
+class Wrapper;
 
 /**
  * This class should be used to assign fake functions. It'll be released
  * automatically when destructed.
+ *
+ * It takes Wrapper<> classes as its template type, and the general form is
+ * used for free functions and class static member functions.
  */
 template <typename T>
 class Fake
@@ -29,12 +34,10 @@ class Fake
         template <typename Functor>
         Fake(T &o, Functor fake): o(o) { o.fake = fake; }
         ~Fake() { o.fake = typename T::FakeType(); }
+
     private:
         T &o;
 };
-
-template <typename T>
-class Wrapper;
 
 /**
  * Fake<> specialization for member functions, allowing fakes which does not
@@ -55,6 +58,7 @@ class Fake<Wrapper<R (T::*)(Args...)>>
             o.fake = [fake](T *, Args... a) { return fake(a...); };
         }
         ~Fake() { o.fake = typename WT::FakeType(); }
+
     private:
         WT &o;
 };
