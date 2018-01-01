@@ -20,4 +20,13 @@ class SampleClass
         int OverloadedCall(int b);
 };
 
+class SampleClass2: public SampleClass
+{
+    public:
+        using SampleClass::CallThis;
+
+        void DerivedFunc();
+        void CallThis(int a);
+};
+
 #endif /* SAMPLE_SAMPLECLASS_H_ */

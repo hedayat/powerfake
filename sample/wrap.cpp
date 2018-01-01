@@ -19,3 +19,6 @@ WRAP_FUNCTION(int (SampleClass::*)(), SampleClass::OverloadedCall,
     SampleClass_OverloadedCall_fk);
 WRAP_FUNCTION(int (SampleClass::*)(int), SampleClass::OverloadedCall,
     SampleClass_OverloadedCall2_fk);
+
+WRAP_FUNCTION(void (SampleClass2::*)(int), SampleClass2::CallThis,
+    SampleClass2_CallThis2_fk);

@@ -19,8 +19,13 @@ DECLARE_WRAPPER(void (*)(float), overloaded, overloaded_float_fake);
 DECLARE_WRAPPER(normal_func, normal_func_fake);
 
 DECLARE_WRAPPER(SampleClass::CallThis, SampleClass_CallThis_fk);
-DECLARE_WRAPPER(int (SampleClass::*)(), SampleClass::OverloadedCall, SampleClass_OverloadedCall_fk);
-DECLARE_WRAPPER(int (SampleClass::*)(int), SampleClass::OverloadedCall, SampleClass_OverloadedCall2_fk);
+DECLARE_WRAPPER(int (SampleClass::*)(), SampleClass::OverloadedCall,
+    SampleClass_OverloadedCall_fk);
+DECLARE_WRAPPER(int (SampleClass::*)(int), SampleClass::OverloadedCall,
+    SampleClass_OverloadedCall2_fk);
+
+DECLARE_WRAPPER(void (SampleClass2::*)(int), SampleClass2::CallThis,
+    SampleClass2_CallThis2_fk);
 
 
 void FakeOverloaded()
@@ -73,6 +78,19 @@ void FakeOverloaded()
         sc.OverloadedCall();
         sc.OverloadedCall(2);
     }
+
+    SampleClass2 sc2;
+    sc2.CallThis();
+
+    sc2.OverloadedCall(3);
+
+    {
+        auto ct2fk = MakeFake(SampleClass2_CallThis2_fk,
+            [](int) { cout << "Fake called for SampleClass2::CallThis" << endl; }
+        );
+        sc2.CallThis(4);
+    }
+    sc2.CallThis(4);
 }
 
 

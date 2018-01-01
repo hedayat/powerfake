@@ -38,3 +38,13 @@ int SampleClass::OverloadedCall(int b [[gnu::unused]])
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
     return 0;
 }
+
+void SampleClass2::DerivedFunc()
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
+void SampleClass2::CallThis(int a  [[gnu::unused]])
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
