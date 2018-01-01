@@ -49,6 +49,8 @@ void FakeOverloaded()
     );
     normal_func(3);
 
+    cout << "\n SampleClass Tests\n"
+            "----------------------------------------------" << endl;
     {
         SampleClass sc;
         sc.CallThis();
@@ -79,6 +81,8 @@ void FakeOverloaded()
         sc.OverloadedCall(2);
     }
 
+    cout << "\n SampleClass2 Tests\n"
+            "----------------------------------------------" << endl;
     SampleClass2 sc2;
     sc2.CallThis();
 
@@ -88,6 +92,13 @@ void FakeOverloaded()
         auto ct2fk = MakeFake(SampleClass2_CallThis2_fk,
             [](int) { cout << "Fake called for SampleClass2::CallThis" << endl; }
         );
+        sc2.CallThis(4);
+        {
+            auto ct2fk = MakeFake(SampleClass2_CallThis2_fk,
+                [](int) { cout << "Nested Fake called for SampleClass2::CallThis" << endl; }
+            );
+            sc2.CallThis(4);
+        }
         sc2.CallThis(4);
     }
     sc2.CallThis(4);

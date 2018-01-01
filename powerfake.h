@@ -32,11 +32,12 @@ class Fake
 {
     public:
         template <typename Functor>
-        Fake(T &o, Functor fake): o(o) { o.fake = fake; }
-        ~Fake() { o.fake = typename T::FakeType(); }
+        Fake(T &o, Functor fake): o(o), orig_fake(o.fake) { o.fake = fake; }
+        ~Fake() { o.fake = orig_fake; }
 
     private:
         T &o;
+        typename T::FakeType orig_fake;
 };
 
 /**
@@ -51,16 +52,19 @@ class Fake<Wrapper<R (T::*)(Args...)>>
         typedef Wrapper<R (T::*)(Args...)> WT;
 
     public:
-        Fake(WT &o, std::function<R (T *, Args...)> fake): o(o) {
+        Fake(WT &o, std::function<R(T *, Args...)> fake) :
+                o(o), orig_fake(o.fake)
+        {
             o.fake = fake;
         }
-        Fake(WT &o, std::function<R (Args...)> fake): o(o) {
+        Fake(WT &o, std::function<R (Args...)> fake): o(o), orig_fake(o.fake) {
             o.fake = [fake](T *, Args... a) { return fake(a...); };
         }
-        ~Fake() { o.fake = typename WT::FakeType(); }
+        ~Fake() { o.fake = orig_fake; }
 
     private:
         WT &o;
+        typename WT::FakeType orig_fake;
 };
 
 /**
