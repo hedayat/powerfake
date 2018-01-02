@@ -19,6 +19,8 @@
 using namespace std;
 
 
+DECLARE_WRAPPER(std::string (*)(int), overloaded2, overloaded2_int_fake);
+DECLARE_WRAPPER(std::string (*)(float), overloaded2, overloaded2_float_fake);
 DECLARE_WRAPPER(void (*)(int), overloaded, overloaded_int_fake);
 DECLARE_WRAPPER(void (*)(float), overloaded, overloaded_float_fake);
 DECLARE_WRAPPER(normal_func, normal_func_fake);

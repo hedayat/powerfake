@@ -12,6 +12,7 @@
 
 #include "SymbolAliasMap.h"
 
+#include <regex>
 #include <cstring>
 #include "powerfake.h"
 
@@ -44,10 +45,17 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
     // todo: probably use a more efficient code, e.g. using a map
     for (auto func : protos)
     {
-        const string sig = func.name + func.params;
-        auto lookup = demangled == func.name ? 0 : demangled.find(sig);
-        if (lookup == 0 || demangled == func.return_type + ' ' + sig)
+        regex special_chars(R"([-[\]{}()*+?.,\^$|#\s])");
+        const string escaped_params = regex_replace(func.params, special_chars,
+            R"(\$&)");
+
+        // signature might contain an abi tag, e.g. func[abi:cxx11](int)
+        regex r("(" + func.return_type + " )?" + func.name + "(\\[.*\\])?"
+            + escaped_params);
+        auto lookup = (demangled == func.name) || regex_match(demangled, r);
+        if (lookup)
         {
+            const string sig = func.name + func.params;
             auto inserted = sym_map.insert(make_pair(func.alias, symbol_name));
             if (inserted.second)
                 cout << "Found symbol for " << func.return_type << ' ' << sig

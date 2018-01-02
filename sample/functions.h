@@ -13,8 +13,12 @@
 #ifndef SAMPLE_FUNCTIONS_H_
 #define SAMPLE_FUNCTIONS_H_
 
+#include <string>
+
 void overloaded(int a);
 void overloaded(float a);
+std::string overloaded2(int a);
+std::string overloaded2(float a);
 
 void normal_func(int b);
 

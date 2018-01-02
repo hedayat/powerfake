@@ -15,6 +15,8 @@
 #include "functions.h"
 #include "SampleClass.h"
 
+WRAP_FUNCTION(std::string (*)(int), overloaded2, overloaded2_int_fake);
+WRAP_FUNCTION(std::string (*)(float), overloaded2, overloaded2_float_fake);
 WRAP_FUNCTION(void (*)(int), overloaded, overloaded_int_fake);
 WRAP_FUNCTION(void (*)(float), overloaded, overloaded_float_fake);
 WRAP_FUNCTION(normal_func, normal_func_fake);

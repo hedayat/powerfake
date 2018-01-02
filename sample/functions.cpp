@@ -18,6 +18,18 @@
 using namespace std;
 
 
+std::string overloaded2(int a)
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called with " << a
+            << endl;
+}
+
+std::string overloaded2(float a)
+{
+    cout << "Real function: " << __func__ << " called with " << a
+            << endl;
+}
+
 void overloaded(int a)
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called with " << a
