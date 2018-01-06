@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
     BOOST_TEST((std::is_same<PrototypeExtractor<void (*)(int)>::FakeType,
             function<void (int)>>::value));
 
-    auto proto_normal = PrototypeExtractor<void (*)(int)>::Extract(nullptr, "folan");
+    auto proto_normal = PrototypeExtractor<void (*)(int)>::Extract("folan");
     BOOST_TEST(proto_normal.return_type == "void");
     BOOST_TEST(proto_normal.name == "folan");
     BOOST_TEST(proto_normal.params == "(int)");
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorMemberFunctionTest)
     BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeType,
             function<void (Tag *, int)>>::value));
 
-    auto proto_mfn = PrototypeExtractor<TestMemberFuncType>::Extract(nullptr,
+    auto proto_mfn = PrototypeExtractor<TestMemberFuncType>::Extract(
         "Tag::folan");
     BOOST_TEST(proto_mfn.return_type == "void");
     BOOST_TEST(proto_mfn.name == "Tag::folan");
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorMemberFunctionTest)
 
 BOOST_AUTO_TEST_CASE(PrototypeExtractorNamespaceMemberFunctionTest)
 {
-    auto proto_ns_mfn = PrototypeExtractor<void (NsTag::*)(int)>::Extract(nullptr,
+    auto proto_ns_mfn = PrototypeExtractor<void (NsTag::*)(int)>::Extract(
         "NsTag::folan");
     BOOST_TEST(proto_ns_mfn.return_type == "void");
     BOOST_TEST(proto_ns_mfn.name == "PowerFake::NsTag::folan");
@@ -108,8 +108,7 @@ BOOST_AUTO_TEST_CASE(WrapperBaseTest)
 
 BOOST_AUTO_TEST_CASE(WrapperTest)
 {
-    Wrapper<void (NsTag::*)(int)> sample("sample",
-        FunctionPrototype("", "", ""));
+    Wrapper<void (NsTag::*)(int)> sample("sample", nullptr, "NsTag::folan");
 
     BOOST_TEST(!sample.Callable());
 
@@ -126,7 +125,7 @@ BOOST_AUTO_TEST_CASE(WrapperTest)
 
 BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 {
-    Wrapper<void (*)(int)> folan("folan", FunctionPrototype("", "", ""));
+    Wrapper<void (*)(int)> folan("folan", nullptr, "");
 
     {
         bool called_ok = false;
@@ -142,7 +141,7 @@ BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 
 BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan("folan", FunctionPrototype("", "", ""));
+    Wrapper<TestMemberFuncType> folan("folan", nullptr, "Tag::function");
 
     {
         bool called_ok = false;
@@ -158,7 +157,7 @@ BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 
 BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan("folan", FunctionPrototype("", "", ""));
+    Wrapper<TestMemberFuncType> folan("folan", nullptr, "Tag::function");
 
     {
         bool called_ok = false;

@@ -101,22 +101,14 @@ struct FunctionPrototype
 {
     FunctionPrototype(std::string ret, std::string name, std::string params,
         std::string alias = "") :
-            return_type(ret), name(name), params(params), alias(alias),
-            func_key(nullptr)
+            return_type(ret), name(name), params(params), alias(alias)
     {
     }
-    FunctionPrototype(std::string ret, std::string name, std::string params,
-        void *fn_key,
-        std::string alias = "") :
-            return_type(ret), name(name), params(params), alias(alias),
-            func_key(fn_key)
-    {
-    }
+
     std::string return_type;
     std::string name;
     std::string params;
     std::string alias;
-    void *func_key;
 };
 
 /**
@@ -141,7 +133,7 @@ struct PrototypeExtractor<R (T::*)(Args...)>
     typedef std::function<R (T *o, Args... args)> FakeType;
     typedef R (T::*MemFuncPtrType)(Args...);
 
-    static FunctionPrototype Extract(MemFuncPtrType fn, const std::string &func_name);
+    static FunctionPrototype Extract(const std::string &func_name);
 };
 
 /**
@@ -154,7 +146,7 @@ struct PrototypeExtractor<R (*)(Args...)>
     typedef std::function<R (Args... args)> FakeType;
     typedef R (*FuncPtrType)(Args...);
 
-    static FunctionPrototype Extract(FuncPtrType fn, const std::string &func_name);
+    static FunctionPrototype Extract(const std::string &func_name);
 };
 
 
@@ -173,33 +165,23 @@ class WrapperBase
          */
         static const Prototypes &WrappedFunctions();
 
-        template <typename R , typename ...Args>
-        static Wrapper<R (*)(Args...)> &WrapperObject(R (*func_ptr)(Args...))
-        {
-            return *static_cast<Wrapper<R (*)(Args...)>*>(
-                    (*wrappers)[reinterpret_cast<void *>(func_ptr)]);
-        }
-
-        template <typename T, typename R , typename ...Args>
-        static Wrapper<R (T::*)(Args...)> &WrapperObject(R (T::*func_ptr)(Args...))
-        {
-#pragma GCC diagnostic ignored "-Wpmf-conversions"
-            return *static_cast<Wrapper<R (T::*)(Args...)>*>(
-                    (*wrappers)[reinterpret_cast<void *>(func_ptr)]);
-#pragma GCC diagnostic warning "-Wpmf-conversions"
-        }
-
         /**
          * Add wrapped function prototype and alias
          */
-        WrapperBase(std::string alias, FunctionPrototype prototype)
+        WrapperBase(std::string alias, void *key, FunctionPrototype prototype)
         {
             prototype.alias = alias;
-            AddFunction(prototype);
+            AddFunction(key, prototype);
         }
 
     protected:
-        void AddFunction(FunctionPrototype sig);
+        template <typename RetType>
+        static RetType *WrapperObject(void *key)
+        {
+            return static_cast<RetType *>((*wrappers)[key]);
+        }
+
+        void AddFunction(void *func_key, FunctionPrototype sig);
 
     private:
         static std::unique_ptr<Prototypes> wrapped_funcs;
@@ -215,13 +197,21 @@ class WrapperBase
  * Fake class and MakeFake() function rather than using the object of this class
  * directly.
  */
-template <typename T>
+template <typename FuncType>
 class Wrapper: public WrapperBase
 {
     public:
-        typedef typename PrototypeExtractor<T>::FakeType FakeType;
+        typedef typename PrototypeExtractor<FuncType>::FakeType FakeType;
 
-        using WrapperBase::WrapperBase;
+    public:
+        /**
+         * Add wrapped function prototype and alias
+         */
+        Wrapper(std::string alias, FuncType func_ptr, std::string func_name) :
+                WrapperBase(alias, FuncKey(func_ptr),
+                    PrototypeExtractor<FuncType>::Extract(func_name))
+        {
+        }
 
         bool Callable() const { return static_cast<bool>(fake); }
 
@@ -231,9 +221,21 @@ class Wrapper: public WrapperBase
             return fake(std::forward<Args>(args)...);
         }
 
+        static Wrapper &WrapperObject(FuncType func)
+        {
+            return *WrapperBase::WrapperObject<Wrapper>(FuncKey(func));
+        }
+
     private:
         FakeType fake;
         friend class Fake<Wrapper>;
+
+        static void *FuncKey(FuncType func_ptr)
+        {
+#pragma GCC diagnostic ignored "-Wpmf-conversions"
+            return reinterpret_cast<void *>(func_ptr);
+#pragma GCC diagnostic warning "-Wpmf-conversions"
+        }
 };
 
 // helper macors
@@ -259,8 +261,7 @@ class Wrapper: public WrapperBase
  * each function in a cpp file.
  */
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, \
-        PowerFake::PrototypeExtractor<FTYPE>::Extract(&FNAME, #FNAME)) ;\
+    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, &FNAME, #FNAME);\
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -325,23 +326,23 @@ class Wrapper: public WrapperBase
 template <typename Functor, typename R , typename ...Args>
 static Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f)
 {
-    return Fake<Wrapper<R (*)(Args...)>>(WrapperBase::WrapperObject(func_ptr),
-        f);
+    typedef Wrapper<R (*)(Args...)> WrapperType;
+    return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
 }
 
 template <typename Functor, typename T, typename R , typename ...Args>
 static Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...),
     Functor f)
 {
-    return Fake<Wrapper<R (T::*)(Args...)>>(
-        WrapperBase::WrapperObject(func_ptr), f);
+    typedef Wrapper<R (T::*)(Args...)> WrapperType;
+    return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
 }
 
 
 // PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
-    MemFuncPtrType fn, const std::string &func_name)
+    const std::string &func_name)
 {
     const std::string class_type = boost::core::demangle(typeid(T).name());
     const std::string ret_type = boost::core::demangle(typeid(R).name());
@@ -354,14 +355,11 @@ FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     // strip scoping from func_name, we retrieve complete scoping (including
     // namespace(s) if available) from class_type
     std::string f = func_name.substr(func_name.rfind("::"));
-#pragma GCC diagnostic ignored "-Wpmf-conversions"
-    return FunctionPrototype(ret_type, class_type + f, params,
-        reinterpret_cast<void *>(fn));
-#pragma GCC diagnostic warning "-Wpmf-conversions"
+    return FunctionPrototype(ret_type, class_type + f, params);
 }
 
 template<typename R, typename ...Args>
-FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(FuncPtrType fn,
+FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
     const std::string &func_name)
 {
     const std::string ret_type = boost::core::demangle(typeid(R).name());
@@ -370,8 +368,7 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(FuncPtrType fn,
 
     // ptr_type example: char* (*)(int const*, int, int)
     std::string params = ptr_type.substr(ptr_type.rfind('('));
-    return FunctionPrototype(ret_type, func_name, params,
-        reinterpret_cast<void *>(fn));
+    return FunctionPrototype(ret_type, func_name, params);
 }
 
 

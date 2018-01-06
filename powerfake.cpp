@@ -26,6 +26,8 @@
 namespace PowerFake
 {
 
+// using pointers, as we can't rely on the order of construction of static
+// objects
 std::unique_ptr<WrapperBase::Prototypes> WrapperBase::wrapped_funcs = nullptr;
 std::unique_ptr<WrapperBase::FunctionWrappers> WrapperBase::wrappers = nullptr;
 
@@ -37,7 +39,8 @@ const WrapperBase::Prototypes &WrapperBase::WrappedFunctions()
 }
 
 // TODO: GCC > 7 supports [[maybe_unused]] (C++17) for [[gnu::unused]]
-void WrapperBase::AddFunction(FunctionPrototype prototype [[gnu::unused]])
+void WrapperBase::AddFunction(void *func_key,
+    FunctionPrototype prototype [[gnu::unused]])
 {
 #ifdef BIND_FAKES
     if (!wrapped_funcs)
@@ -51,7 +54,7 @@ void WrapperBase::AddFunction(FunctionPrototype prototype [[gnu::unused]])
 //            << ' ' << prototype.name << prototype.params << std::endl;
     if (!wrappers)
         wrappers.reset(new FunctionWrappers);
-    (*wrappers)[prototype.func_key] = this;
+    (*wrappers)[func_key] = this;
 }
 
 }  // namespace PowerFake
