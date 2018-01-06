@@ -14,8 +14,9 @@
 #define POWERFAKE_H_
 
 #include <array>
+#include <map>
+#include <memory>
 #include <vector>
-#include <iostream>
 #include <functional>
 #include <boost/core/demangle.hpp>
 
@@ -73,17 +74,25 @@ class Fake<Wrapper<R (T::*)(Args...)>>
 };
 
 /**
- * Helper function to make creating Fakes more conveniently.
- * (Can be eliminated in C++17)
- * @param alias the alias of the method to be faked
+ * Creates the fake object for the given function, faked with function object
+ * @p f
+ * @param func_ptr Pointer to the function to be faked
  * @param f the fake function
- * @return Fake object for faking the given function
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
  */
-template <typename T, typename Functor>
-Fake<T> MakeFake(T &alias, Functor f)
-{
-    return Fake<T>(alias, f);
-}
+template <typename Functor, typename R , typename ...Args>
+Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f);
+
+/**
+ * Creates the fake object for the given member function, faked with @p f
+ * @param func_ptr Pointer to the function to be faked
+ * @param f the fake function
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
+ */
+template <typename Functor, typename T, typename R , typename ...Args>
+Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...), Functor f);
 
 /**
  * Stores components of a function prototype and the function alias
@@ -95,6 +104,7 @@ struct FunctionPrototype
             return_type(ret), name(name), params(params), alias(alias)
     {
     }
+
     std::string return_type;
     std::string name;
     std::string params;
@@ -139,6 +149,7 @@ struct PrototypeExtractor<R (*)(Args...)>
     static FunctionPrototype Extract(const std::string &func_name);
 };
 
+
 /**
  * Collects prototypes of all wrapped functions, to be used by bind_fakes
  */
@@ -146,6 +157,7 @@ class WrapperBase
 {
     public:
         typedef std::vector<FunctionPrototype> Prototypes;
+        typedef std::map<void *, WrapperBase *> FunctionWrappers;
 
     public:
         /**
@@ -156,17 +168,24 @@ class WrapperBase
         /**
          * Add wrapped function prototype and alias
          */
-        WrapperBase(std::string alias, FunctionPrototype prototype)
+        WrapperBase(std::string alias, void *key, FunctionPrototype prototype)
         {
             prototype.alias = alias;
-            AddFunction(prototype);
+            AddFunction(key, prototype);
         }
 
     protected:
-        static void AddFunction(FunctionPrototype sig);
+        template <typename RetType>
+        static RetType *WrapperObject(void *key)
+        {
+            return static_cast<RetType *>((*wrappers)[key]);
+        }
+
+        void AddFunction(void *func_key, FunctionPrototype sig);
 
     private:
-        static Prototypes wrapped_funcs;
+        static std::unique_ptr<Prototypes> wrapped_funcs;
+        static std::unique_ptr<FunctionWrappers> wrappers;
 };
 
 
@@ -178,13 +197,21 @@ class WrapperBase
  * Fake class and MakeFake() function rather than using the object of this class
  * directly.
  */
-template <typename T>
+template <typename FuncType>
 class Wrapper: public WrapperBase
 {
     public:
-        typedef typename PrototypeExtractor<T>::FakeType FakeType;
+        typedef typename PrototypeExtractor<FuncType>::FakeType FakeType;
 
-        using WrapperBase::WrapperBase;
+    public:
+        /**
+         * Add wrapped function prototype and alias
+         */
+        Wrapper(std::string alias, FuncType func_ptr, std::string func_name) :
+                WrapperBase(alias, FuncKey(func_ptr),
+                    PrototypeExtractor<FuncType>::Extract(func_name))
+        {
+        }
 
         bool Callable() const { return static_cast<bool>(fake); }
 
@@ -194,9 +221,21 @@ class Wrapper: public WrapperBase
             return fake(std::forward<Args>(args)...);
         }
 
+        static Wrapper &WrapperObject(FuncType func)
+        {
+            return *WrapperBase::WrapperObject<Wrapper>(FuncKey(func));
+        }
+
     private:
         FakeType fake;
         friend class Fake<Wrapper>;
+
+        static void *FuncKey(FuncType func_ptr)
+        {
+#pragma GCC diagnostic ignored "-Wpmf-conversions"
+            return reinterpret_cast<void *>(func_ptr);
+#pragma GCC diagnostic warning "-Wpmf-conversions"
+        }
 };
 
 // helper macors
@@ -208,28 +247,21 @@ class Wrapper: public WrapperBase
 #define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 // select macro based on the number of args (2 or 3)
-#define SELECT_MACRO(_1, _2, _3, NAME,...) NAME
+#define SELECT_MACRO(_1, _2, NAME,...) NAME
 
-/**
- * Declare wrapper for function FN with alias ALIAS. Should be used before
- * creating fake functions using MakeFake or Fake<> constructor
- */
-#define DECLARE_WRAPPER_2(FTYPE, FNAME, ALIAS) \
-    extern PowerFake::Wrapper<FTYPE> ALIAS
-
-#define DECLARE_WRAPPER_1(FN, ALIAS) DECLARE_WRAPPER_2(decltype(&FN), FN, ALIAS)
-
-#define DECLARE_WRAPPER(...) \
-    SELECT_MACRO(__VA_ARGS__, DECLARE_WRAPPER_2, DECLARE_WRAPPER_1)(__VA_ARGS__)
-
+/// If you use WRAP_FUNCTION() macros in more than a single file, you should
+/// define a different namespace for each file, otherwise 'multiple definition'
+/// errors can happen
+#ifndef POWRFAKE_WRAP_NAMESPACE
+#define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
+#endif
 
 /**
  * Define wrapper for function FN with alias ALIAS. Must be used only once for
  * each function in a cpp file.
  */
-#define WRAP_FUNCTION_2(FTYPE, FNAME, ALIAS) \
-    PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, \
-        PowerFake::PrototypeExtractor<FTYPE>::Extract(#FNAME)); \
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, &FNAME, #FNAME);\
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -262,11 +294,52 @@ class Wrapper: public WrapperBase
      * linker by bind_fakes binary. */ \
     template class wrapper_##ALIAS<FTYPE>;
 
-#define WRAP_FUNCTION_1(FN, ALIAS) WRAP_FUNCTION_2(decltype(&FN), FN, ALIAS)
+#define WRAP_FUNCTION_HELPER(A, B, C) WRAP_FUNCTION_BASE(A, B, C)
 
+/**
+ * Define a wrapper for function with type FTYPE and name FNAME.
+ */
+#define WRAP_FUNCTION_2(FTYPE, FNAME) \
+    WRAP_FUNCTION_HELPER(FTYPE, FNAME, \
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+/**
+ * Define a wrapper for function named FNAME.
+ */
+#define WRAP_FUNCTION_1(FN) WRAP_FUNCTION_2(decltype(&FN), FN)
+
+/**
+ * Define a wrapper for the given function. For normal functions, it should be
+ * called with the function name, e.g.:
+ *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
+ * For overloaded function, you need to specify the function signature so
+ * that the target function can be selected among the overloaded ones:
+ *      WRAP_FUNCTION(void (MyNameSpace::MyClass::*)(int, float),
+ *          MyNameSpace::MyClass::MyFunction)
+ */
 #define WRAP_FUNCTION(...) \
     SELECT_MACRO(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
 
+
+
+// MakeFake implementations
+template <typename Functor, typename R , typename ...Args>
+static Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f)
+{
+    typedef Wrapper<R (*)(Args...)> WrapperType;
+    return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
+}
+
+template <typename Functor, typename T, typename R , typename ...Args>
+static Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...),
+    Functor f)
+{
+    typedef Wrapper<R (T::*)(Args...)> WrapperType;
+    return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
+}
+
+
+// PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     const std::string &func_name)
