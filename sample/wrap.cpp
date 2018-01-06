@@ -15,6 +15,12 @@
 #include "functions.h"
 #include "SampleClass.h"
 
+// You can define the 'wrap namespace'
+// usually not needed, but if WRAP_FUNCTION() is used in multiple files, it
+// should be done
+#undef POWRFAKE_WRAP_NAMESPACE
+#define POWRFAKE_WRAP_NAMESPACE Folan
+
 WRAP_FUNCTION(std::string (*)(int), overloaded2);
 WRAP_FUNCTION(std::string (*)(float), overloaded2);
 WRAP_FUNCTION(void (*)(int), overloaded);
