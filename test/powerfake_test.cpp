@@ -114,7 +114,8 @@ BOOST_AUTO_TEST_CASE(WrapperTest)
     BOOST_TEST(!sample.Callable());
 
     bool called_ok;
-    auto myfake = MakeFake(sample, [&called_ok](int a){ called_ok = (a == 4); });
+    auto myfake = MakeFake((void (NsTag::*)(int))nullptr,
+        [&called_ok](int a){ called_ok = (a == 4); });
     BOOST_TEST(sample.Callable());
 
     sample.Call(nullptr, 4);
@@ -129,7 +130,8 @@ BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 
     {
         bool called_ok = false;
-        auto myfake = MakeFake(folan, [&called_ok](int a){ called_ok = (a == 4); });
+        auto myfake = MakeFake((void (*)(int))nullptr,
+            [&called_ok](int a){ called_ok = (a == 4); });
         BOOST_TEST(folan.Callable());
 
         folan.Call(4);
@@ -144,7 +146,8 @@ BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 
     {
         bool called_ok = false;
-        auto myfake = MakeFake(folan, [&called_ok](int a){ called_ok = (a == 4); });
+        auto myfake = MakeFake((TestMemberFuncType)nullptr,
+            [&called_ok](int a){ called_ok = (a == 4); });
         BOOST_TEST(folan.Callable());
 
         folan.Call(nullptr, 4);
@@ -159,8 +162,9 @@ BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
 
     {
         bool called_ok = false;
-        auto myfake = MakeFake(folan, [&called_ok](Tag *ptr, int a) {
-            called_ok = (ptr == nullptr && a == 4); });
+        auto myfake = MakeFake((TestMemberFuncType)nullptr,
+            [&called_ok](Tag *ptr, int a) {
+                called_ok = (ptr == nullptr && a == 4); });
         BOOST_TEST(folan.Callable());
 
         folan.Call(nullptr, 4);

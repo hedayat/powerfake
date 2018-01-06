@@ -45,14 +45,13 @@ void WrapperBase::AddFunction(FunctionPrototype prototype [[gnu::unused]])
     std::cout << "Add function(" << prototype.alias << "): " << prototype.return_type
             << ' ' << prototype.name << prototype.params << std::endl;
     wrapped_funcs->push_back(prototype);
-#else
+#endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["
 //            << prototype.func_key << "]: " << prototype.return_type
 //            << ' ' << prototype.name << prototype.params << std::endl;
     if (!wrappers)
         wrappers.reset(new FunctionWrappers);
     (*wrappers)[prototype.func_key] = this;
-#endif
 }
 
 }  // namespace PowerFake

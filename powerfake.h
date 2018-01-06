@@ -74,21 +74,23 @@ class Fake<Wrapper<R (T::*)(Args...)>>
 };
 
 /**
- * Helper function to make creating Fakes more conveniently.
- * (Can be eliminated in C++17)
- * @param alias the alias of the method to be faked
+ * Creates the fake object for the given function, faked with function object
+ * @p f
+ * @param func_ptr Pointer to the function to be faked
  * @param f the fake function
- * @return Fake object for faking the given function
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
  */
-template <typename T, typename Functor>
-Fake<T> MakeFake(T &alias, Functor f)
-{
-    return Fake<T>(alias, f);
-}
-
 template <typename Functor, typename R , typename ...Args>
 Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f);
 
+/**
+ * Creates the fake object for the given member function, faked with @p f
+ * @param func_ptr Pointer to the function to be faked
+ * @param f the fake function
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
+ */
 template <typename Functor, typename T, typename R , typename ...Args>
 Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...), Functor f);
 
@@ -99,13 +101,15 @@ struct FunctionPrototype
 {
     FunctionPrototype(std::string ret, std::string name, std::string params,
         std::string alias = "") :
-            return_type(ret), name(name), params(params), alias(alias), func_key(nullptr)
+            return_type(ret), name(name), params(params), alias(alias),
+            func_key(nullptr)
     {
     }
     FunctionPrototype(std::string ret, std::string name, std::string params,
         void *fn_key,
         std::string alias = "") :
-            return_type(ret), name(name), params(params), alias(alias), func_key(fn_key)
+            return_type(ret), name(name), params(params), alias(alias),
+            func_key(fn_key)
     {
     }
     std::string return_type;
@@ -241,49 +245,54 @@ class Wrapper: public WrapperBase
 #define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 // select macro based on the number of args (2 or 3)
-#define SELECT_MACRO(_1, _2, _3, NAME,...) NAME
+#define SELECT_MACRO(_1, _2, NAME,...) NAME
 
+#define CAT2(A, B) A##B
+#define CAT(A, B) CAT2(A, B)
+
+#define STRR2(A) #A
+#define STRR(A) STRR2(A)
 
 /**
  * Define wrapper for function FN with alias ALIAS. Must be used only once for
  * each function in a cpp file.
  */
-#define WRAP_FUNCTION_2(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, \
+#define WRAP_FUNCTION_2(FTYPE, FNAME) \
+    static PowerFake::Wrapper<FTYPE> CAT(wrapper_obj_, __LINE__)(STRR(CAT(alias_, __LINE__)), \
         PowerFake::PrototypeExtractor<FTYPE>::Extract(&FNAME, #FNAME)) ;\
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
-    template <typename T> struct wrapper_##ALIAS; \
+    template <typename T> struct CAT(wrapper_,__LINE__); \
     template <typename T, typename R , typename ...Args> \
-    struct wrapper_##ALIAS<R (T::*)(Args...)> \
+    struct CAT(wrapper_,__LINE__)<R (T::*)(Args...)> \
     { \
-        static R TMP_WRAPPER_NAME(ALIAS)(T *o, Args... args) \
+        static R TMP_WRAPPER_NAME(CAT(alias_, __LINE__))(T *o, Args... args) \
         { \
-            R TMP_REAL_NAME(ALIAS)(T *o, Args... args); \
-            if (ALIAS.Callable()) \
-                return ALIAS.Call(o, args...); \
-            return TMP_REAL_NAME(ALIAS)(o, args...); \
+            R TMP_REAL_NAME(CAT(alias_, __LINE__))(T *o, Args... args); \
+            if (CAT(wrapper_obj_, __LINE__).Callable()) \
+                return CAT(wrapper_obj_, __LINE__).Call(o, args...); \
+            return TMP_REAL_NAME(CAT(alias_, __LINE__))(o, args...); \
         } \
     }; \
     template <typename R , typename ...Args> \
-    struct wrapper_##ALIAS<R (*)(Args...)> \
+    struct CAT(wrapper_,__LINE__)<R (*)(Args...)> \
     { \
-        static R TMP_WRAPPER_NAME(ALIAS)(Args... args) \
+        static R TMP_WRAPPER_NAME(CAT(alias_, __LINE__))(Args... args) \
         { \
-            R TMP_REAL_NAME(ALIAS)(Args... args); \
-            if (ALIAS.Callable()) \
-                return ALIAS.Call(args...); \
-            return TMP_REAL_NAME(ALIAS)(args...); \
+            R TMP_REAL_NAME(CAT(alias_, __LINE__))(Args... args); \
+            if (CAT(wrapper_obj_, __LINE__).Callable()) \
+                return CAT(wrapper_obj_, __LINE__).Call(args...); \
+            return TMP_REAL_NAME(CAT(alias_, __LINE__))(args...); \
         } \
     }; \
-    /* Explicitly instantiate the wrapper_##ALIAS struct, so that the appropriate
+    /* Explicitly instantiate the wrapper_##LNNNO struct, so that the appropriate
      * wrapper function and real function symbol is actually generated by the
      * compiler. These symbols will be renamed to the name expected by 'ld'
      * linker by bind_fakes binary. */ \
-    template class wrapper_##ALIAS<FTYPE>;
+    template class CAT(wrapper_,__LINE__)<FTYPE>;
 
-#define WRAP_FUNCTION_1(FN, ALIAS) WRAP_FUNCTION_2(decltype(&FN), FN, ALIAS)
+#define WRAP_FUNCTION_1(FN) WRAP_FUNCTION_2(decltype(&FN), FN)
 
 #define WRAP_FUNCTION(...) \
     SELECT_MACRO(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
@@ -294,14 +303,16 @@ class Wrapper: public WrapperBase
 template <typename Functor, typename R , typename ...Args>
 static Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f)
 {
-    return MakeFake(WrapperBase::WrapperObject(func_ptr), f);
+    return Fake<Wrapper<R (*)(Args...)>>(WrapperBase::WrapperObject(func_ptr),
+        f);
 }
 
 template <typename Functor, typename T, typename R , typename ...Args>
 static Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...),
     Functor f)
 {
-    return MakeFake(WrapperBase::WrapperObject(func_ptr), f);
+    return Fake<Wrapper<R (T::*)(Args...)>>(
+        WrapperBase::WrapperObject(func_ptr), f);
 }
 
 
