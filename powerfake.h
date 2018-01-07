@@ -73,6 +73,9 @@ class Fake<Wrapper<R (T::*)(Args...)>>
         typename WT::FakeType orig_fake;
 };
 
+template <typename FuncType>
+using FakeType = Fake<Wrapper<FuncType>>;
+
 /**
  * Creates the fake object for the given function, faked with function object
  * @p f

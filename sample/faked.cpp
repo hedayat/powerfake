@@ -19,6 +19,14 @@
 using namespace std;
 using namespace PowerFake;
 
+// Sample showing how MakeFake can be used inside struct/classes, since
+// auto is not allowed here
+struct SampleStruct
+{
+        FakeType<decltype(&normal_func)> normal_fake =
+                MakeFake(normal_func, [this](int) {});
+        FakeType<void (*)(int)> ov = MakeFake((void (*)(int)) overloaded, [](int){});
+};
 
 void FakeOverloaded()
 {
