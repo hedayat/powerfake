@@ -46,15 +46,7 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
     // todo: probably use a more efficient code, e.g. using a map
     for (auto func : protos)
     {
-        regex special_chars(R"([-[\]{}()*+?.,\^$|#\s])");
-        const string escaped_params = regex_replace(func.params, special_chars,
-            R"(\$&)");
-
-        // signature might contain an abi tag, e.g. func[abi:cxx11](int)
-        regex r("(" + func.return_type + " )?" + func.name + "(\\[.*\\])?"
-            + escaped_params);
-        auto lookup = (demangled == func.name) || regex_match(demangled, r);
-        if (lookup)
+        if (IsSameFunction(demangled, func))
         {
             const string sig = func.name + func.params;
             auto inserted = sym_map.insert(make_pair(func.alias, symbol_name));
@@ -72,4 +64,21 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
             }
         }
     }
+}
+
+bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
+    const PowerFake::FunctionPrototype &proto)
+{
+    const string base_sig = proto.name + proto.params;
+    if (demangled == proto.name)
+        return true;
+    if (demangled.find(base_sig) == 0)
+        return true;
+    if (demangled == proto.return_type + ' ' + base_sig)
+        return true;
+
+    // signature might contain an abi tag, e.g. func[abi:cxx11](int)
+    return ((demangled.find(proto.name + "[") == 0
+            || demangled.find(proto.return_type + ' ' + proto.name + "[") == 0)
+            && demangled.find("]" + proto.params) != string::npos);
 }

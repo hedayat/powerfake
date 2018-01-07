@@ -33,6 +33,8 @@ class SymbolAliasMap
 
         void FindWrappedSymbol(WrapperBase::Prototypes protos,
             const std::string &demangled, const char *symbol_name);
+        bool IsSameFunction(const std::string &demangled,
+            const PowerFake::FunctionPrototype &proto);
 };
 
 
