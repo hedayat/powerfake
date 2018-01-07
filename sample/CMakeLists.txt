@@ -13,7 +13,7 @@ add_executable(bind_fakes ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 # Add flags to ignore undefined reference to __real_ function calls, which we
 # don't use
 set_property(TARGET bind_fakes APPEND PROPERTY
-    LINK_FLAGS "-Wl,--warn-unresolved-symbols -Wl,-z,lazy")
+    LINK_FLAGS "-Wl,--gc-sections")
 target_link_libraries(bind_fakes pw_bindfakes)
 ###################
 
