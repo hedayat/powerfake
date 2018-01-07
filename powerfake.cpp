@@ -28,13 +28,13 @@ namespace PowerFake
 
 // using pointers, as we can't rely on the order of construction of static
 // objects
-std::unique_ptr<WrapperBase::Prototypes> WrapperBase::wrapped_funcs = nullptr;
-std::unique_ptr<WrapperBase::FunctionWrappers> WrapperBase::wrappers = nullptr;
+WrapperBase::Prototypes *WrapperBase::wrapped_funcs = nullptr;
+WrapperBase::FunctionWrappers *WrapperBase::wrappers = nullptr;
 
 const WrapperBase::Prototypes &WrapperBase::WrappedFunctions()
 {
     if (!wrapped_funcs)
-        wrapped_funcs.reset(new Prototypes());
+        wrapped_funcs = new Prototypes();
     return *wrapped_funcs;
 }
 
@@ -44,7 +44,7 @@ void WrapperBase::AddFunction(void *func_key,
 {
 #ifdef BIND_FAKES
     if (!wrapped_funcs)
-        wrapped_funcs.reset(new Prototypes());
+        wrapped_funcs = new Prototypes();
     std::cout << "Add function(" << prototype.alias << "): " << prototype.return_type
             << ' ' << prototype.name << prototype.params << std::endl;
     wrapped_funcs->push_back(prototype);
@@ -53,7 +53,7 @@ void WrapperBase::AddFunction(void *func_key,
 //            << prototype.func_key << "]: " << prototype.return_type
 //            << ' ' << prototype.name << prototype.params << std::endl;
     if (!wrappers)
-        wrappers.reset(new FunctionWrappers);
+        wrappers = new FunctionWrappers;
     (*wrappers)[func_key] = this;
 }
 

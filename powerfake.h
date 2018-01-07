@@ -15,7 +15,6 @@
 
 #include <array>
 #include <map>
-#include <memory>
 #include <vector>
 #include <functional>
 #include <boost/core/demangle.hpp>
@@ -187,8 +186,8 @@ class WrapperBase
         void AddFunction(void *func_key, FunctionPrototype sig);
 
     private:
-        static std::unique_ptr<Prototypes> wrapped_funcs;
-        static std::unique_ptr<FunctionWrappers> wrappers;
+        static Prototypes *wrapped_funcs;
+        static FunctionWrappers *wrappers;
 };
 
 
