@@ -53,3 +53,10 @@ void SampleClass2::CallThis(int a  [[gnu::unused]])
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
+
+
+void SampleClass2::CallVirtual(int b [[gnu::unused]])
+{
+    cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+

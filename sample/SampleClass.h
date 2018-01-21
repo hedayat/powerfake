@@ -32,6 +32,8 @@ class SampleClass2: public SampleClass
 
         void DerivedFunc();
         void CallThis(int a);
+
+	virtual void CallVirtual(int b);
 };
 
 #endif /* SAMPLE_SAMPLECLASS_H_ */

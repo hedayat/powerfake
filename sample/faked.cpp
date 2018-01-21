@@ -106,6 +106,9 @@ void FakeOverloaded()
         sc2.CallThis(4);
     }
     sc2.CallThis(4);
+
+    auto vfk = MakeFake(&SampleClass2::CallVirtual, [](int) { cout << "Faked called for SampleClass2::CallVirtual" << endl; });
+    sc2.CallVirtual(6);
 }
 
 
