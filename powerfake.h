@@ -258,12 +258,14 @@ class Wrapper: public WrapperBase
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
 
+#ifndef BIND_FAKES
+
 /**
  * Define wrapper for function FN with alias ALIAS. Must be used only once for
  * each function in a cpp file.
  */
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, &FNAME, #FNAME);\
+    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, &FNAME, #FNAME); \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -295,6 +297,13 @@ class Wrapper: public WrapperBase
      * compiler. These symbols will be renamed to the name expected by 'ld'
      * linker by bind_fakes binary. */ \
     template class wrapper_##ALIAS<FTYPE>;
+
+#else // BIND_FAKES
+
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, nullptr, #FNAME);
+
+#endif
 
 #define WRAP_FUNCTION_HELPER(A, B, C) WRAP_FUNCTION_BASE(A, B, C)
 
