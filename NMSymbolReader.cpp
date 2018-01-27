@@ -13,7 +13,8 @@
 using namespace std;
 
 
-NMSymbolReader::NMSymbolReader(FILE *nm_symbol_file): in_stream(nm_symbol_file)
+NMSymbolReader::NMSymbolReader(FILE *nm_symbol_file, bool leading_underscore) :
+        in_stream(nm_symbol_file), leading_underscore(leading_underscore)
 {
     line_buf.reserve(1000);
 }
@@ -31,10 +32,14 @@ const char* NMSymbolReader::NextSymbol()
     const char *symbol_name = strrchr(nm_line, ' ');
     if (!symbol_name)
     {
-        cerr << "Unknown input from nm: " << nm_line << endl;
+        std::cerr << "Unknown input from nm: " << nm_line << std::endl;
         return nullptr;
     }
-    return ++symbol_name;
+    ++symbol_name;
+    if (leading_underscore && symbol_name[0] == '_')
+        ++symbol_name;
+
+    return symbol_name;
 }
 
 const char* NMSymbolReader::ReadLine()

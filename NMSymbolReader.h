@@ -14,13 +14,14 @@
 class NMSymbolReader
 {
     public:
-        NMSymbolReader(FILE *nm_symbol_file);
+        NMSymbolReader(FILE *nm_symbol_file, bool leading_underscore = false);
         ~NMSymbolReader();
 
         const char *NextSymbol();
 
     private:
-        FILE *in_stream = nullptr;
+        FILE *in_stream;
+        bool leading_underscore;
         std::string line_buf;
 
         const char *ReadLine();

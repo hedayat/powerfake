@@ -41,15 +41,23 @@ int main(int argc, char **argv)
 
     try
     {
+        bool leading_underscore = false;
+        int argc_inc = 0;
+        if (argv[1] == "--leading-underscore"s)
+        {
+            leading_underscore = true;
+            argc_inc = 1;
+        }
+
         vector<string> object_files;
-        for (int i = 2; i < argc; ++i)
+        for (int i = argc_inc + 2; i < argc; ++i)
             object_files.push_back(argv[i]);
 
         SymbolAliasMap symmap;
         // Found real symbols which we want to wrap
         {
-            PipeRead pipe("nm -o "s + argv[1]);
-            NMSymbolReader nm_reader(pipe.InputStream());
+            PipeRead pipe("nm -o "s + argv[argc_inc + 1]);
+            NMSymbolReader nm_reader(pipe.InputStream(), leading_underscore);
 
             const char *symbol;
             while ((symbol = nm_reader.NextSymbol()))
@@ -64,16 +72,20 @@ int main(int argc, char **argv)
                 link_flags << "-Wl,--wrap=" << syms.second << endl;
         }
 
+        const string sym_prefix = leading_underscore ? "_" : "";
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
         for (const auto &objfile: object_files)
         {
             PipeRead pipe("nm -o "s + objfile);
-            NMSymbolReader nm_reader(pipe.InputStream());
+            NMSymbolReader nm_reader(pipe.InputStream(), leading_underscore);
 
             string objcopy_params;
             const char *symbol;
             while ((symbol = nm_reader.NextSymbol()))
+            {
+                if (symbol[0] == '.')
+                    continue;
                 for (const auto &syms: symmap.Map())
                 {
                     string wrapper_name = TMP_WRAPPER_NAME_STR(syms.first);
@@ -83,17 +95,20 @@ int main(int argc, char **argv)
                     {
                         cout << "Found wrapper symbol to replace: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        objcopy_params += " --redefine-sym " + symbol_str + "=__wrap_"
+                        objcopy_params += " --redefine-sym " + sym_prefix
+                                + symbol_str + "=" + sym_prefix + "__wrap_"
                                 + syms.second;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
                         cout << "Found real symbol to replace: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        objcopy_params += " --redefine-sym " + symbol_str + "=__real_"
+                        objcopy_params += " --redefine-sym " + sym_prefix
+                                + symbol_str + "=" + sym_prefix + "__real_"
                                 + syms.second;
                     }
                 }
+            }
             if (!objcopy_params.empty())
             {
                 string cmd = "objcopy" + objcopy_params + ' ' + objfile;
