@@ -2,7 +2,12 @@
  * NMSymbolReader.h
  *
  *  Created on: ۷ بهمن ۱۳۹۶
- *      Author: Hedayat Vatankhah
+ *
+ *  Copyright Hedayat Vatankhah 2018.
+ *
+ *  Distributed under the Boost Software License, Version 1.0.
+ *     (See accompanying file LICENSE_1_0.txt or copy at
+ *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
 #ifndef NMSYMBOLREADER_H_
@@ -11,20 +16,19 @@
 #include <stdio.h>
 #include <string>
 
+#include "Reader.h"
+
 class NMSymbolReader
 {
     public:
-        NMSymbolReader(FILE *nm_symbol_file, bool leading_underscore = false);
+        NMSymbolReader(Reader *reader, bool leading_underscore = false);
         ~NMSymbolReader();
 
         const char *NextSymbol();
 
     private:
-        FILE *in_stream;
+        Reader *reader;
         bool leading_underscore;
-        std::string line_buf;
-
-        const char *ReadLine();
 };
 
 #endif /* NMSYMBOLREADER_H_ */

@@ -2,7 +2,12 @@
  * NMSymbolReader.cpp
  *
  *  Created on: ۷ بهمن ۱۳۹۶
- *      Author: Hedayat Vatankhah
+ *
+ *  Copyright Hedayat Vatankhah 2018.
+ *
+ *  Distributed under the Boost Software License, Version 1.0.
+ *     (See accompanying file LICENSE_1_0.txt or copy at
+ *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
 #include "NMSymbolReader.h"
@@ -13,10 +18,9 @@
 using namespace std;
 
 
-NMSymbolReader::NMSymbolReader(FILE *nm_symbol_file, bool leading_underscore) :
-        in_stream(nm_symbol_file), leading_underscore(leading_underscore)
+NMSymbolReader::NMSymbolReader(Reader *reader, bool leading_underscore) :
+        reader(reader), leading_underscore(leading_underscore)
 {
-    line_buf.reserve(1000);
 }
 
 NMSymbolReader::~NMSymbolReader()
@@ -25,7 +29,7 @@ NMSymbolReader::~NMSymbolReader()
 
 const char* NMSymbolReader::NextSymbol()
 {
-    const char *nm_line = ReadLine();
+    const char *nm_line = reader->ReadLine();
     if (!nm_line)
         return nullptr;
 
@@ -40,15 +44,4 @@ const char* NMSymbolReader::NextSymbol()
         ++symbol_name;
 
     return symbol_name;
-}
-
-const char* NMSymbolReader::ReadLine()
-{
-    line_buf.clear();
-    int ch;
-    while ((ch = getc(in_stream)) != EOF && ch != '\n')
-        line_buf += static_cast<char>(ch);
-    if (line_buf.empty())
-        return nullptr;
-    return line_buf.c_str();
 }

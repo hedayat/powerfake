@@ -3,7 +3,7 @@
  *
  *  Created on: ۱۱ مهر ۱۳۹۶
  *
- *  Copyright Hedayat Vatankhah 2017.
+ *  Copyright Hedayat Vatankhah 2017, 2018.
  *
  *  Distributed under the Boost Software License, Version 1.0.
  *     (See accompanying file LICENSE_1_0.txt or copy at
@@ -11,7 +11,7 @@
  */
 
 #include "powerfake.h"
-#include "piperead.h"
+#include "Reader.h"
 #include "NMSymbolReader.h"
 
 #include <type_traits>
@@ -172,30 +172,30 @@ BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
     BOOST_TEST(!folan.Callable());
 }
 
-//BOOST_AUTO_TEST_CASE(PipeReadTest)
-//{
-//    PipeRead pr("echo 'hi\nhoy\nhey'");
-//
-//    const char *line = pr.ReadLine();
-//    BOOST_TEST(line);
-//    BOOST_TEST(line == "hi"s);
-//
-//    line = pr.ReadLine();
-//    BOOST_TEST(line);
-//    BOOST_TEST(line == "hoy"s);
-//
-//    line = pr.ReadLine();
-//    BOOST_TEST(line);
-//    BOOST_TEST(line == "hey"s);
-//
-//    line = pr.ReadLine();
-//    BOOST_TEST(!line);
-//}
+BOOST_AUTO_TEST_CASE(PipeReadTest)
+{
+    PipeReader pr("echo 'hi\nhoy\nhey'");
+
+    const char *line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hi"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hoy"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(line);
+    BOOST_TEST(line == "hey"s);
+
+    line = pr.ReadLine();
+    BOOST_TEST(!line);
+}
 
 BOOST_FIXTURE_TEST_CASE(NMReaderTest, SampleLibConfig)
 {
-    PipeRead pipe("nm -o " + sample_lib);
-    NMSymbolReader nr(pipe.InputStream());
+    PipeReader pipe("nm -o " + sample_lib);
+    NMSymbolReader nr(&pipe);
 
     string symbols[4];
     for (int i = 0; i < 4; ++i)

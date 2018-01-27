@@ -3,7 +3,7 @@
  *
  *  Created on: ۲۶ شهریور ۱۳۹۶
  *
- *  Copyright Hedayat Vatankhah 2017.
+ *  Copyright Hedayat Vatankhah 2017, 2018.
  *
  *  Distributed under the Boost Software License, Version 1.0.
  *     (See accompanying file LICENSE_1_0.txt or copy at
@@ -13,10 +13,10 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <boost/core/demangle.hpp>
 
 #include "powerfake.h"
-#include "piperead.h"
 #include "NMSymbolReader.h"
 #include "SymbolAliasMap.h"
 
@@ -27,6 +27,10 @@
 
 using namespace std;
 using namespace PowerFake;
+
+
+string NMCommand(string objfile);
+Reader *GetReader(bool passive, string file);
 
 
 int main(int argc, char **argv)
@@ -41,12 +45,24 @@ int main(int argc, char **argv)
 
     try
     {
+        bool passive_mode = false;
         bool leading_underscore = false;
         int argc_inc = 0;
-        if (argv[1] == "--leading-underscore"s)
+
+        for (int i = 1; i < argc; ++i)
         {
-            leading_underscore = true;
-            argc_inc = 1;
+            if (argv[i] == "--leading-underscore"s)
+            {
+                leading_underscore = true;
+                argc_inc++;
+            }
+            else if (argv[i] == "--passive"s)
+            {
+                passive_mode = true;
+                argc_inc++;
+            }
+            else
+                break;
         }
 
         vector<string> object_files;
@@ -56,8 +72,9 @@ int main(int argc, char **argv)
         SymbolAliasMap symmap;
         // Found real symbols which we want to wrap
         {
-            PipeRead pipe("nm -o "s + argv[argc_inc + 1]);
-            NMSymbolReader nm_reader(pipe.InputStream(), leading_underscore);
+            unique_ptr<Reader> reader(GetReader(passive_mode,
+                argv[argc_inc + 1]));
+            NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             const char *symbol;
             while ((symbol = nm_reader.NextSymbol()))
@@ -77,8 +94,8 @@ int main(int argc, char **argv)
         // by ld linker
         for (const auto &objfile: object_files)
         {
-            PipeRead pipe("nm -o "s + objfile);
-            NMSymbolReader nm_reader(pipe.InputStream(), leading_underscore);
+            unique_ptr<Reader> reader(GetReader(passive_mode, objfile));
+            NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             string objcopy_params;
             const char *symbol;
@@ -109,7 +126,14 @@ int main(int argc, char **argv)
                     }
                 }
             }
-            if (!objcopy_params.empty())
+            if (passive_mode)
+            {
+                // Create powerfake.link_flags containing link flags for linking
+                // test binary
+                ofstream objcopy_params_file(objfile + ".objcopy_params");
+                objcopy_params_file << objcopy_params << endl;
+            }
+            else if (!objcopy_params.empty())
             {
                 string cmd = "objcopy" + objcopy_params + ' ' + objfile;
                 system(cmd.c_str());
@@ -124,4 +148,15 @@ int main(int argc, char **argv)
     }
 
     return 0;
+}
+
+string NMCommand(string objfile)
+{
+    return "nm -o " + objfile;
+}
+
+Reader *GetReader(bool passive, string file)
+{
+    if (passive) return new FileReader(file);
+    return new PipeReader(NMCommand(file));
 }
