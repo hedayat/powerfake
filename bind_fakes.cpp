@@ -16,7 +16,8 @@
 #include <boost/core/demangle.hpp>
 
 #include "powerfake.h"
-#include "nmreader.h"
+#include "piperead.h"
+#include "NMSymbolReader.h"
 #include "SymbolAliasMap.h"
 
 #define TO_STR(a) #a
@@ -47,7 +48,8 @@ int main(int argc, char **argv)
         SymbolAliasMap symmap;
         // Found real symbols which we want to wrap
         {
-            NMReader nm_reader(argv[1]);
+            PipeRead pipe("nm -o "s + argv[1]);
+            NMSymbolReader nm_reader(pipe.InputStream());
 
             const char *symbol;
             while ((symbol = nm_reader.NextSymbol()))
@@ -66,7 +68,8 @@ int main(int argc, char **argv)
         // by ld linker
         for (const auto &objfile: object_files)
         {
-            NMReader nm_reader(objfile);
+            PipeRead pipe("nm -o "s + objfile);
+            NMSymbolReader nm_reader(pipe.InputStream());
 
             string objcopy_params;
             const char *symbol;

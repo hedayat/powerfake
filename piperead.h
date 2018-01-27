@@ -31,22 +31,10 @@ class PipeRead
             pclose(run_stream);
         }
 
-        const char *ReadLine()
-        {
-            ssize_t read = getline(&linebuf, &buf_size, run_stream);
-            if (read == -1)
-                return nullptr;
-            if (read > 0)
-                linebuf[read - 1] = '\0';
-            else // read = 0
-                linebuf[0] = '\0';
-            return linebuf;
-        }
+        FILE *InputStream() { return run_stream; }
 
     private:
         FILE *run_stream = nullptr;
-        size_t buf_size = 0;
-        char *linebuf = nullptr;
 };
 
 #endif /* POWERFAKE_PIPEREAD_H_ */

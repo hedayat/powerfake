@@ -9,11 +9,12 @@ include(${POWERFAKE_DIR}/cmake/PowerFakeFunctions.cmake)
 add_library(powerfake STATIC ${POWERFAKE_DIR}/powerfake.cpp
     ${POWERFAKE_DIR}/powerfake.h)
 
-set(pair_sources ${POWERFAKE_DIR}/powerfake ${POWERFAKE_DIR}/SymbolAliasMap)
+set(pair_sources ${POWERFAKE_DIR}/powerfake ${POWERFAKE_DIR}/SymbolAliasMap
+    ${POWERFAKE_DIR}/NMSymbolReader)
 set(powerfake_sources $<JOIN:${pair_sources},.cpp >
     ${POWERFAKE_DIR}/bind_fakes.cpp)
 set(powerfake_headers $<JOIN:${pair_sources},.h >
-    ${POWERFAKE_DIR}/nmreader.h  ${POWERFAKE_DIR}/piperead.h
+    ${POWERFAKE_DIR}/piperead.h
 )
 
 add_library(pw_bindfakes STATIC ${powerfake_sources} ${powerfake_headers})
