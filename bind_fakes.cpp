@@ -110,7 +110,7 @@ int main(int argc, char **argv)
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
-                        cout << "Found wrapper symbol to replace: " << symbol_str
+                        cout << "Found wrapper symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
                         objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
-                        cout << "Found real symbol to replace: " << symbol_str
+                        cout << "Found real symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
                         objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"

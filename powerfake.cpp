@@ -45,8 +45,9 @@ void WrapperBase::AddFunction(FunctionKey func_key,
 #ifdef BIND_FAKES
     if (!wrapped_funcs)
         wrapped_funcs = new Prototypes();
-    std::cout << "Add function(" << prototype.alias << "): " << prototype.return_type
-            << ' ' << prototype.name << prototype.params << std::endl;
+    std::cout << "Add function prototype(" << prototype.alias << "): "
+            << prototype.return_type << ' ' << prototype.name
+            << prototype.params << std::endl;
     wrapped_funcs->push_back(prototype);
 #endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["
