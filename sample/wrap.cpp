@@ -33,3 +33,4 @@ WRAP_FUNCTION(int (SampleClass::*)(int), SampleClass::OverloadedCall);
 
 WRAP_FUNCTION(void (SampleClass2::*)(int), SampleClass2::CallThis);
 WRAP_FUNCTION(SampleClass2::CallVirtual);
+WRAP_FUNCTION(VirtualSample::CallVirtual);
