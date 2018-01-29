@@ -39,7 +39,7 @@ const WrapperBase::Prototypes &WrapperBase::WrappedFunctions()
 }
 
 // TODO: GCC > 7 supports [[maybe_unused]] (C++17) for [[gnu::unused]]
-void WrapperBase::AddFunction(void *func_key,
+void WrapperBase::AddFunction(FunctionKey func_key,
     FunctionPrototype prototype [[gnu::unused]])
 {
 #ifdef BIND_FAKES

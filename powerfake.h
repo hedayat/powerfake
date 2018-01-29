@@ -17,6 +17,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include <typeindex>
 #include <boost/core/demangle.hpp>
 
 namespace PowerFake
@@ -159,7 +160,8 @@ class WrapperBase
 {
     public:
         typedef std::vector<FunctionPrototype> Prototypes;
-        typedef std::map<void *, WrapperBase *> FunctionWrappers;
+        typedef std::pair<void *, std::type_index> FunctionKey;
+        typedef std::map<FunctionKey, WrapperBase *> FunctionWrappers;
 
     public:
         /**
@@ -170,7 +172,8 @@ class WrapperBase
         /**
          * Add wrapped function prototype and alias
          */
-        WrapperBase(std::string alias, void *key, FunctionPrototype prototype)
+        WrapperBase(std::string alias, FunctionKey key,
+            FunctionPrototype prototype)
         {
             prototype.alias = alias;
             AddFunction(key, prototype);
@@ -178,12 +181,12 @@ class WrapperBase
 
     protected:
         template <typename RetType>
-        static RetType *WrapperObject(void *key)
+        static RetType *WrapperObject(FunctionKey key)
         {
             return static_cast<RetType *>((*wrappers)[key]);
         }
 
-        void AddFunction(void *func_key, FunctionPrototype sig);
+        void AddFunction(FunctionKey func_key, FunctionPrototype sig);
 
     private:
         static Prototypes *wrapped_funcs;
@@ -232,13 +235,15 @@ class Wrapper: public WrapperBase
         FakeType fake;
         friend class Fake<Wrapper>;
 
-        static void *FuncKey(FuncType func_ptr)
+        static FunctionKey FuncKey(FuncType func_ptr)
         {
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
-            return reinterpret_cast<void *>(func_ptr);
+            return std::make_pair(reinterpret_cast<void *>(func_ptr),
+                std::type_index(typeid(FuncType)));
 #pragma GCC diagnostic warning "-Wpmf-conversions"
         }
 };
+
 
 // helper macors
 #define TMP_POSTFIX         __end__
