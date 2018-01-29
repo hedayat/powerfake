@@ -17,7 +17,7 @@ set_property(TARGET bind_fakes APPEND PROPERTY
 target_link_libraries(bind_fakes pw_bindfakes)
 ###################
 
-add_library(corelib functions.cpp functions.h SampleClass.cpp SampleClass.h)
+add_library(corelib STATIC functions.cpp functions.h SampleClass.cpp SampleClass.h)
 
 set(test_sources faked.cpp)
 add_library(wrap_lib STATIC wrap.cpp)
