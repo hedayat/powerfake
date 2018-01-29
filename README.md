@@ -16,6 +16,11 @@ member functions. It is built on top of GNU Linker's --wrap option.
 * GCC & GNU Linker only
 * Currently, it provides CMake integration
 
+## Dependencies
+* GNU Linker (ld)
+* GCC
+* CMake
+* Boost Core
 
 ## Roadmap
 * Provide support for other build systems (e.g. QMake, Autotools, Meson)
