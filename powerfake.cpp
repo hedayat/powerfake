@@ -50,7 +50,9 @@ void WrapperBase::AddFunction(FunctionKey func_key,
     wrapped_funcs->push_back(prototype);
 #endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["
-//            << prototype.func_key << "]: " << prototype.return_type
+//            << func_key.first << ", "
+//            << boost::core::demangle(func_key.second.name()) << "]: "
+//            << prototype.return_type
 //            << ' ' << prototype.name << prototype.params << std::endl;
     if (!wrappers)
         wrappers = new FunctionWrappers;
