@@ -116,6 +116,10 @@ void FakeOverloaded()
     vs.CallVirtual(3);
     auto vfk2 = MakeFake(&VirtualSample::CallVirtual, [](int) { cout << "Faked called for VirtualSample::CallVirtual" << endl; });
     vs.CallVirtual(3);
+
+    cout << "\n VirtualDispatch test!\n"
+            "----------------------------------------------" << endl;
+    call_virtual_func(&vs);
 }
 
 

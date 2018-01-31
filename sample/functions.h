@@ -22,5 +22,6 @@ std::string overloaded2(float a);
 
 void normal_func(int b);
 
+void call_virtual_func(class SampleClass2 *sc);
 
 #endif /* SAMPLE_FUNCTIONS_H_ */

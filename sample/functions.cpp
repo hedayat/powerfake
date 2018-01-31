@@ -14,6 +14,7 @@
 #include "functions.h"
 
 #include <iostream>
+#include "SampleClass.h"
 
 using namespace std;
 
@@ -46,4 +47,9 @@ void normal_func(int b)
 {
     cout << "Normal function: " << __FUNCTION__ << " called with " << b
             << endl;
+}
+
+void call_virtual_func(class SampleClass2 *sc)
+{
+	sc->CallVirtual(20);
 }
