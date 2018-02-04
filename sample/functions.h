@@ -14,6 +14,7 @@
 #define SAMPLE_FUNCTIONS_H_
 
 #include <string>
+#include <memory>
 
 void overloaded(int a);
 void overloaded(float a);
@@ -23,5 +24,7 @@ std::string overloaded2(float a);
 void normal_func(int b);
 
 void call_virtual_func(class SampleClass2 *sc);
+
+std::unique_ptr<int> &non_copyable_ref();
 
 #endif /* SAMPLE_FUNCTIONS_H_ */

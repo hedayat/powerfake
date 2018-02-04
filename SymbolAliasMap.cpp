@@ -34,13 +34,17 @@ void SymbolAliasMap::AddSymbol(const char *symbol_name)
     FindWrappedSymbol(WrapperBase::WrappedFunctions(), demangled, symbol_name);
 }
 
+/**
+ * For a given symbol and its demangled name, finds corresponding prototype
+ * from @a protos set and stores the mapping
+ * @param protos all wrapped function prototypes
+ * @param demangled the demangled form of @a symbol_name
+ * @param symbol_name a symbol in the object file
+ */
 void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
     const std::string &demangled, const char *symbol_name)
 {
-    // skip decorated symbol names
-    if (strstr(symbol_name, "__PRETTY_FUNCTION__")
-            || strstr(symbol_name, "__FUNCTION__")
-            || strstr(symbol_name, "__func__"))
+    if (!IsFunction(symbol_name, demangled))
         return;
 
     // todo: probably use a more efficient code, e.g. using a map
@@ -64,6 +68,18 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
             }
         }
     }
+}
+
+bool SymbolAliasMap::IsFunction(const char *symbol_name  [[gnu::unused]],
+    const std::string &demangled)
+{
+    // detect static variables inside functions, which are demangled in
+    // this format: function_name()::static_var_name
+    auto static_var_separator = demangled.find(")::");
+    if (static_var_separator != string::npos
+            && demangled.find('(', static_var_separator) == string::npos)
+        return false;
+    return true;
 }
 
 bool SymbolAliasMap::IsSameFunction(const std::string &demangled,

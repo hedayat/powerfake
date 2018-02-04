@@ -53,3 +53,10 @@ void call_virtual_func(class SampleClass2 *sc)
 {
 	sc->CallVirtual(20);
 }
+
+std::unique_ptr<int> &non_copyable_ref()
+{
+	static std::unique_ptr<int> felfel(new int(4));
+	return felfel;
+}
+

@@ -224,6 +224,9 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         "alias3"));
     protos.push_back(FunctionPrototype("void", "A::folani", "(int)",
         "alias4"));
+    protos.push_back(FunctionPrototype(
+        "std::unique_ptr<int, std::default_delete<int> >", "non_copyable_ref",
+        "()", "some_alias"));
 
     SymbolAliasMap sm;
     sm.FindWrappedSymbol(protos, "char folan<char>(int)", "symbol_for_alias1");
@@ -232,6 +235,11 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
     sm.FindWrappedSymbol(protos, "A::folani", "symbol_for_alias4");
     sm.FindWrappedSymbol(protos, "some_nonexistent_function",
         "symbol_for_non_wrapped");
+
+    // test for ignoring static variables inside functions
+    sm.FindWrappedSymbol(protos, "non_copyable_ref()", "_Z16non_copyable_refv");
+    sm.FindWrappedSymbol(protos, "non_copyable_ref()::felfel",
+        "_ZZ16non_copyable_refvE6felfel");
 
     for (int i = 0; i < 4; ++i)
     {
