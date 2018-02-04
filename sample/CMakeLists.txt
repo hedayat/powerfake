@@ -14,7 +14,7 @@ add_executable(bind_fakes ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 # don't use
 set_property(TARGET bind_fakes APPEND PROPERTY
     LINK_FLAGS "-Wl,--gc-sections")
-target_link_libraries(bind_fakes pw_bindfakes)
+target_link_libraries(bind_fakes PowerFake::pw_bindfakes)
 ###################
 
 add_library(corelib STATIC functions.cpp functions.h SampleClass.cpp SampleClass.h)
@@ -26,5 +26,5 @@ add_library(wrap_lib STATIC wrap.cpp)
 
 # Test runner build
 add_executable(samples ${test_sources})
-target_link_libraries(samples wrap_lib corelib powerfake)
+target_link_libraries(samples wrap_lib corelib)
 bind_fakes(samples corelib wrap_lib)
