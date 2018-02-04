@@ -30,6 +30,10 @@ WRAP_FUNCTION(normal_func);
 WRAP_FUNCTION(SampleClass::CallThis);
 WRAP_FUNCTION(int (SampleClass::*)(), SampleClass::OverloadedCall);
 WRAP_FUNCTION(int (SampleClass::*)(int), SampleClass::OverloadedCall);
+WRAP_FUNCTION(SampleClass::GetIntPtr);
+WRAP_FUNCTION(SampleClass::GetIntPtrReference);
+WRAP_FUNCTION(SampleClass::GetIntPtrConstReference);
+
 
 WRAP_FUNCTION(void (SampleClass2::*)(int), SampleClass2::CallThis);
 WRAP_FUNCTION(SampleClass2::CallVirtual);

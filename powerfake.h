@@ -64,7 +64,7 @@ class Fake<Wrapper<R (T::*)(Args...)>>
             o.fake = fake;
         }
         Fake(WT &o, std::function<R (Args...)> fake): o(o), orig_fake(o.fake) {
-            o.fake = [fake](T *, Args... a) { return fake(a...); };
+            o.fake = [fake](T *, Args... a) -> R { return fake(a...); };
         }
         ~Fake() { o.fake = orig_fake; }
 

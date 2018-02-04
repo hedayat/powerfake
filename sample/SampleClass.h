@@ -13,6 +13,9 @@
 #ifndef SAMPLE_SAMPLECLASS_H_
 #define SAMPLE_SAMPLECLASS_H_
 
+#include <memory>
+
+
 class SampleClass
 {
     public:
@@ -23,6 +26,10 @@ class SampleClass
 
         int OverloadedCall();
         int OverloadedCall(int b);
+
+        std::unique_ptr<int> GetIntPtr();
+        std::unique_ptr<int> &GetIntPtrReference();
+        const std::unique_ptr<int> &GetIntPtrConstReference();
 };
 
 class SampleClass2: virtual public SampleClass

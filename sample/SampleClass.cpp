@@ -44,6 +44,26 @@ int SampleClass::OverloadedCall(int b [[gnu::unused]])
     return 0;
 }
 
+std::unique_ptr<int> SampleClass::GetIntPtr()
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+    return make_unique<int>(4);
+}
+
+std::unique_ptr<int> &SampleClass::GetIntPtrReference()
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+    static auto myuniq = make_unique<int>(4);
+    return myuniq;
+}
+
+const std::unique_ptr<int> &SampleClass::GetIntPtrConstReference()
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+    static auto myuniq = make_unique<int>(4);
+    return myuniq;
+}
+
 void SampleClass2::DerivedFunc()
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;

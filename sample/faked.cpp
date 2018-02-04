@@ -90,6 +90,23 @@ void FakeOverloaded()
         sc.OverloadedCall(2);
     }
 
+    auto intptr_fk = MakeFake(&SampleClass::GetIntPtr,
+        []() { return make_unique<int>(5); }
+    );
+
+    auto intptrref_fk = MakeFake(&SampleClass::GetIntPtrReference,
+        []() -> std::unique_ptr<int> & {
+            static auto myuniq = make_unique<int>(4);
+            return myuniq;
+        }
+    );
+    auto intptr_constref_fk = MakeFake(&SampleClass::GetIntPtrConstReference,
+        []() -> const std::unique_ptr<int> & {
+            static auto myuniq = make_unique<int>(4);
+            return myuniq;
+        }
+    );
+
     cout << "\n SampleClass2 Tests\n"
             "----------------------------------------------" << endl;
     SampleClass2 sc2;
