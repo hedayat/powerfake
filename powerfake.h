@@ -183,7 +183,11 @@ class WrapperBase
         template <typename RetType>
         static RetType *WrapperObject(FunctionKey key)
         {
-            return static_cast<RetType *>((*wrappers)[key]);
+            auto w = wrappers->find(key);
+            if (w == wrappers->end())
+                throw std::invalid_argument("Wrapped function with the given "
+                        "key not found");
+            return static_cast<RetType *>(w->second);
         }
 
         void AddFunction(FunctionKey func_key, FunctionPrototype sig);
