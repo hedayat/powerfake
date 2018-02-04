@@ -30,6 +30,8 @@ struct SampleStruct
 
 void FakeOverloaded()
 {
+    cout << "\n Free Function Tests\n"
+            "----------------------------------------------" << endl;
     overloaded(5);
     overloaded(6.0F);
 
@@ -48,6 +50,11 @@ void FakeOverloaded()
         [](int) { cout << "Fake called for normal_func(int)" << endl; }
     );
     normal_func(3);
+
+    auto refret_fk = MakeFake(non_copyable_ref, []() -> unique_ptr<int> & {
+        static unique_ptr<int> aa(new int(2));
+        return aa;
+    });
 
     cout << "\n SampleClass Tests\n"
             "----------------------------------------------" << endl;
