@@ -5,17 +5,7 @@
 include_directories(${CMAKE_SOURCE_DIR})
 
 # include(${CMAKE_SOURCE_DIR}/third_party/powerfake/EmbedPowerFake.cmake)
-
-# Use the above include() command in separate projects instead of the below block
-###################
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
-add_executable(bind_fakes ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
-# Add flags to ignore undefined reference to __real_ function calls, which we
-# don't use
-set_property(TARGET bind_fakes APPEND PROPERTY
-    LINK_FLAGS "-Wl,--gc-sections")
-target_link_libraries(bind_fakes PowerFake::pw_bindfakes)
-###################
+# Use the above include() command in separate projects
 
 add_library(corelib STATIC functions.cpp functions.h SampleClass.cpp SampleClass.h)
 
