@@ -29,6 +29,9 @@ class Wrapper;
 class FakeBase
 {
     public:
+        FakeBase() = default;
+        FakeBase(const FakeBase &) = delete;
+        FakeBase(FakeBase &&) = default;
         virtual ~FakeBase() {}
 };
 
@@ -43,6 +46,7 @@ template <typename T>
 class Fake: public FakeBase
 {
     public:
+        Fake(Fake &&) = default;
         template <typename Functor>
         Fake(T &o, Functor fake): o(o), orig_fake(o.fake) { o.fake = fake; }
         ~Fake() { o.fake = orig_fake; }
@@ -64,6 +68,7 @@ class Fake<Wrapper<R (T::*)(Args...)>>: public FakeBase
         typedef Wrapper<R (T::*)(Args...)> WT;
 
     public:
+        Fake(Fake &&) = default;
         Fake(WT &o, std::function<R(T *, Args...)> fake) :
                 o(o), orig_fake(o.fake)
         {
