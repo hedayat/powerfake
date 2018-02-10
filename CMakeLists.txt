@@ -15,6 +15,8 @@ find_package(Boost REQUIRED)
 
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
+include_directories(/home/hedayat/Projects/thirdparty_gits/c++-mocking/FakeIt/single_header/standalone)
+
 
 # =============================================================================
 if(CMAKE_COMPILER_IS_GNUCXX)

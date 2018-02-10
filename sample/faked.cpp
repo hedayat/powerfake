@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <powerfake.h>
+#include <fakeit.hpp>
 
 #include "functions.h"
 #include "SampleClass.h"
@@ -146,8 +147,69 @@ void FakeOverloaded()
     call_virtual_func(&vs);
 }
 
+void Folan();
 
 int main(/*int argc, char **argv*/)
 {
-    FakeOverloaded();
+//    FakeOverloaded();
+    Folan();
 }
+
+
+
+#include <unordered_set>
+#include <fakeit.hpp>
+#include "PowerFakeIt.h"
+using namespace fakeit;
+
+struct SomeInterface {
+        virtual int foo(int) = 0;
+        virtual int bar(string) = 0;
+};
+
+void Folan()
+{
+    try
+    {
+
+        PowerFakeIt pfk;
+
+        When(pfk.stub(normal_func)).Do([](int t){ cout << "WOW :) " << endl; });
+
+
+        normal_func(100);
+
+        Verify(pfk.stub(normal_func).Using(200)).Exactly(1);
+
+        // Instantiate a mock object.
+        Mock<SomeInterface> mock;
+
+        // Setup mock behavior.
+        When(Method(mock,foo)).Return(1); // Method mock.foo will return 1 once.
+
+        // Fetch the mock instance.
+        SomeInterface &i = mock.get();
+
+        // Will print "1".
+        cout << i.foo(0);
+    //
+    //    // Verify method mock.foo was invoked.
+    //    Verify(Method(mock,foo));
+    //
+        // Verify method mock.foo was invoked with specific arguments.
+        Verify(Method(mock,foo).Using(0));
+    }
+    catch (std::exception& e)
+    {
+        cerr << "Error: " << e.what() << endl;
+    }
+    catch (...)
+    {
+        cerr << "Unknown error" << endl;
+    }
+
+}
+
+
+
+
