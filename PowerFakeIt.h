@@ -24,8 +24,28 @@ namespace PowerFake
  */
 class PowerFakeIt: public fakeit::ActualInvocationsSource
 {
-    public:
+    private:
+        class FakeData
+        {
+            public:
+                FakeData(std::unique_ptr<FakeBase> fake,
+                    std::unique_ptr<fakeit::Destructible> recorder) :
+                        fake(fake), recorder(recorder)
+                {}
 
+                template <typename R, typename ...Args>
+                fakeit::RecordedMethodBody<R, Args...> &MethodRecorder()
+                {
+                    return static_cast<fakeit::RecordedMethodBody<R, Args...>&>(
+                            *recorder);
+                }
+
+            private:
+                std::unique_ptr<FakeBase> fake;
+                std::unique_ptr<fakeit::Destructible> recorder;
+        };
+
+    public:
         template <typename R , typename ...Args>
         fakeit::MockingContext<R, Args...> stub(R (*func_ptr)(Args...))
         {

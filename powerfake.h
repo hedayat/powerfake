@@ -26,6 +26,12 @@ namespace PowerFake
 template <typename T>
 class Wrapper;
 
+class FakeBase
+{
+    public:
+        virtual ~FakeBase() {}
+};
+
 /**
  * This class should be used to assign fake functions. It'll be released
  * automatically when destructed.
@@ -34,7 +40,7 @@ class Wrapper;
  * used for free functions and class static member functions.
  */
 template <typename T>
-class Fake
+class Fake: public FakeBase
 {
     public:
         template <typename Functor>
@@ -52,7 +58,7 @@ class Fake
  * normal fakes which do.
  */
 template <typename T, typename R , typename ...Args>
-class Fake<Wrapper<R (T::*)(Args...)>>
+class Fake<Wrapper<R (T::*)(Args...)>>: public FakeBase
 {
     private:
         typedef Wrapper<R (T::*)(Args...)> WT;
