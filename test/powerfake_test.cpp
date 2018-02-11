@@ -178,15 +178,15 @@ BOOST_AUTO_TEST_CASE(PipeReadTest)
 
     const char *line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hi"s);
+    BOOST_TEST(line == "hi");
 
     line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hoy"s);
+    BOOST_TEST(line == "hoy");
 
     line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hey"s);
+    BOOST_TEST(line == "hey");
 
     line = pr.ReadLine();
     BOOST_TEST(!line);

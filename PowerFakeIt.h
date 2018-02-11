@@ -28,13 +28,9 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         class FakeData
         {
             public:
-                FakeData() {}
-                FakeData(fakeit::Destructible *recorder) :
-                        recorder(recorder)
-                {}
-                FakeData(std::unique_ptr<FakeBase> fake,
-                    std::unique_ptr<fakeit::Destructible> recorder) :
-                        fake(std::move(fake)), recorder(std::move(recorder))
+                FakeData(FakeBase *fake,
+                    fakeit::Destructible *recorder) :
+                        fake(fake), recorder(recorder)
                 {}
 
                 template <typename R, typename ...Args>
@@ -59,14 +55,21 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         template <typename R , typename ...Args>
         fakeit::MockingContext<R, Args...> stub(R (*func_ptr)(Args...))
         {
-            static auto fk = MakeFake(func_ptr,
-                [this, func_ptr](Args... args) {
-                    fakeit::RecordedMethodBody<R, Args...> &recorder =
-                                    mocked[FuncKey(func_ptr)].template MethodRecorder<R, Args...>();
-                    recorder.handleMethodInvocation(args...);
-            });
+            auto f_key = FuncKey(func_ptr);
+            auto mocked_it = mocked.find(f_key);
+            if (mocked_it == mocked.end())
+            {
+                auto recorder = createRecordedMethodBody<R, Args...>(*this,
+                        std::string(typeid(func_ptr).name()));
+                auto fake_ptr = new auto( MakeFake(func_ptr,
+                    [recorder](Args... args) {
+                        recorder->handleMethodInvocation(args...);
+                    }) );
+                auto ins = mocked.insert({f_key, FakeData(fake_ptr, recorder)});
+                mocked_it = ins.first;
+            }
             return fakeit::MockingContext<R, Args...>(
-                new MethodMockingContextImpl<R, Args...>(*this, func_ptr));
+                new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
         template <typename T, typename R , typename ...Args>
@@ -171,37 +174,18 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         class MethodMockingContextImpl: public MethodMockingContextBase<R, Args...>
         {
             public:
-                MethodMockingContextImpl(PowerFakeIt &mock, R (*func_ptr)(Args...)) :
+                MethodMockingContextImpl(PowerFakeIt &mock, FakeData &fake) :
                         MethodMockingContextBase<R, Args...>(mock),
-                        f_key(FuncKey(func_ptr)),
-                        method_name(typeid(func_ptr).name())
-                {
-                }
-
-                template <typename T>
-                MethodMockingContextImpl(PowerFakeIt &mock, R (T::*func_ptr)(Args...)) :
-                        MethodMockingContextBase<R, Args...>(mock),
-                        f_key(FuncKey(func_ptr)),
-                        method_name(typeid(func_ptr).name())
+                        fake(fake)
                 {
                 }
 
             protected:
-                WrapperBase::FunctionKey f_key;
-                std::string method_name;
+                FakeData &fake;
 
                 virtual fakeit::RecordedMethodBody<R, Args...> &getRecordedMethodBody() override
                 {
-                    auto k = this->_mock.mocked.find(f_key);
-                    if (k == this->_mock.mocked.end())
-                    {
-                        auto j = this->_mock.mocked.insert(
-                            make_pair(f_key,
-                                FakeData(createRecordedMethodBody<R, Args...>(
-                                        this->_mock, method_name))));
-                        k = j.first;
-                    }
-                    return k->second.template MethodRecorder<R, Args...>();
+                    return fake.template MethodRecorder<R, Args...>();
                 }
 
                 virtual std::function<R(Args&...)> getOriginalMethod() override
