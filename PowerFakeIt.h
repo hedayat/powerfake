@@ -75,8 +75,21 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         template <typename T, typename R , typename ...Args>
         fakeit::MockingContext<R, Args...> stub(R (T::*func_ptr)(Args...))
         {
+            auto f_key = FuncKey(func_ptr);
+            auto mocked_it = mocked.find(f_key);
+            if (mocked_it == mocked.end())
+            {
+                auto recorder = createRecordedMethodBody<R, Args...>(*this,
+                        std::string(typeid(func_ptr).name()));
+                auto fake_ptr = new auto( MakeFake(func_ptr,
+                    [recorder](Args... args) {
+                        recorder->handleMethodInvocation(args...);
+                    }) );
+                auto ins = mocked.insert({f_key, FakeData(fake_ptr, recorder)});
+                mocked_it = ins.first;
+            }
             return fakeit::MockingContext<R, Args...>(
-                new MethodMockingContextImpl<R, Args...>(*this, func_ptr));
+                new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
 
