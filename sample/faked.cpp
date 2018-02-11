@@ -167,6 +167,7 @@ struct SomeInterface {
         virtual int bar(string) = 0;
 };
 
+
 void Folan()
 {
     try
@@ -174,12 +175,19 @@ void Folan()
 
         PowerFakeIt pfk;
 
-        When(pfk.stub(normal_func)).Do([](int t){ cout << "WOW :) " << endl; });
+        When(pfk.stub(normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
 
 
         normal_func(100);
 
-        Verify(pfk.stub(normal_func).Using(200)).Exactly(1);
+        Verify(Function(pfk, normal_func).Using(200)).Exactly(1);
+
+        When(pfk.stub(&SampleClass::CallThis)).Do([]() { cout << "WOW2" << endl; });
+
+        SampleClass s;
+        s.CallThis();
+
+        Verify(pfk.stub(&SampleClass::CallThis)).Exactly(2);
 
         // Instantiate a mock object.
         Mock<SomeInterface> mock;

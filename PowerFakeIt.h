@@ -16,6 +16,11 @@
 #include <fakeit.hpp>
 #include "powerfake.h"
 
+
+#define Function(power_mock, function) \
+        power_mock.stub(&function).setMethodDetails(#power_mock,#function)
+
+
 namespace PowerFake
 {
 
