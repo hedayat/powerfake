@@ -27,6 +27,7 @@ namespace PowerFake
 /**
  * FakeIt integration for PowerFake
  */
+template <typename Class = void>
 class PowerFakeIt: public fakeit::ActualInvocationsSource
 {
     private:
@@ -119,6 +120,15 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         fakeit::FakeitContext &getFakeIt()
         {
             return Fakeit;
+        }
+
+        // Method() macro compatibility
+        Class get();
+
+        template<int id, typename R, typename T, typename ...Args>
+        fakeit::MockingContext<R, Args...> stub(R (T::*func_ptr)(Args...))
+        {
+            return stub(func_ptr);
         }
 
     private:

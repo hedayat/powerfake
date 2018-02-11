@@ -173,21 +173,22 @@ void Folan()
     try
     {
 
-        PowerFakeIt pfk;
+        PowerFakeIt<> pfk;
 
         When(pfk.stub(normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
 
 
         normal_func(100);
 
-        Verify(Function(pfk, normal_func).Using(200)).Exactly(1);
+        Verify(Function(pfk, normal_func).Using(100)).Exactly(1);
 
-        When(pfk.stub(&SampleClass::CallThis)).Do([]() { cout << "WOW2" << endl; });
+        PowerFakeIt<SampleClass> pfk2;
+        When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
 
         SampleClass s;
         s.CallThis();
 
-        Verify(pfk.stub(&SampleClass::CallThis)).Exactly(2);
+        Verify(Method(pfk2, CallThis)).Exactly(2);
 
         // Instantiate a mock object.
         Mock<SomeInterface> mock;
