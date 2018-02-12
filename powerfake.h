@@ -416,8 +416,9 @@ static Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...),
     return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
 }
 
-template <typename Functor, typename MemFuncType>
-static auto MakeFake(MemFuncType func_ptr, Functor f)
+// swallow cv-qualificatin from PMFs
+template <typename Functor, typename R, typename T>
+static auto MakeFake(R (T::*func_ptr), Functor f)
 {
     return MakeFake(internal::unify_pmf(func_ptr), f);
 }

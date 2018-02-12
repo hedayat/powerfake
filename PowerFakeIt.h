@@ -98,8 +98,9 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                 new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
-        template <typename PMFType>
-        auto stub(PMFType func_ptr)
+        // swallow cv-qualified PMF types
+        template <typename T, typename R>
+        auto stub(R (T::*func_ptr))
         {
             return stub(internal::unify_pmf(func_ptr));
         }
