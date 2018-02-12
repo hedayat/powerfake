@@ -126,9 +126,10 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         Class get();
 
         template<int id, typename R, typename T, typename ...Args>
-        fakeit::MockingContext<R, Args...> stub(R (T::*func_ptr)(Args...))
+        fakeit::MockingContext<R, Args...> stub(R (T::*func_ptr)(Args...) const)
         {
-            return stub(func_ptr);
+            typedef R (T::*tp)(Args...);
+            return stub(reinterpret_cast<PowerFake::internal::normalize_funcptr_t<tp>>(func_ptr));
         }
 
     private:

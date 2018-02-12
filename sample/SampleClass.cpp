@@ -27,7 +27,7 @@ SampleClass::~SampleClass()
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
 
-void SampleClass::CallThis()
+void SampleClass::CallThis() const
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
