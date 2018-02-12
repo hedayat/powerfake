@@ -98,6 +98,12 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                 new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
+        // swallow cv-qualified PMF types
+        template <typename T, typename R>
+        auto stub(R (T::*func_ptr))
+        {
+            return stub(internal::unify_pmf(func_ptr));
+        }
 
         void getActualInvocations(
             std::unordered_set<fakeit::Invocation *> &into) const override
@@ -125,10 +131,11 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         // Method() macro compatibility
         Class get();
 
-        template<int id, typename R, typename T, typename ...Args>
-        fakeit::MockingContext<R, Args...> stub(R (T::*func_ptr)(Args...))
+        template<int id, typename R, typename C,
+            typename = typename std::enable_if_t<std::is_same<Class, C>::value>>
+        auto stub(R (C::*func_ptr))
         {
-            return stub(func_ptr);
+            return stub(internal::unify_pmf(func_ptr));
         }
 
     private:

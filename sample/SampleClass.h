@@ -22,7 +22,7 @@ class SampleClass
         SampleClass();
         ~SampleClass();
 
-        void CallThis();
+        void CallThis() const;
 
         int OverloadedCall();
         int OverloadedCall(int b);
