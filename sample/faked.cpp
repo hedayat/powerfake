@@ -159,7 +159,7 @@ int main(/*int argc, char **argv*/)
 
 #include <unordered_set>
 #include <fakeit.hpp>
-#include "PowerFakeIt.h"
+#include <fakeit/powerfakeit.h>
 using namespace fakeit;
 
 struct SomeInterface {
@@ -188,7 +188,7 @@ void Folan()
         SampleClass s;
         s.CallThis();
 
-        Verify(Method(pfk2, CallThis)).Exactly(2);
+        Verify(Method(pfk2, CallThis)).Exactly(1);
 
         // Instantiate a mock object.
         Mock<SomeInterface> mock;
@@ -218,7 +218,3 @@ void Folan()
     }
 
 }
-
-
-
-

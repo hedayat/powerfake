@@ -10,8 +10,8 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef POWERFAKEIT_H_
-#define POWERFAKEIT_H_
+#ifndef FAKEIT_POWERFAKEIT_H_
+#define FAKEIT_POWERFAKEIT_H_
 
 #include <fakeit.hpp>
 #include "powerfake.h"
@@ -232,5 +232,5 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
 
 } /* namespace PowerFake */
 
-#endif /* POWERFAKEIT_H_ */
+#endif /* FAKEIT_POWERFAKEIT_H_ */
 
