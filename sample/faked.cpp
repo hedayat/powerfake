@@ -12,7 +12,12 @@
 
 #include <iostream>
 #include <powerfake.h>
+
+#ifdef ENABLE_FAKEIT
 #include <fakeit.hpp>
+#include <fakeit/powerfakeit.h>
+using namespace fakeit;
+#endif
 
 #include "functions.h"
 #include "SampleClass.h"
@@ -28,6 +33,18 @@ struct SampleStruct
                 MakeFake(normal_func, [this](int) {});
         FakeType<void (*)(int)> ov = MakeFake((void (*)(int)) overloaded, [](int){});
 };
+
+
+void FakeOverloaded();
+void FakeItSamples();
+
+int main(/*int argc, char **argv*/)
+{
+    FakeOverloaded();
+    FakeItSamples();
+}
+
+
 
 void FakeOverloaded()
 {
@@ -147,35 +164,16 @@ void FakeOverloaded()
     call_virtual_func(&vs);
 }
 
-void Folan();
 
-int main(/*int argc, char **argv*/)
+void FakeItSamples()
 {
-//    FakeOverloaded();
-    Folan();
-}
-
-
-
-#include <unordered_set>
-#include <fakeit.hpp>
-#include <fakeit/powerfakeit.h>
-using namespace fakeit;
-
-struct SomeInterface {
-        virtual int foo(int) = 0;
-        virtual int bar(string) = 0;
-};
-
-
-void Folan()
-{
+#ifdef ENABLE_FAKEIT
     try
     {
 
         PowerFakeIt<> pfk;
 
-        When(pfk.stub(normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
+        When(Function(pfk, normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
 
 
         normal_func(100);
@@ -189,24 +187,6 @@ void Folan()
         s.CallThis();
 
         Verify(Method(pfk2, CallThis)).Exactly(1);
-
-        // Instantiate a mock object.
-        Mock<SomeInterface> mock;
-
-        // Setup mock behavior.
-        When(Method(mock,foo)).Return(1); // Method mock.foo will return 1 once.
-
-        // Fetch the mock instance.
-        SomeInterface &i = mock.get();
-
-        // Will print "1".
-        cout << i.foo(0);
-    //
-    //    // Verify method mock.foo was invoked.
-    //    Verify(Method(mock,foo));
-    //
-        // Verify method mock.foo was invoked with specific arguments.
-        Verify(Method(mock,foo).Using(0));
     }
     catch (std::exception& e)
     {
@@ -217,5 +197,5 @@ void Folan()
         cerr << "Unknown error" << endl;
     }
 
-
+#endif
 }
