@@ -5,6 +5,7 @@
 include_directories(${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/third_party/boost_test)
 
+
 set(test_sources test_main.cpp powerfake_test.cpp)
 
 # Create a sample library, to test symbol processing in powerfake

@@ -13,6 +13,12 @@
 #include <iostream>
 #include <powerfake.h>
 
+#ifdef ENABLE_FAKEIT
+#include <fakeit.hpp>
+#include <fakeit/powerfakeit.h>
+using namespace fakeit;
+#endif
+
 #include "functions.h"
 #include "SampleClass.h"
 
@@ -27,6 +33,18 @@ struct SampleStruct
                 MakeFake(normal_func, [this](int) {});
         FakeType<void (*)(int)> ov = MakeFake((void (*)(int)) overloaded, [](int){});
 };
+
+
+void FakeOverloaded();
+void FakeItSamples();
+
+int main(/*int argc, char **argv*/)
+{
+    FakeOverloaded();
+    FakeItSamples();
+}
+
+
 
 void FakeOverloaded()
 {
@@ -147,7 +165,37 @@ void FakeOverloaded()
 }
 
 
-int main(/*int argc, char **argv*/)
+void FakeItSamples()
 {
-    FakeOverloaded();
+#ifdef ENABLE_FAKEIT
+    try
+    {
+
+        PowerFakeIt<> pfk;
+
+        When(Function(pfk, normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
+
+
+        normal_func(100);
+
+        Verify(Function(pfk, normal_func).Using(100)).Exactly(1);
+
+        PowerFakeIt<SampleClass> pfk2;
+        When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
+
+        SampleClass s;
+        s.CallThis();
+
+        Verify(Method(pfk2, CallThis)).Exactly(1);
+    }
+    catch (std::exception& e)
+    {
+        cerr << "Error: " << e.what() << endl;
+    }
+    catch (...)
+    {
+        cerr << "Unknown error" << endl;
+    }
+
+#endif
 }

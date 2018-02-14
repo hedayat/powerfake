@@ -73,12 +73,17 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
 bool SymbolAliasMap::IsFunction(const char *symbol_name  [[gnu::unused]],
     const std::string &demangled)
 {
+
     // detect static variables inside functions, which are demangled in
-    // this format: function_name()::static_var_name
-    auto static_var_separator = demangled.find(")::");
-    if (static_var_separator != string::npos
-            && demangled.find('(', static_var_separator) == string::npos)
-        return false;
+    // this format: function_name()[ cv-qualification]::static_var_name
+    auto params_end = demangled.rfind(')');
+    if (params_end != string::npos)
+    {
+        auto static_var_separator = demangled.find("::", params_end);
+        if (static_var_separator != string::npos
+                && demangled.find('(', static_var_separator) == string::npos)
+            return false;
+    }
     return true;
 }
 

@@ -178,15 +178,15 @@ BOOST_AUTO_TEST_CASE(PipeReadTest)
 
     const char *line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hi"s);
+    BOOST_TEST(line == "hi");
 
     line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hoy"s);
+    BOOST_TEST(line == "hoy");
 
     line = pr.ReadLine();
     BOOST_TEST(line);
-    BOOST_TEST(line == "hey"s);
+    BOOST_TEST(line == "hey");
 
     line = pr.ReadLine();
     BOOST_TEST(!line);
@@ -240,6 +240,8 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
     sm.FindWrappedSymbol(protos, "non_copyable_ref()", "_Z16non_copyable_refv");
     sm.FindWrappedSymbol(protos, "non_copyable_ref()::felfel",
         "_ZZ16non_copyable_refvE6felfel");
+    sm.FindWrappedSymbol(protos, "non_copyable_ref() const::felfel",
+        "_ZZ16non_copyable_refvE6felfel2");
 
     for (int i = 0; i < 4; ++i)
     {
