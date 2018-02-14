@@ -15,7 +15,6 @@ find_package(Boost REQUIRED)
 
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
-include_directories(/home/hedayat/Projects/thirdparty_gits/c++-mocking/FakeIt/single_header/standalone)
 
 
 # =============================================================================
@@ -44,8 +43,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} $ENV{CXXFLAGS} ${EXTRA_FLAGS}")
 
 # =============================================================================
 
-include_directories(${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/third_party/boost_test)
+include_directories(${CMAKE_SOURCE_DIR})
 
 include(EmbedPowerFake.cmake)
 
@@ -66,7 +64,8 @@ install(TARGETS powerfake pw_bindfakes EXPORT PowerFakeTargets
     INCLUDES DESTINATION include
 )
 
-install(FILES powerfake.h DESTINATION include)
+install(FILES powerfake.h DESTINATION include/powerfake)
+install(DIRECTORY fakeit DESTINATION include/powerfake)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(

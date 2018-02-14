@@ -3,8 +3,6 @@
 #             http://www.boost.org/LICENSE_1_0.txt)
 
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(/home/hedayat/Projects/thirdparty_gits/c++-mocking/FakeIt/include/
-/home/hedayat/Projects/thirdparty_gits/c++-mocking/FakeIt/config/standalone)
 
 # include(${CMAKE_SOURCE_DIR}/third_party/powerfake/EmbedPowerFake.cmake)
 # Use the above include() command in separate projects
