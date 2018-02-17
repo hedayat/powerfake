@@ -61,7 +61,7 @@ install(TARGETS powerfake pw_bindfakes EXPORT PowerFakeTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
+    INCLUDES DESTINATION include/powerfake
 )
 
 install(FILES powerfake.h DESTINATION include/powerfake)
