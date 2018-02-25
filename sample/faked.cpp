@@ -94,7 +94,7 @@ void FakeOverloaded()
         }
     );
     auto oc2fk = MakeFake(
-        static_cast<int (SampleClass::*)(int)>(&SampleClass::OverloadedCall),
+        static_cast<int (SampleClass::*)(int) const>(&SampleClass::OverloadedCall),
         [](int) {
             cout << "Fake called for SampleClass::OverloadedCall(int)" << endl;
             return 0;
@@ -182,6 +182,8 @@ void FakeItSamples()
 
         PowerFakeIt<SampleClass> pfk2;
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
+        When(OverloadedMethod(pfk2, OverloadedCall, int())).Return(4);
+        When(ConstOverloadedMethod(pfk2, OverloadedCall, int(int))).Return(5);
 
         SampleClass s;
         s.CallThis();

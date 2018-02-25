@@ -89,7 +89,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                         std::string(typeid(func_ptr).name()));
                 auto fake_ptr = new auto( MakeFake(func_ptr,
                     [recorder](Args... args) {
-                        recorder->handleMethodInvocation(args...);
+                        return recorder->handleMethodInvocation(args...);
                     }) );
                 auto ins = mocked.insert({f_key, FakeData(fake_ptr, recorder)});
                 mocked_it = ins.first;
