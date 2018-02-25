@@ -171,6 +171,8 @@ void FakeItSamples()
     try
     {
 
+        cout << "\n PowerFakeIt tests\n"
+                "----------------------------------------------" << endl;
         PowerFakeIt<> pfk;
 
         When(Function(pfk, normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
@@ -187,12 +189,22 @@ void FakeItSamples()
 
         SampleClass s;
         s.CallThis();
+        s.OverloadedCall();
 
         Verify(Method(pfk2, CallThis)).Exactly(1);
+        Using(pfk2).Verify(Method(pfk2, CallThis)
+            + OverloadedMethod(pfk2, OverloadedCall, int()));
+
+        VerifyNoOtherInvocations(Method(pfk2, CallThis));
     }
     catch (std::exception& e)
     {
         cerr << "Error: " << e.what() << endl;
+    }
+    catch (fakeit::UnexpectedMethodCallException &)
+    {
+        cerr << "Unexpected method call! You should fix your code to expect "
+                "for more calls" << endl;
     }
     catch (...)
     {
