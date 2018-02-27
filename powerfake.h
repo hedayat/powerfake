@@ -368,7 +368,8 @@ class Wrapper: public WrapperBase
 #else // BIND_FAKES
 
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<FTYPE> ALIAS(#ALIAS, nullptr, #FNAME);
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(#ALIAS, nullptr, #FNAME);
 
 #endif
 
