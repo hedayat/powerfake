@@ -91,7 +91,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                     [recorder](Args... args) {
                         return recorder->handleMethodInvocation(args...);
                     }) );
-                auto ins = mocked.insert({f_key, FakeData(fake_ptr, recorder)});
+                auto ins = mocked.emplace(std::make_pair(f_key, FakeData(fake_ptr, recorder)));
                 mocked_it = ins.first;
             }
             return fakeit::MockingContext<R, Args...>(
