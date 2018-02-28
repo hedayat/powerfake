@@ -16,6 +16,7 @@ find_package(Boost REQUIRED)
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 
+option(ENABLE_FAKEIT "Enable building FakeIt integration samples" OFF)
 
 # =============================================================================
 if(CMAKE_COMPILER_IS_GNUCXX)

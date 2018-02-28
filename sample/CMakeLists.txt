@@ -4,6 +4,11 @@
 
 include_directories(${CMAKE_SOURCE_DIR})
 
+if (ENABLE_FAKEIT)
+    include_directories(../third_party/FakeIt/single_header/standalone)
+    add_definitions(samples -DENABLE_FAKEIT)
+endif ()
+
 # include(${CMAKE_SOURCE_DIR}/third_party/powerfake/EmbedPowerFake.cmake)
 # Use the above include() command in separate projects
 
