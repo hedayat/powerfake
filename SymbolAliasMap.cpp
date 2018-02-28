@@ -35,6 +35,25 @@ void SymbolAliasMap::AddSymbol(const char *symbol_name)
 }
 
 /**
+ * @return if all wrapped symbols were found
+ */
+bool SymbolAliasMap::FoundAllWrappedSymbols() const
+{
+    bool found_all = true;
+    for (const auto &wf: WrapperBase::WrappedFunctions())
+    {
+        if (sym_map.find(wf.alias) == sym_map.end())
+        {
+            found_all = false;
+            cerr << "ERROR: Cannot find symbol for function: "
+                    << wf.return_type << ' ' << wf.name << wf.params
+                    << " (alias: " << wf.alias << ")" << endl;
+        }
+    }
+    return found_all;
+}
+
+/**
  * For a given symbol and its demangled name, finds corresponding prototype
  * from @a protos set and stores the mapping
  * @param protos all wrapped function prototypes

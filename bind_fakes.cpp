@@ -81,6 +81,10 @@ int main(int argc, char **argv)
                 symmap.AddSymbol(symbol);
         }
 
+        if (!symmap.FoundAllWrappedSymbols())
+            throw std::runtime_error("(BUG?) cannot find all wrapped "
+                    "symbols in the given library file(s)");
+
         // Create powerfake.link_flags containing link flags for linking
         // test binary
         {

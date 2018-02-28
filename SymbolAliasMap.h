@@ -27,6 +27,7 @@ class SymbolAliasMap
     public:
         void AddSymbol(const char *symbol_name);
         const MapType &Map() const { return sym_map; }
+        bool FoundAllWrappedSymbols() const;
 
     private:
         MapType sym_map;
