@@ -13,7 +13,6 @@
 #include "SymbolAliasMap.h"
 
 #include <iostream>
-#include <regex>
 #include <cstring>
 #include "powerfake.h"
 
