@@ -25,6 +25,7 @@ class SampleClass
         void CallThis() const;
 
         int OverloadedCall();
+        int OverloadedCall(int b);
         int OverloadedCall(int b) const;
 
         std::unique_ptr<int> GetIntPtr();

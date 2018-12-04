@@ -38,6 +38,12 @@ int SampleClass::OverloadedCall()
     return 0;
 }
 
+int SampleClass::OverloadedCall(int b [[gnu::unused]])
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+    return 0;
+}
+
 int SampleClass::OverloadedCall(int b [[gnu::unused]]) const
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;

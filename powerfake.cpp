@@ -26,6 +26,33 @@
 namespace PowerFake
 {
 
+namespace internal
+{
+
+std::string ToStr(Qualifiers q)
+{
+    switch (q)
+    {
+        case Qualifiers::NO_QUAL:
+            return "";
+        case Qualifiers::CONST:
+            return "const";
+        case Qualifiers::VOLATILE:
+            return "volatile";
+        case Qualifiers::CONST_VOLATILE:
+            return "const volatile";
+        case Qualifiers::LV_REF:
+            return "&";
+        case Qualifiers::RV_REF:
+            return "&&";
+        case Qualifiers::CONST_REF:
+            return "const &";
+    }
+    return "UNKNOWN";
+}
+
+}  // namespace internal
+
 // using pointers, as we can't rely on the order of construction of static
 // objects
 WrapperBase::Prototypes *WrapperBase::wrapped_funcs = nullptr;
@@ -46,8 +73,7 @@ void WrapperBase::AddFunction(FunctionKey func_key,
     if (!wrapped_funcs)
         wrapped_funcs = new Prototypes();
     std::cout << "Add function prototype(" << prototype.alias << "): "
-            << prototype.return_type << ' ' << prototype.name
-            << prototype.params << std::endl;
+            << prototype.Str() << std::endl;
     wrapped_funcs->push_back(prototype);
 #endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["

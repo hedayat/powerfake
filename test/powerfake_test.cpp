@@ -108,7 +108,8 @@ BOOST_AUTO_TEST_CASE(WrapperBaseTest)
 
 BOOST_AUTO_TEST_CASE(WrapperTest)
 {
-    Wrapper<void (NsTag::*)(int)> sample("sample", nullptr, "NsTag::folan");
+    Wrapper<void (NsTag::*)(int)> sample("sample", nullptr,
+        internal::Qualifiers::NO_QUAL, "NsTag::folan");
 
     BOOST_TEST(!sample.Callable());
 
@@ -125,7 +126,8 @@ BOOST_AUTO_TEST_CASE(WrapperTest)
 
 BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 {
-    Wrapper<void (*)(int)> folan("folan", nullptr, "");
+    Wrapper<void (*)(int)> folan("folan", nullptr,
+        internal::Qualifiers::NO_QUAL, "");
 
     {
         bool called_ok = false;
@@ -141,7 +143,8 @@ BOOST_AUTO_TEST_CASE(FunctionFakeTest)
 
 BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan("folan", nullptr, "Tag::function");
+    Wrapper<TestMemberFuncType> folan("folan", nullptr,
+        internal::Qualifiers::NO_QUAL, "Tag::function");
 
     {
         bool called_ok = false;
@@ -157,7 +160,8 @@ BOOST_AUTO_TEST_CASE(MemberFunctionSimpleFakeTest)
 
 BOOST_AUTO_TEST_CASE(MemberFunctionFullFakeTest)
 {
-    Wrapper<TestMemberFuncType> folan("folan", nullptr, "Tag::function");
+    Wrapper<TestMemberFuncType> folan("folan", nullptr,
+        internal::Qualifiers::NO_QUAL, "Tag::function");
 
     {
         bool called_ok = false;
@@ -217,16 +221,16 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
 {
     WrapperBase::Prototypes protos;
     protos.push_back(FunctionPrototype("char", "folan<char>", "(int)",
-        "alias1"));
+        internal::Qualifiers::NO_QUAL, "alias1"));
     protos.push_back(FunctionPrototype("int", "test_function2", "()",
-        "alias2"));
+        internal::Qualifiers::NO_QUAL, "alias2"));
     protos.push_back(FunctionPrototype("int", "test_function", "()",
-        "alias3"));
+        internal::Qualifiers::NO_QUAL, "alias3"));
     protos.push_back(FunctionPrototype("void", "A::folani", "(int)",
-        "alias4"));
+        internal::Qualifiers::NO_QUAL, "alias4"));
     protos.push_back(FunctionPrototype(
         "std::unique_ptr<int, std::default_delete<int> >", "non_copyable_ref",
-        "()", "some_alias"));
+        "()", internal::Qualifiers::NO_QUAL, "some_alias"));
 
     SymbolAliasMap sm;
     sm.FindWrappedSymbol(protos, "char folan<char>(int)", "symbol_for_alias1");

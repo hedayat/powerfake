@@ -28,16 +28,16 @@ namespace internal
 template <typename T>
 struct remove_func_cv;
 
-template <typename T, typename R , typename ...Args>
-struct remove_func_cv<R (T::*)(Args...) const volatile>
-{
-    typedef R (T::*type)(Args...);
-};
-
 template <typename R , typename ...Args>
 struct remove_func_cv<R (*)(Args...)>
 {
     typedef R (*type)(Args...);
+};
+
+template <typename T, typename R , typename ...Args>
+struct remove_func_cv<R (T::*)(Args...) const volatile>
+{
+    typedef R (T::*type)(Args...);
 };
 
 template <typename T, typename R , typename ...Args>
@@ -66,6 +66,56 @@ remove_func_cv_t<FuncType> unify_pmf(FuncType f)
 {
     return reinterpret_cast<remove_func_cv_t<FuncType>>(f);
 }
+
+enum class Qualifiers
+{
+    NO_QUAL,
+    CONST,
+    VOLATILE,
+    CONST_VOLATILE,
+    // TODO: test these
+    LV_REF,
+    RV_REF,
+    CONST_REF
+};
+
+std::string ToStr(Qualifiers q);
+
+template <typename T>
+struct func_qual;
+
+template <typename R , typename ...Args>
+struct func_qual<R (*)(Args...)>
+{
+    static const Qualifiers q = Qualifiers::NO_QUAL;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_qual<R (T::*)(Args...) const volatile>
+{
+    static const Qualifiers q = Qualifiers::CONST_VOLATILE;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_qual<R (T::*)(Args...) const>
+{
+    static const Qualifiers q = Qualifiers::CONST;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_qual<R (T::*)(Args...) volatile>
+{
+    static const Qualifiers q = Qualifiers::VOLATILE;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_qual<R (T::*)(Args...)>
+{
+    static const Qualifiers q = Qualifiers::NO_QUAL;
+};
+
+template <typename T>
+Qualifiers func_qual_v = func_qual<T>::q;
 
 }
 
@@ -160,14 +210,21 @@ Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...), Functor f);
 struct FunctionPrototype
 {
     FunctionPrototype(std::string ret, std::string name, std::string params,
-        std::string alias = "") :
-            return_type(ret), name(name), params(params), alias(alias)
+        internal::Qualifiers qual, std::string alias = "") :
+            return_type(ret), name(name), params(params), qual(qual),
+            alias(alias)
     {
+    }
+
+    std::string Str() const
+    {
+        return return_type + ' ' + name + params + ' ' + ToStr(qual);
     }
 
     std::string return_type;
     std::string name;
     std::string params;
+    internal::Qualifiers qual;
     std::string alias;
 };
 
@@ -193,7 +250,8 @@ struct PrototypeExtractor<R (T::*)(Args...)>
     typedef std::function<R (T *o, Args... args)> FakeType;
     typedef R (T::*MemFuncPtrType)(Args...);
 
-    static FunctionPrototype Extract(const std::string &func_name);
+    static FunctionPrototype Extract(const std::string &func_name,
+        internal::Qualifiers fq = internal::Qualifiers::NO_QUAL);
 };
 
 /**
@@ -206,7 +264,8 @@ struct PrototypeExtractor<R (*)(Args...)>
     typedef std::function<R (Args... args)> FakeType;
     typedef R (*FuncPtrType)(Args...);
 
-    static FunctionPrototype Extract(const std::string &func_name);
+    static FunctionPrototype Extract(const std::string &func_name,
+        internal::Qualifiers fq = internal::Qualifiers::NO_QUAL);
 };
 
 
@@ -273,9 +332,10 @@ class Wrapper: public WrapperBase
         /**
          * Add wrapped function prototype and alias
          */
-        Wrapper(std::string alias, FuncType func_ptr, std::string func_name) :
+        Wrapper(std::string alias, FuncType func_ptr, internal::Qualifiers fq,
+            std::string func_name) :
                 WrapperBase(alias, FuncKey(func_ptr),
-                    PrototypeExtractor<FuncType>::Extract(func_name))
+                    PrototypeExtractor<FuncType>::Extract(func_name, fq))
         {
         }
 
@@ -332,7 +392,8 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
     static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), #FNAME); \
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+            PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -428,7 +489,7 @@ static auto MakeFake(R (T::*func_ptr), Functor f)
 // PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
-    const std::string &func_name)
+    const std::string &func_name, internal::Qualifiers fq)
 {
     const std::string class_type = boost::core::demangle(typeid(T).name());
     const std::string ret_type = boost::core::demangle(typeid(R).name());
@@ -441,12 +502,12 @@ FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     // strip scoping from func_name, we retrieve complete scoping (including
     // namespace(s) if available) from class_type
     std::string f = func_name.substr(func_name.rfind("::"));
-    return FunctionPrototype(ret_type, class_type + f, params);
+    return FunctionPrototype(ret_type, class_type + f, params, fq);
 }
 
 template<typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
-    const std::string &func_name)
+    const std::string &func_name, internal::Qualifiers fq)
 {
     const std::string ret_type = boost::core::demangle(typeid(R).name());
     const std::string ptr_type = boost::core::demangle(
@@ -454,7 +515,7 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
 
     // ptr_type example: char* (*)(int const*, int, int)
     std::string params = ptr_type.substr(ptr_type.rfind('('));
-    return FunctionPrototype(ret_type, func_name, params);
+    return FunctionPrototype(ret_type, func_name, params, fq);
 }
 
 

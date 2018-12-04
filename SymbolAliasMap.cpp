@@ -110,15 +110,20 @@ bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
     const PowerFake::FunctionPrototype &proto)
 {
     const string base_sig = proto.name + proto.params;
-    if (demangled == proto.name)
+    string qs;
+    if (proto.qual != internal::Qualifiers::NO_QUAL)
+        qs = ' ' + internal::ToStr(proto.qual);
+
+    if (demangled == proto.name) // C functions
         return true;
-    if (demangled.find(base_sig) == 0)
+    if (demangled.find(base_sig + qs) == 0)   // Normal C++ functions
         return true;
-    if (demangled == proto.return_type + ' ' + base_sig)
+    // template functions
+    if (demangled == proto.return_type + ' ' + base_sig + qs)
         return true;
 
     // signature might contain an abi tag, e.g. func[abi:cxx11](int)
     return ((demangled.find(proto.name + "[") == 0
             || demangled.find(proto.return_type + ' ' + proto.name + "[") == 0)
-            && demangled.find("]" + proto.params) != string::npos);
+            && demangled.find("]" + proto.params + qs) != string::npos);
 }
