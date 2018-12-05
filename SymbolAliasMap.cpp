@@ -116,14 +116,25 @@ bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
 
     if (demangled == proto.name) // C functions
         return true;
-    if (demangled.find(base_sig + qs) == 0)   // Normal C++ functions
+    if (demangled == base_sig + qs)   // Normal C++ functions
         return true;
-    // template functions
+
+    // template functions also have return type
     if (demangled == proto.return_type + ' ' + base_sig + qs)
         return true;
 
-    // signature might contain an abi tag, e.g. func[abi:cxx11](int)
-    return ((demangled.find(proto.name + "[") == 0
-            || demangled.find(proto.return_type + ' ' + proto.name + "[") == 0)
-            && demangled.find("]" + proto.params + qs) != string::npos);
+    // signatures with an abi tag, e.g. func[abi:cxx11](int)
+    bool prefix_found = (demangled.find(proto.name + "[") == 0
+            || demangled.find(proto.return_type + ' ' + proto.name + "[") == 0);
+    if (prefix_found)
+    {
+        auto postfix_pos = demangled.find("]" + proto.params + qs);
+        if (postfix_pos != string::npos)
+            return demangled.size() - postfix_pos
+                    == (proto.params + qs).size() + 1;
+    }
+
+    // TODO: Warn for similar symbols, e.g. <signature> [clone .cold]
+
+    return false;
 }
