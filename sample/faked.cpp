@@ -50,6 +50,7 @@ void FakeOverloaded()
 {
     cout << "\n Free Function Tests\n"
             "----------------------------------------------" << endl;
+    cout << "-> Real calls" << endl;
     overloaded(5);
     overloaded(6.0F);
 
@@ -61,6 +62,7 @@ void FakeOverloaded()
         [](float) { cout << "Fake called for overloaded(float)" << endl; }
     );
 
+    cout << "-> Fake calls" << endl;
     overloaded(5);
     overloaded(6.0F);
 
@@ -77,10 +79,11 @@ void FakeOverloaded()
     cout << "\n SampleClass Tests\n"
             "----------------------------------------------" << endl;
     {
+        cout << "-> Real calls" << endl;
         SampleClass sc;
         sc.CallThis();
         sc.OverloadedCall();
-        sc.OverloadedCall(2);
+        const_cast<const SampleClass &>(sc).OverloadedCall(2);
     }
 
     auto ccfk = MakeFake(&SampleClass::CallThis,
@@ -96,16 +99,24 @@ void FakeOverloaded()
     auto oc2fk = MakeFake(
         static_cast<int (SampleClass::*)(int) const>(&SampleClass::OverloadedCall),
         [](int) {
-            cout << "Fake called for SampleClass::OverloadedCall(int)" << endl;
+            cout << "Fake called for SampleClass::OverloadedCall(int) const" << endl;
             return 0;
         }
     );
 
+    std::unique_ptr<int> a;
+    auto oc3fk = MakeFake(&SampleClass::GetIntPtrReference, [&a]() -> std::unique_ptr<int> &{
+        cout << "Fake called for SampleClass::GetIntPtrReference()" << endl;
+        return a;
+    });
+
     {
         SampleClass sc;
+        cout << "-> Fake calls" << endl;
         sc.CallThis();
         sc.OverloadedCall();
-        sc.OverloadedCall(2);
+        const_cast<const SampleClass &>(sc).OverloadedCall(2);
+        sc.GetIntPtrReference();
     }
 
     auto intptr_fk = MakeFake(&SampleClass::GetIntPtr,
@@ -127,10 +138,12 @@ void FakeOverloaded()
 
     cout << "\n SampleClass2 Tests\n"
             "----------------------------------------------" << endl;
+    cout << "-> Real calls" << endl;
     SampleClass2 sc2;
+    cout << "-> Fake calls" << endl;
     sc2.CallThis();
 
-    sc2.OverloadedCall(3);
+    const_cast<const SampleClass2 &>(sc2).OverloadedCall(3);
 
     {
         auto ct2fk = MakeFake(
@@ -143,24 +156,32 @@ void FakeOverloaded()
                 static_cast<void (SampleClass2::*)(int)>(&SampleClass2::CallThis),
                 [](int) { cout << "Nested Fake called for SampleClass2::CallThis" << endl; }
             );
+            cout << "-> Nested fake call" << endl;
             sc2.CallThis(4);
         }
+        cout << "-> Fake call" << endl;
         sc2.CallThis(4);
     }
+    cout << "-> Real call" << endl;
     sc2.CallThis(4);
 
     auto vfk = MakeFake(&SampleClass2::CallVirtual, [](int) { cout << "Faked called for SampleClass2::CallVirtual" << endl; });
+    cout << "-> Fake call" << endl;
     sc2.CallVirtual(6);
 
     cout << "\n VirtualSample Tests\n"
             "----------------------------------------------" << endl;
     VirtualSample vs;
+    cout << "-> Real calls" << endl;
     vs.CallVirtual(3);
     auto vfk2 = MakeFake(&VirtualSample::CallVirtual, [](int) { cout << "Faked called for VirtualSample::CallVirtual" << endl; });
+    cout << "-> Fake calls" << endl;
     vs.CallVirtual(3);
 
     cout << "\n VirtualDispatch test!\n"
             "----------------------------------------------" << endl;
+    cout << "-> Real calls although faked, as we currently do not support "
+            "virtual dispatch" << endl;
     call_virtual_func(&vs);
 }
 

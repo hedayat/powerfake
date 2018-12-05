@@ -90,4 +90,3 @@ void VirtualSample::CallVirtual(int b [[gnu::unused]])
 {
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
-
