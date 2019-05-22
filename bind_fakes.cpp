@@ -140,9 +140,10 @@ int main(int argc, char **argv)
             else if (!objcopy_params.empty())
             {
                 string cmd = "objcopy" + objcopy_params + ' ' + objfile;
-                system(cmd.c_str());
+                int ret = system(cmd.c_str());
+                if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
+                    throw runtime_error("Running objcopy failed");
             }
-            // todo: check return value
         }
     }
     catch (exception &e)
