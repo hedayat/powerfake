@@ -2,7 +2,7 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
     target_link_libraries(${wrapper_funcs_lib} PowerFake::powerfake)
 
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
-    set(bind_fakes_tgt bind_faked_${target_name})
+    set(bind_fakes_tgt bind_fakes_${target_name})
     add_executable(${bind_fakes_tgt} EXCLUDE_FROM_ALL
         ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
     # Remove __real_ & __wrap_ functions to prevent undefined reference errors

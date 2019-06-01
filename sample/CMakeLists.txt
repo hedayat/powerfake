@@ -16,8 +16,6 @@ add_library(corelib STATIC functions.cpp functions.h SampleClass.cpp SampleClass
 
 set(test_sources faked.cpp)
 add_library(wrap_lib STATIC wrap.cpp)
-# TODO: (oldubuntu) can be replaced by OBJECT type, which is illegal in U 16.04
-# cmake which allows it in add_executable & add_library only)
 
 # Test runner build
 add_executable(samples ${test_sources})
