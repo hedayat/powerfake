@@ -141,8 +141,10 @@ int main(int argc, char **argv)
             {
                 string cmd = "objcopy" + objcopy_params + ' ' + objfile;
                 int ret = system(cmd.c_str());
+#ifdef _XOPEN_SOURCE
                 if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
                     throw runtime_error("Running objcopy failed");
+#endif
             }
         }
     }
