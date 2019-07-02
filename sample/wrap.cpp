@@ -15,6 +15,9 @@
 #include "functions.h"
 #include "SampleClass.h"
 
+using namespace FakeTest;
+
+
 // You can define the 'wrap namespace'
 // usually not needed, but if WRAP_FUNCTION() is used in multiple files, it
 // should be done
@@ -27,7 +30,9 @@ WRAP_FUNCTION(void (*)(int), overloaded);
 WRAP_FUNCTION(void (*)(float), overloaded);
 WRAP_FUNCTION(normal_func);
 
+//WRAP_FUNCTION(SampleClass::StaticFunc);
 WRAP_FUNCTION(SampleClass::CallThis);
+WRAP_FUNCTION(SampleClass::CallThisNoExcept);
 WRAP_FUNCTION(int (SampleClass::*)(), SampleClass::OverloadedCall);
 WRAP_FUNCTION(int (SampleClass::*)(int), SampleClass::OverloadedCall);
 WRAP_FUNCTION(int (SampleClass::*)(int) const, SampleClass::OverloadedCall);
@@ -41,3 +46,5 @@ WRAP_FUNCTION(SampleClass2::CallVirtual);
 WRAP_FUNCTION(VirtualSample::CallVirtual);
 
 WRAP_FUNCTION(non_copyable_ref);
+
+WRAP_FUNCTION(noexcept_func);

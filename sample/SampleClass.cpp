@@ -16,6 +16,9 @@
 
 using namespace std;
 
+namespace FakeTest
+{
+
 
 SampleClass::SampleClass()
 {
@@ -27,7 +30,17 @@ SampleClass::~SampleClass()
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
 
+void SampleClass::StaticFunc()
+{
+    cout << "Class static function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
 void SampleClass::CallThis() const
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
+void SampleClass::CallThisNoExcept() const noexcept
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
@@ -90,3 +103,6 @@ void VirtualSample::CallVirtual(int b [[gnu::unused]])
 {
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
+
+
+}  // namespace FakeTest

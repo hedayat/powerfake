@@ -16,6 +16,12 @@
 #include <string>
 #include <memory>
 
+namespace FakeTest
+{
+class SampleClass2;
+}  // namespace FakeTest
+
+
 void overloaded(int a);
 void overloaded(float a);
 std::string overloaded2(int a);
@@ -23,8 +29,10 @@ std::string overloaded2(float a);
 
 void normal_func(int b);
 
-void call_virtual_func(class SampleClass2 *sc);
+void call_virtual_func(FakeTest::SampleClass2 *sc);
 
 std::unique_ptr<int> &non_copyable_ref();
+
+void noexcept_func() noexcept;
 
 #endif /* SAMPLE_FUNCTIONS_H_ */

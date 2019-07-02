@@ -16,13 +16,19 @@
 #include <memory>
 
 
+namespace FakeTest
+{
+
 class SampleClass
 {
     public:
         SampleClass();
         ~SampleClass();
 
+        static void StaticFunc();
+
         void CallThis() const;
+        void CallThisNoExcept() const noexcept;
 
         int OverloadedCall();
         int OverloadedCall(int b);
@@ -32,6 +38,7 @@ class SampleClass
         std::unique_ptr<int> &GetIntPtrReference();
         const std::unique_ptr<int> &GetIntPtrConstReference();
 };
+
 
 class SampleClass2: virtual public SampleClass
 {
@@ -56,5 +63,7 @@ class VirtualSample: public SampleClass2, virtual public SampleClass, public Sam
 	public:
         virtual void CallVirtual(int b);
 };
+
+}  // namespace FakeTest
 
 #endif /* SAMPLE_SAMPLECLASS_H_ */

@@ -24,6 +24,8 @@ using namespace fakeit;
 
 using namespace std;
 using namespace PowerFake;
+using namespace FakeTest;
+
 
 // Sample showing how MakeFake can be used inside struct/classes, since
 // auto is not allowed here
@@ -53,6 +55,7 @@ void FakeOverloaded()
     cout << "-> Real calls" << endl;
     overloaded(5);
     overloaded(6.0F);
+    noexcept_func();
 
     auto oifk = MakeFake((void (*)(int)) overloaded,
         [](int) { cout << "Fake called for overloaded(int)" << endl; }
@@ -62,9 +65,13 @@ void FakeOverloaded()
         [](float) { cout << "Fake called for overloaded(float)" << endl; }
     );
 
+    auto noexfk = MakeFake(noexcept_func,
+        []() { cout << "Fake called for noexcept_func()" << endl; });
+
     cout << "-> Fake calls" << endl;
     overloaded(5);
     overloaded(6.0F);
+    noexcept_func();
 
     auto normalfk = MakeFake(normal_func,
         [](int) { cout << "Fake called for normal_func(int)" << endl; }
@@ -82,12 +89,16 @@ void FakeOverloaded()
         cout << "-> Real calls" << endl;
         SampleClass sc;
         sc.CallThis();
+        sc.CallThisNoExcept();
         sc.OverloadedCall();
         const_cast<const SampleClass &>(sc).OverloadedCall(2);
     }
 
     auto ccfk = MakeFake(&SampleClass::CallThis,
         []() { cout << "Fake called for SampleClass::CallThis" << endl; }
+    );
+    auto cnxfk = MakeFake(&SampleClass::CallThisNoExcept,
+        []() { cout << "Fake called for SampleClass::CallThisNoExcept" << endl; }
     );
     auto oc1fk = MakeFake(
         static_cast<int (SampleClass::*)()>(&SampleClass::OverloadedCall),
@@ -114,6 +125,7 @@ void FakeOverloaded()
         SampleClass sc;
         cout << "-> Fake calls" << endl;
         sc.CallThis();
+        sc.CallThisNoExcept();
         sc.OverloadedCall();
         const_cast<const SampleClass &>(sc).OverloadedCall(2);
         sc.GetIntPtrReference();

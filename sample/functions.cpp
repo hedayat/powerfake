@@ -23,12 +23,14 @@ std::string overloaded2(int a)
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called with " << a
             << endl;
+    return "";
 }
 
 std::string overloaded2(float a)
 {
     cout << "Real function: " << __func__ << " called with " << a
             << endl;
+    return "";
 }
 
 void overloaded(int a)
@@ -49,7 +51,7 @@ void normal_func(int b)
             << endl;
 }
 
-void call_virtual_func(class SampleClass2 *sc)
+void call_virtual_func(FakeTest::SampleClass2 *sc)
 {
 	sc->CallVirtual(20);
 }
@@ -60,3 +62,7 @@ std::unique_ptr<int> &non_copyable_ref()
 	return felfel;
 }
 
+void noexcept_func() noexcept
+{
+    cout << "A noexcept function: " << __FUNCTION__ << endl;
+}
