@@ -29,18 +29,16 @@ namespace PowerFake
 namespace internal
 {
 
-std::string ToStr(Qualifiers q)
+static void AddQual(std::string &res, const char *q)
+{
+    if (!res.empty())
+        res += ' ';
+    res += q;
+}
+std::string ToStr(uint32_t q, bool mangled)
 {
     switch (q)
     {
-        case Qualifiers::NO_QUAL:
-            return "";
-        case Qualifiers::CONST:
-            return "const";
-        case Qualifiers::VOLATILE:
-            return "volatile";
-        case Qualifiers::CONST_VOLATILE:
-            return "const volatile";
         case Qualifiers::LV_REF:
             return "&";
         case Qualifiers::RV_REF:
@@ -48,7 +46,14 @@ std::string ToStr(Qualifiers q)
         case Qualifiers::CONST_REF:
             return "const &";
     }
-    return "UNKNOWN";
+    std::string res;
+    if (q & Qualifiers::CONST)
+        AddQual(res, "const");
+    if (q & Qualifiers::VOLATILE)
+        AddQual(res, "volatile");
+    if (!mangled && (q & Qualifiers::NOEXCEPT)) // noexcept is not mangled
+        AddQual(res, "noexcept");
+    return res;
 }
 
 }  // namespace internal

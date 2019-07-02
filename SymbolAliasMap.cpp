@@ -109,9 +109,9 @@ bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
     const PowerFake::FunctionPrototype &proto)
 {
     const string base_sig = proto.name + proto.params;
-    string qs;
-    if (proto.qual != internal::Qualifiers::NO_QUAL)
-        qs = ' ' + internal::ToStr(proto.qual);
+    string qs = internal::ToStr(proto.qual, true);
+    if (!qs.empty())
+        qs = ' ' + qs;
 
     if (demangled == proto.name) // C functions
         return true;
