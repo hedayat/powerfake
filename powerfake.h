@@ -25,47 +25,6 @@ namespace PowerFake
 
 namespace internal
 {
-template <typename T>
-struct remove_func_cv;
-
-template <typename R , typename ...Args>
-struct remove_func_cv<R (*)(Args...)>
-{
-    typedef R (*type)(Args...);
-};
-
-template <typename T, typename R , typename ...Args>
-struct remove_func_cv<R (T::*)(Args...) const volatile>
-{
-    typedef R (T::*type)(Args...);
-};
-
-template <typename T, typename R , typename ...Args>
-struct remove_func_cv<R (T::*)(Args...) const>
-{
-    typedef R (T::*type)(Args...);
-};
-
-template <typename T, typename R , typename ...Args>
-struct remove_func_cv<R (T::*)(Args...) volatile>
-{
-    typedef R (T::*type)(Args...);
-};
-
-template <typename T, typename R , typename ...Args>
-struct remove_func_cv<R (T::*)(Args...)>
-{
-    typedef R (T::*type)(Args...);
-};
-
-template <typename T>
-using remove_func_cv_t = typename remove_func_cv<T>::type;
-
-template <typename FuncType>
-remove_func_cv_t<FuncType> unify_pmf(FuncType f)
-{
-    return reinterpret_cast<remove_func_cv_t<FuncType>>(f);
-}
 
 enum class Qualifiers
 {
@@ -79,43 +38,57 @@ enum class Qualifiers
     CONST_REF
 };
 
-std::string ToStr(Qualifiers q);
-
 template <typename T>
-struct func_qual;
+struct func_cv_processor;
 
 template <typename R , typename ...Args>
-struct func_qual<R (*)(Args...)>
+struct func_cv_processor<R (*)(Args...)>
 {
+    typedef R (*base_type)(Args...);
     static const Qualifiers q = Qualifiers::NO_QUAL;
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_qual<R (T::*)(Args...) const volatile>
+struct func_cv_processor<R (T::*)(Args...) const volatile>
 {
+    typedef R (T::*base_type)(Args...);
     static const Qualifiers q = Qualifiers::CONST_VOLATILE;
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_qual<R (T::*)(Args...) const>
+struct func_cv_processor<R (T::*)(Args...) const>
 {
+    typedef R (T::*base_type)(Args...);
     static const Qualifiers q = Qualifiers::CONST;
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_qual<R (T::*)(Args...) volatile>
+struct func_cv_processor<R (T::*)(Args...) volatile>
 {
+    typedef R (T::*base_type)(Args...);
     static const Qualifiers q = Qualifiers::VOLATILE;
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_qual<R (T::*)(Args...)>
+struct func_cv_processor<R (T::*)(Args...)>
 {
+    typedef R (T::*base_type)(Args...);
     static const Qualifiers q = Qualifiers::NO_QUAL;
 };
 
 template <typename T>
-Qualifiers func_qual_v = func_qual<T>::q;
+using remove_func_cv_t = typename func_cv_processor<T>::base_type;
+
+template <typename T>
+Qualifiers func_qual_v = func_cv_processor<T>::q;
+
+template <typename FuncType>
+remove_func_cv_t<FuncType> unify_pmf(FuncType f)
+{
+    return reinterpret_cast<remove_func_cv_t<FuncType>>(f);
+}
+
+std::string ToStr(Qualifiers q);
 
 }
 
