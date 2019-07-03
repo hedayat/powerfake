@@ -137,6 +137,21 @@ remove_func_cv_t<FuncType> unify_pmf(FuncType f)
     return reinterpret_cast<remove_func_cv_t<FuncType>>(f);
 }
 
+/*
+ * FuncType template functions used to return function pointer type from
+ * function signature. Providing Signature template parameter, it can be
+ * used to return pointer to an overloaded function using signature syntax,
+ * which is specially useful for class member functions.
+ * The last variant receives a function pointer type, so the user can also
+ * pass a pointer type rather than function type itself.
+ */
+template <typename Signature, typename C>
+Signature C::* FuncType(Signature C::*);
+template <typename Signature>
+Signature *FuncType(Signature *);
+template <typename FuncPtr>
+FuncPtr FuncType(FuncPtr);
+
 std::string ToStr(uint32_t q, bool mangled = false);
 
 }
@@ -496,8 +511,8 @@ class Wrapper: public WrapperBase
  * Define a wrapper for function with type FTYPE and name FNAME.
  */
 #define WRAP_FUNCTION_2(FTYPE, FNAME) \
-    WRAP_FUNCTION_BASE(FTYPE, FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+    WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
+        FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
 
 /**
  * Define a wrapper for function named FNAME.
@@ -509,8 +524,9 @@ class Wrapper: public WrapperBase
  * FTYPE and name FNAME.
  */
 #define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
-    WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+    WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
+            PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, \
+            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
 
 /**
  * Define a wrapper for static member function FNAME of class FCLASS.
