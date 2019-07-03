@@ -171,7 +171,7 @@ class Fake: public FakeBase
 
     private:
         T &o;
-        typename T::FakeType orig_fake;
+        typename T::FakeFunction orig_fake;
 };
 
 /**
@@ -199,7 +199,7 @@ class Fake<Wrapper<R (T::*)(Args...)>>: public FakeBase
 
     private:
         WT &o;
-        typename WT::FakeType orig_fake;
+        typename WT::FakeFunction orig_fake;
 };
 
 template <typename FuncType>
@@ -269,7 +269,7 @@ template <typename T> struct PrototypeExtractor;
 template <typename T, typename R , typename ...Args>
 struct PrototypeExtractor<R (T::*)(Args...)>
 {
-    typedef std::function<R (T *o, Args... args)> FakeType;
+    typedef std::function<R (T *o, Args... args)> FakeFunction;
 
     static FunctionPrototype Extract(const std::string &func_name,
         uint32_t fq = internal::Qualifiers::NO_QUAL);
@@ -282,7 +282,7 @@ struct PrototypeExtractor<R (T::*)(Args...)>
 template <typename R , typename ...Args>
 struct PrototypeExtractor<R (*)(Args...)>
 {
-    typedef std::function<R (Args... args)> FakeType;
+    typedef std::function<R (Args... args)> FakeFunction;
     typedef R (*FuncPtrType)(Args...);
 
     static FunctionPrototype Extract(const std::string &func_name,
@@ -351,7 +351,7 @@ template <typename FuncType>
 class Wrapper: public WrapperBase
 {
     public:
-        typedef typename PrototypeExtractor<FuncType>::FakeType FakeType;
+        typedef typename PrototypeExtractor<FuncType>::FakeFunction FakeFunction;
 
     public:
         /**
@@ -376,7 +376,7 @@ class Wrapper: public WrapperBase
         bool Callable() const { return static_cast<bool>(fake); }
 
         template <typename ...Args>
-        typename FakeType::result_type Call(Args&&... args) const
+        typename FakeFunction::result_type Call(Args&&... args) const
         {
             return fake(std::forward<Args>(args)...);
         }
@@ -387,7 +387,7 @@ class Wrapper: public WrapperBase
         }
 
     private:
-        FakeType fake;
+        FakeFunction fake;
         friend class Fake<Wrapper>;
 
         static FunctionKey FuncKey(FuncType func_ptr)

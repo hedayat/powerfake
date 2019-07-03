@@ -56,7 +56,7 @@ struct SampleLibConfig
 
 BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
 {
-    BOOST_TEST((std::is_same<PrototypeExtractor<void (*)(int)>::FakeType,
+    BOOST_TEST((std::is_same<PrototypeExtractor<void (*)(int)>::FakeFunction,
             function<void (int)>>::value));
 
     auto proto_normal = PrototypeExtractor<void (*)(int)>::Extract("folan");
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
 
 BOOST_AUTO_TEST_CASE(PrototypeExtractorMemberFunctionTest)
 {
-    BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeType,
+    BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeFunction,
             function<void (Tag *, int)>>::value));
 
     auto proto_mfn = PrototypeExtractor<TestMemberFuncType>::Extract(
