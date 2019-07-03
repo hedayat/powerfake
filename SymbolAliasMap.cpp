@@ -78,7 +78,7 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
                         << endl;
             else if (inserted.first->second != symbol_name)
             {
-                cerr << "BUG: Error, duplicate symbols found for: "
+                cerr << "Error: (BUG) duplicate symbols found for: "
                         << func.return_type << ' ' << sig << ":\n" << '\t'
                         << sym_map[func.alias] << '\n' << '\t' << symbol_name
                         << endl;

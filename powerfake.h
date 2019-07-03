@@ -408,8 +408,9 @@ class Wrapper: public WrapperBase
 #define BUILD_NAME(A,B,C) BUILD_NAME_HELPER(A,B,C)
 #define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
-// select macro based on the number of args (2 or 3)
-#define SELECT_MACRO(_1, _2, _3, NAME,...) NAME
+// select macro based on the number of args
+#define SELECT_3RD(_1, _2, NAME,...) NAME
+#define SELECT_4TH(_1, _2, _3, NAME,...) NAME
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
@@ -452,6 +453,17 @@ class Wrapper: public WrapperBase
     template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FTYPE>>
 
 
+#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+            PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+
+#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
+                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+                PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+
 #ifndef BIND_FAKES
 
 /**
@@ -459,65 +471,52 @@ class Wrapper: public WrapperBase
  * used only once for each function in a cpp file.
  */
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-            PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
+    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS) \
     CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
 
 /**
- * Define wrapper for static member function FNAME with type FTYPE and
- * alias ALIAS.
+ * Define wrapper for static member function FNAME of class FCLASS with type
+ * FTYPE and alias ALIAS.
  */
 #define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
-                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-                PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS) \
     CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
 
 #else // BIND_FAKES
 
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-            PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+        DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS)
 
 #define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
-                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-                PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+        DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS)
 
 #endif
-
-#define WRAP_FUNCTION_HELPER(A, B, C) WRAP_FUNCTION_BASE(A, B, C)
-#define WRAP_STATIC_MEMBER_HELPER(A, B, C, D) \
-    WRAP_STATIC_MEMBER_BASE(A, B, C, D)
 
 /**
  * Define a wrapper for function with type FTYPE and name FNAME.
  */
 #define WRAP_FUNCTION_2(FTYPE, FNAME) \
-    WRAP_FUNCTION_HELPER(FTYPE, FNAME, \
+    WRAP_FUNCTION_BASE(FTYPE, FNAME, \
         BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
 
 /**
  * Define a wrapper for function named FNAME.
  */
-#define WRAP_FUNCTION_1(FN) WRAP_FUNCTION_2(decltype(&FN), FN)
+#define WRAP_FUNCTION_1(FNAME) WRAP_FUNCTION_2(decltype(&FNAME), FNAME)
 
 /**
- * Define a wrapper for function with type FTYPE and name FNAME.
+ * Define a wrapper for static member function of class FCLASS with type
+ * FTYPE and name FNAME.
  */
 #define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
-    WRAP_STATIC_MEMBER_HELPER(FCLASS, FTYPE, FNAME, \
+    WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, \
         BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
 
 /**
- * Define a wrapper for function named FNAME.
+ * Define a wrapper for static member function FNAME of class FCLASS.
  */
-#define WRAP_STATIC_MEMBER_1(FC, FN) \
-    WRAP_STATIC_MEMBER_2(FC, decltype(&FN), FN)
+#define WRAP_STATIC_MEMBER_1(FCLASS, FNAME) \
+    WRAP_STATIC_MEMBER_2(FCLASS, decltype(&FNAME), FNAME)
 
 /**
  * Define a wrapper for the given function. For normal functions, it should be
@@ -529,11 +528,10 @@ class Wrapper: public WrapperBase
  *          MyNameSpace::MyClass::MyFunction)
  */
 #define WRAP_FUNCTION(...) \
-    SELECT_MACRO(_1, __VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
+    SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
 
 #define WRAP_STATIC_MEMBER(...) \
-    SELECT_MACRO(__VA_ARGS__, WRAP_STATIC_MEMBER_2, \
-        WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
+    SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
 
 
 // MakeFake implementations
