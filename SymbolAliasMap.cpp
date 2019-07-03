@@ -44,7 +44,7 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
         if (sym_map.find(wf.alias) == sym_map.end())
         {
             found_all = false;
-            cerr << "ERROR: Cannot find symbol for function: "
+            cerr << "Error: Cannot find symbol for function: "
                     << wf.return_type << ' ' << wf.name << wf.params
                     << " (alias: " << wf.alias << ")" << endl;
         }
