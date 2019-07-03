@@ -18,6 +18,7 @@
 #include <vector>
 #include <functional>
 #include <typeindex>
+#include <type_traits>
 #include <boost/core/demangle.hpp>
 
 namespace PowerFake
@@ -37,6 +38,16 @@ enum Qualifiers
     RV_REF = 16,
     CONST_REF = 32
 };
+
+#if __cplusplus > 201703L
+using std::type_identity;
+#else
+template<class T>
+struct type_identity
+{
+    using type = T;
+};
+#endif
 
 template <typename T>
 struct func_cv_processor;
@@ -259,7 +270,6 @@ template <typename T, typename R , typename ...Args>
 struct PrototypeExtractor<R (T::*)(Args...)>
 {
     typedef std::function<R (T *o, Args... args)> FakeType;
-    typedef R (T::*MemFuncPtrType)(Args...);
 
     static FunctionPrototype Extract(const std::string &func_name,
         uint32_t fq = internal::Qualifiers::NO_QUAL);
@@ -275,6 +285,10 @@ struct PrototypeExtractor<R (*)(Args...)>
     typedef std::function<R (Args... args)> FakeType;
     typedef R (*FuncPtrType)(Args...);
 
+    static FunctionPrototype Extract(const std::string &func_name,
+        uint32_t fq = internal::Qualifiers::NO_QUAL);
+
+    template <typename Class>
     static FunctionPrototype Extract(const std::string &func_name,
         uint32_t fq = internal::Qualifiers::NO_QUAL);
 };
@@ -350,6 +364,15 @@ class Wrapper: public WrapperBase
         {
         }
 
+        template<typename Class>
+        Wrapper(internal::type_identity<Class>, std::string alias,
+            FuncType func_ptr, uint32_t fq, std::string func_name) :
+                WrapperBase(alias, FuncKey(func_ptr),
+                    PrototypeExtractor<FuncType>::template Extract<Class>(
+                        func_name, fq))
+        {
+        }
+
         bool Callable() const { return static_cast<bool>(fake); }
 
         template <typename ...Args>
@@ -386,7 +409,7 @@ class Wrapper: public WrapperBase
 #define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 // select macro based on the number of args (2 or 3)
-#define SELECT_MACRO(_1, _2, NAME,...) NAME
+#define SELECT_MACRO(_1, _2, _3, NAME,...) NAME
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
@@ -395,16 +418,7 @@ class Wrapper: public WrapperBase
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
 
-#ifndef BIND_FAKES
-
-/**
- * Define wrapper for function FN with alias ALIAS. Must be used only once for
- * each function in a cpp file.
- */
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-            PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
+#define CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS) \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -437,15 +451,48 @@ class Wrapper: public WrapperBase
      * linker by bind_fakes binary. */ \
     template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FTYPE>>
 
+
+#ifndef BIND_FAKES
+
+/**
+ * Define wrapper for function FNAME with type FTYPE and alias ALIAS. Must be
+ * used only once for each function in a cpp file.
+ */
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+            PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
+    CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
+
+/**
+ * Define wrapper for static member function FNAME with type FTYPE and
+ * alias ALIAS.
+ */
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
+                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+                PowerFake::internal::func_qual_v<FTYPE>, #FNAME); \
+    CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
+
 #else // BIND_FAKES
 
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
     static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, nullptr, #FNAME);
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+            PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
+    static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+        ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
+                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+                PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
 
 #endif
 
 #define WRAP_FUNCTION_HELPER(A, B, C) WRAP_FUNCTION_BASE(A, B, C)
+#define WRAP_STATIC_MEMBER_HELPER(A, B, C, D) \
+    WRAP_STATIC_MEMBER_BASE(A, B, C, D)
 
 /**
  * Define a wrapper for function with type FTYPE and name FNAME.
@@ -460,6 +507,19 @@ class Wrapper: public WrapperBase
 #define WRAP_FUNCTION_1(FN) WRAP_FUNCTION_2(decltype(&FN), FN)
 
 /**
+ * Define a wrapper for function with type FTYPE and name FNAME.
+ */
+#define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
+    WRAP_STATIC_MEMBER_HELPER(FCLASS, FTYPE, FNAME, \
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+/**
+ * Define a wrapper for function named FNAME.
+ */
+#define WRAP_STATIC_MEMBER_1(FC, FN) \
+    WRAP_STATIC_MEMBER_2(FC, decltype(&FN), FN)
+
+/**
  * Define a wrapper for the given function. For normal functions, it should be
  * called with the function name, e.g.:
  *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
@@ -469,8 +529,11 @@ class Wrapper: public WrapperBase
  *          MyNameSpace::MyClass::MyFunction)
  */
 #define WRAP_FUNCTION(...) \
-    SELECT_MACRO(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
+    SELECT_MACRO(_1, __VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
 
+#define WRAP_STATIC_MEMBER(...) \
+    SELECT_MACRO(__VA_ARGS__, WRAP_STATIC_MEMBER_2, \
+        WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
 
 
 // MakeFake implementations
@@ -502,18 +565,11 @@ template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     const std::string &func_name, uint32_t fq)
 {
-    const std::string class_type = boost::core::demangle(typeid(T).name());
-    const std::string ret_type = boost::core::demangle(typeid(R).name());
-    const std::string ptr_type = boost::core::demangle(
-        typeid(MemFuncPtrType).name());
-
-    // ptr_type example: char* (Folan::*)(int const*, int, int)
-    std::string params = ptr_type.substr(ptr_type.rfind('('));
-
     // strip scoping from func_name, we retrieve complete scoping (including
     // namespace(s) if available) from class_type
     std::string f = func_name.substr(func_name.rfind("::"));
-    return FunctionPrototype(ret_type, class_type + f, params, fq);
+    const std::string class_type = boost::core::demangle(typeid(T).name());
+    return PrototypeExtractor<R (*)(Args...)>::Extract(class_type + f, fq);
 }
 
 template<typename R, typename ...Args>
@@ -527,6 +583,14 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
     // ptr_type example: char* (*)(int const*, int, int)
     std::string params = ptr_type.substr(ptr_type.rfind('('));
     return FunctionPrototype(ret_type, func_name, params, fq);
+}
+
+template<typename R, typename ...Args>
+template<typename Class>
+FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
+    const std::string &func_name, uint32_t fq)
+{
+    return PrototypeExtractor<R (Class::*)(Args...)>::Extract(func_name, fq);
 }
 
 
