@@ -48,11 +48,11 @@ struct func_cv_processor<R (*)(Args...)>
     static const uint32_t q = Qualifiers::NO_QUAL;
 };
 
-template <typename R , typename ...Args>
-struct func_cv_processor<R (*)(Args...) noexcept>
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args...)>
 {
-    typedef R (*base_type)(Args...);
-    static const uint32_t q = Qualifiers::NOEXCEPT;
+    typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::NO_QUAL;
 };
 
 template <typename T, typename R , typename ...Args>
@@ -63,17 +63,39 @@ struct func_cv_processor<R (T::*)(Args...) const>
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_cv_processor<R (T::*)(Args...) const noexcept>
-{
-    typedef R (T::*base_type)(Args...);
-    static const uint32_t q = Qualifiers::CONST | Qualifiers::NOEXCEPT;
-};
-
-template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) volatile>
 {
     typedef R (T::*base_type)(Args...);
     static const uint32_t q = Qualifiers::VOLATILE;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args...) const volatile>
+{
+    typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE;
+};
+
+#if __cplusplus >= 201703L
+template <typename R , typename ...Args>
+struct func_cv_processor<R (*)(Args...) noexcept>
+{
+    typedef R (*base_type)(Args...);
+    static const uint32_t q = Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args...) noexcept>
+{
+    typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args...) const noexcept>
+{
+    typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::CONST | Qualifiers::NOEXCEPT;
 };
 
 template <typename T, typename R , typename ...Args>
@@ -84,33 +106,13 @@ struct func_cv_processor<R (T::*)(Args...) volatile noexcept>
 };
 
 template <typename T, typename R , typename ...Args>
-struct func_cv_processor<R (T::*)(Args...) const volatile>
-{
-    typedef R (T::*base_type)(Args...);
-    static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE;
-};
-
-template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) const volatile noexcept>
 {
         typedef R (T::*base_type)(Args...);
         static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE
                 | Qualifiers::NOEXCEPT;
 };
-
-template <typename T, typename R , typename ...Args>
-struct func_cv_processor<R (T::*)(Args...)>
-{
-    typedef R (T::*base_type)(Args...);
-    static const uint32_t q = Qualifiers::NO_QUAL;
-};
-
-template <typename T, typename R , typename ...Args>
-struct func_cv_processor<R (T::*)(Args...) noexcept>
-{
-    typedef R (T::*base_type)(Args...);
-    static const uint32_t q = Qualifiers::NOEXCEPT;
-};
+#endif
 
 template <typename T>
 using remove_func_cv_t = typename func_cv_processor<T>::base_type;
