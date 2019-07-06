@@ -33,7 +33,7 @@ struct SampleStruct
 {
         FakeType<decltype(&normal_func)> normal_fake =
                 MakeFake(normal_func, [this](int) {});
-        FakeType<void (*)(int)> ov = MakeFake((void (*)(int)) overloaded, [](int){});
+        FakeType<void (int)> ov = MakeFake<void (int)>(overloaded, [](int){});
 };
 
 
@@ -57,11 +57,11 @@ void FakeOverloaded()
     overloaded(6.0F);
     noexcept_func();
 
-    auto oifk = MakeFake((void (*)(int)) overloaded,
+    auto oifk = MakeFake<void (int)>(overloaded,
         [](int) { cout << "Fake called for overloaded(int)" << endl; }
     );
 
-    auto offk = MakeFake(static_cast<void (*)(float)>(overloaded),
+    auto offk = MakeFake<void (float)>(overloaded,
         [](float) { cout << "Fake called for overloaded(float)" << endl; }
     );
 
@@ -100,15 +100,13 @@ void FakeOverloaded()
     auto cnxfk = MakeFake(&SampleClass::CallThisNoExcept,
         []() { cout << "Fake called for SampleClass::CallThisNoExcept" << endl; }
     );
-    auto oc1fk = MakeFake(
-        static_cast<int (SampleClass::*)()>(&SampleClass::OverloadedCall),
+    auto oc1fk = MakeFake<int ()>(&SampleClass::OverloadedCall,
         []() {
             cout << "Fake called for SampleClass::OverloadedCall()" << endl;
             return 0;
         }
     );
-    auto oc2fk = MakeFake(
-        static_cast<int (SampleClass::*)(int) const>(&SampleClass::OverloadedCall),
+    auto oc2fk = MakeFake<int (int) const>(&SampleClass::OverloadedCall,
         [](int) {
             cout << "Fake called for SampleClass::OverloadedCall(int) const" << endl;
             return 0;
@@ -158,14 +156,12 @@ void FakeOverloaded()
     const_cast<const SampleClass2 &>(sc2).OverloadedCall(3);
 
     {
-        auto ct2fk = MakeFake(
-            static_cast<void (SampleClass2::*)(int)>(&SampleClass2::CallThis),
+        auto ct2fk = MakeFake<void (int)>(&SampleClass2::CallThis,
             [](int) { cout << "Fake called for SampleClass2::CallThis" << endl; }
         );
         sc2.CallThis(4);
         {
-            auto ct2fk = MakeFake(
-                static_cast<void (SampleClass2::*)(int)>(&SampleClass2::CallThis),
+            auto ct2fk = MakeFake<void (int)>(&SampleClass2::CallThis,
                 [](int) { cout << "Nested Fake called for SampleClass2::CallThis" << endl; }
             );
             cout << "-> Nested fake call" << endl;

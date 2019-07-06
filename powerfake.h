@@ -218,7 +218,8 @@ class Fake<Wrapper<R (T::*)(Args...)>>: public FakeBase
 };
 
 template <typename FuncType>
-using FakeType = Fake<Wrapper<PowerFake::internal::remove_func_cv_t<FuncType>>>;
+using FakeType = Fake<Wrapper<PowerFake::internal::remove_func_cv_t<std::decay_t<FuncType>>>>;
+
 
 /**
  * Creates the fake object for the given function, faked with function object
@@ -228,8 +229,8 @@ using FakeType = Fake<Wrapper<PowerFake::internal::remove_func_cv_t<FuncType>>>;
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
-template <typename Functor, typename R , typename ...Args>
-Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f);
+template <typename Signature, typename Functor>
+static auto MakeFake(Signature *func_ptr, Functor f);
 
 /**
  * Creates the fake object for the given member function, faked with @p f
@@ -238,8 +239,8 @@ Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f);
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
-template <typename Functor, typename T, typename R , typename ...Args>
-Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...), Functor f);
+template<typename Signature, typename Class, typename Functor>
+static auto MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
  * Stores components of a function prototype and the function alias
@@ -551,28 +552,20 @@ class Wrapper: public WrapperBase
 
 
 // MakeFake implementations
-template <typename Functor, typename R , typename ...Args>
-static Fake<Wrapper<R (*)(Args...)>> MakeFake(R (*func_ptr)(Args...), Functor f)
+template <typename Signature, typename Functor>
+static auto MakeFake(Signature *func_ptr, Functor f)
 {
-    typedef Wrapper<R (*)(Args...)> WrapperType;
+    typedef Wrapper<internal::remove_func_cv_t<Signature *>> WrapperType;
     return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
 }
 
-template <typename Functor, typename T, typename R , typename ...Args>
-static Fake<Wrapper<R (T::*)(Args...)>> MakeFake(R (T::*func_ptr)(Args...),
-    Functor f)
+template<typename Signature, typename Class, typename Functor>
+static auto MakeFake(Signature Class::*func_ptr, Functor f)
 {
-    typedef Wrapper<R (T::*)(Args...)> WrapperType;
-    return Fake<WrapperType>(WrapperType::WrapperObject(func_ptr), f);
+    typedef Wrapper<internal::remove_func_cv_t<Signature Class::*>> WrapperType;
+    return Fake<WrapperType>(
+        WrapperType::WrapperObject(internal::unify_pmf(func_ptr)), f);
 }
-
-// swallow cv-qualificatin from PMFs
-template <typename Functor, typename R, typename T>
-static auto MakeFake(R (T::*func_ptr), Functor f)
-{
-    return MakeFake(internal::unify_pmf(func_ptr), f);
-}
-
 
 // PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
