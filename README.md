@@ -14,7 +14,8 @@ member functions. It is built on top of GNU Linker's --wrap option.
 * Cannot fake inlined functions
 * Cannot fake function calls in the same translation unit as the target function
 * GCC & GNU Linker only
-* Currently, it provides CMake integration
+* Cannot work with GCC LTO, since ld's --wrap is not supported in this case
+* Currently, it only provides CMake integration
 
 ## Dependencies
 * GNU Linker (ld)
