@@ -87,11 +87,9 @@ int main(int argc, char **argv)
 
         // Create powerfake.link_flags containing link flags for linking
         // test binary
-        {
-            ofstream link_flags("powerfake.link_flags");
-            for (const auto &syms: symmap.Map())
-                link_flags << "-Wl,--wrap=" << syms.second << endl;
-        }
+        ofstream link_flags("powerfake.link_flags");
+        for (const auto &syms: symmap.Map())
+            link_flags << "-Wl,--wrap=" << syms.second << endl;
 
         const string sym_prefix = leading_underscore ? "_" : "";
         // Rename our wrap/real symbols (which are mangled) to the ones expected
@@ -116,35 +114,19 @@ int main(int argc, char **argv)
                     {
                         cout << "Found wrapper symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        objcopy_params += " --redefine-sym " + sym_prefix
-                                + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second;
+                        link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
+                                << syms.second << '=' << sym_prefix
+                                << symbol_str << endl;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
                         cout << "Found real symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        objcopy_params += " --redefine-sym " + sym_prefix
-                                + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second;
+                        link_flags << "-Wl,--defsym=" << sym_prefix
+                                << symbol_str << '=' << sym_prefix << "__real_"
+                                << syms.second << endl;
                     }
                 }
-            }
-            if (passive_mode)
-            {
-                // Create powerfake.link_flags containing link flags for linking
-                // test binary
-                ofstream objcopy_params_file(objfile + ".objcopy_params");
-                objcopy_params_file << objcopy_params << endl;
-            }
-            else if (!objcopy_params.empty())
-            {
-                string cmd = "objcopy" + objcopy_params + ' ' + objfile;
-                int ret = system(cmd.c_str());
-#ifdef _XOPEN_SOURCE
-                if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
-                    throw runtime_error("Running objcopy failed");
-#endif
             }
         }
     }
