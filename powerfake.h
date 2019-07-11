@@ -319,7 +319,7 @@ struct PrototypeExtractor<R (*)(Args...)>
 class WrapperBase
 {
     public:
-        typedef std::vector<FunctionPrototype> Prototypes;
+        typedef std::multimap<std::string, FunctionPrototype> Prototypes;
         typedef std::pair<void *, std::type_index> FunctionKey;
         typedef std::map<FunctionKey, WrapperBase *> FunctionWrappers;
 

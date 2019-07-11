@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 
 string NMCommand(string objfile)
 {
-    return "nm -o " + objfile;
+    return "nm -po " + objfile;
 }
 
 Reader *GetReader(bool passive, string file)
