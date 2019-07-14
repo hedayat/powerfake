@@ -47,6 +47,7 @@ int main(int argc, char **argv)
     {
         bool passive_mode = false;
         bool leading_underscore = false;
+        bool use_objcopy = false;
         int argc_inc = 0;
 
         for (int i = 1; i < argc; ++i)
@@ -59,6 +60,11 @@ int main(int argc, char **argv)
             else if (argv[i] == "--passive"s)
             {
                 passive_mode = true;
+                argc_inc++;
+            }
+            else if (argv[i] == "--objcopy"s)
+            {
+                use_objcopy = true;
                 argc_inc++;
             }
             else
@@ -114,18 +120,47 @@ int main(int argc, char **argv)
                     {
                         cout << "Found wrapper symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
+                        if (!use_objcopy)
+                            link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
                                 << syms.second << '=' << sym_prefix
                                 << symbol_str << endl;
+                        else
+                            objcopy_params += " --redefine-sym " + sym_prefix
+                                + symbol_str + "=" + sym_prefix + "__wrap_"
+                                + syms.second;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
                         cout << "Found real symbol to rename: " << symbol_str
                                 << ' ' << boost::core::demangle(symbol) << endl;
-                        link_flags << "-Wl,--defsym=" << sym_prefix
+                        if (!use_objcopy)
+                            link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
                                 << syms.second << endl;
+                        else
+                            objcopy_params += " --redefine-sym " + sym_prefix
+                                + symbol_str + "=" + sym_prefix + "__real_"
+                                + syms.second;
                     }
+                }
+            }
+            if (use_objcopy)
+            {
+                if (passive_mode)
+                {
+                    // Create <objname>.objcopy_params containing objcopy
+                    // params to modify symbol names
+                    ofstream objcopy_params_file(objfile + ".objcopy_params");
+                    objcopy_params_file << objcopy_params << endl;
+                }
+                else if (!objcopy_params.empty())
+                {
+                    string cmd = "objcopy" + objcopy_params + ' ' + objfile;
+                    int ret = system(cmd.c_str());
+    #ifdef _XOPEN_SOURCE
+                    if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
+                        throw runtime_error("Running objcopy failed");
+    #endif
                 }
             }
         }
