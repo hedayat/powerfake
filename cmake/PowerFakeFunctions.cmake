@@ -14,8 +14,8 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
         $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
 
     add_custom_command(TARGET ${target_name} PRE_LINK
-        COMMAND ${bind_fakes_tgt} $<TARGET_FILE:${test_lib}>
-                $<TARGET_FILE:${wrapper_funcs_lib}>)
+        COMMAND ${bind_fakes_tgt} ${ARGV3}
+                $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>)
 
     # Add powerfake link flags
     set_property(TARGET ${target_name} APPEND_STRING PROPERTY
