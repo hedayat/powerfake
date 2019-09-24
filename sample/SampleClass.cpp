@@ -83,6 +83,21 @@ const std::unique_ptr<int> &SampleClass::GetIntPtrConstReference()
     return myuniq;
 }
 
+void FakeTest::SampleClass::SamplePrivate()
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
+void FakeTest::SampleClass::OverloadedPrivate(int a)
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
+void FakeTest::SampleClass::OverloadedPrivate(float b)
+{
+    cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
 void SampleClass2::DerivedFunc()
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;

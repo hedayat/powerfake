@@ -39,6 +39,9 @@ WRAP_FUNCTION(int (int) const, SampleClass::OverloadedCall);
 WRAP_FUNCTION(SampleClass::GetIntPtr);
 WRAP_FUNCTION(SampleClass::GetIntPtrReference);
 WRAP_FUNCTION(SampleClass::GetIntPtrConstReference);
+WRAP_PRIVATE_MEMBER(SampleClass::SamplePrivate);
+WRAP_OVERLOADED_PRIVATE(SampleClass, void (int), SampleClass::OverloadedPrivate);
+WRAP_OVERLOADED_PRIVATE(SampleClass, void (float), SampleClass::OverloadedPrivate);
 
 
 WRAP_FUNCTION(void (int), SampleClass2::CallThis);

@@ -154,7 +154,23 @@ FuncPtr FuncType(FuncPtr);
 
 std::string ToStr(uint32_t q, bool mangled = false);
 
-}
+// Provide access to private member functions. Inspired by:
+// http://bloglitb.blogspot.com/2011/12/access-to-private-members-safer.html
+template<typename Tag, auto PrivMemfuncPtr>
+struct PrivateFunctionExtractor
+{
+    friend auto get_addr(Tag) { return PrivMemfuncPtr; }
+};
+
+template <typename Tag>
+struct TagBase {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnon-template-friend"
+    friend auto get_addr(Tag);
+#pragma GCC diagnostic pop
+};
+
+} // namespace internal
 
 template <typename T>
 class Wrapper;
@@ -244,6 +260,37 @@ static auto MakeFake(Signature *func_ptr, Functor f);
  */
 template<typename Signature, typename Class, typename Functor>
 static auto MakeFake(Signature Class::*func_ptr, Functor f);
+
+/**
+ * Creates a fake object for a private member function tagged with
+ * PrivateMemberTag; which should be created using TAG_PRIVATE_MEMBER() or
+ * TAG_OVERLOADED_PRIVATE() macros
+ * @param f the fake function
+ * @return A fake object faking the function with the given tag with @p f.
+ * Fake is in effect while this object lives
+ */
+template <typename PrivateMemberTag, typename Functor>
+static auto MakeFake(Functor f);
+
+/**
+ * It is not possible to pass private member functions directly to MakeFake(),
+ * Therefore, we need to create a tag for that member function and pass it to
+ * MakeFake().
+ *
+ * Note that it cannot be called inside a block
+ */
+#define TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> {}; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+                                                            &MEMBER_FUNCTION>
+
+#define TAG_OVERLOADED_PRIVATE(TAG, CLASS, FTYPE, MEMBER_FUNCTION) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> {}; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+        static_cast<decltype( \
+            PowerFake::internal::FuncType<FTYPE, CLASS>(nullptr))>( \
+                    &MEMBER_FUNCTION)>
+
 
 /**
  * Stores components of a function prototype and the function alias
@@ -411,10 +458,12 @@ class Wrapper: public WrapperBase
 
         static FunctionKey FuncKey(FuncType func_ptr)
         {
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
+#pragma GCC diagnostic ignored "-Wpedantic"
             return std::make_pair(reinterpret_cast<void *>(func_ptr),
                 std::type_index(typeid(FuncType)));
-#pragma GCC diagnostic warning "-Wpmf-conversions"
+#pragma GCC diagnostic pop
         }
 };
 
@@ -430,6 +479,9 @@ class Wrapper: public WrapperBase
 // select macro based on the number of args
 #define SELECT_3RD(_1, _2, NAME,...) NAME
 #define SELECT_4TH(_1, _2, _3, NAME,...) NAME
+#define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
+#define PRIVMEMBER_ADDR(ALIAS) get_addr(PRIVATE_TAG(ALIAS)())
+
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
@@ -472,9 +524,9 @@ class Wrapper: public WrapperBase
     template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FTYPE>>
 
 
-#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS) \
+#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS) \
     static PowerFake::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(FADDR), \
             PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
 
 #define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS) \
@@ -489,8 +541,8 @@ class Wrapper: public WrapperBase
  * Define wrapper for function FNAME with type FTYPE and alias ALIAS. Must be
  * used only once for each function in a cpp file.
  */
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS) \
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS) \
+    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS) \
     CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
 
 /**
@@ -503,20 +555,37 @@ class Wrapper: public WrapperBase
 
 #else // BIND_FAKES
 
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, ALIAS) \
-        DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, ALIAS)
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS) \
+    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS)
 
 #define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
-        DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS)
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS)
 
 #endif
+
+
+#define WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS) \
+    WRAP_FUNCTION_BASE(decltype( \
+        PowerFake::internal::FuncType<FTYPE>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
+        PRIVMEMBER_ADDR(ALIAS), ALIAS)
+
+/**
+ * Wrap a private member function with alias ALIAS.
+ */
+#define WRAP_PRIVATE_MEMBER_IMPL(FTYPE, FNAME, ALIAS) \
+    TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
+    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
+
+#define WRAP_PRIVATE_MEMBER_IMPL_2(CLASS, FTYPE, FNAME, ALIAS) \
+    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), CLASS, FTYPE, FNAME); \
+    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
 
 /**
  * Define a wrapper for function with type FTYPE and name FNAME.
  */
 #define WRAP_FUNCTION_2(FTYPE, FNAME) \
     WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
-        FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
 
 /**
  * Define a wrapper for function named FNAME.
@@ -539,6 +608,27 @@ class Wrapper: public WrapperBase
     WRAP_STATIC_MEMBER_2(FCLASS, decltype(&FNAME), FNAME)
 
 /**
+ * Define a wrapper for private member function with type FTYPE and name FNAME
+ */
+#define WRAP_OVERLOADED_PRIVATE(CLASS, FTYPE, FNAME) \
+        WRAP_PRIVATE_MEMBER_IMPL_2(CLASS, FTYPE, FNAME, \
+            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+#define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
+    WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS) \
+    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS)
+
+/**
+ * Define a wrapper for private member function with name FNAME
+ */
+#define WRAP_PRIVATE_MEMBER_1(FNAME) \
+    WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+/**
  * Define a wrapper for the given function. For normal functions, it should be
  * called with the function name, e.g.:
  *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
@@ -552,6 +642,9 @@ class Wrapper: public WrapperBase
 
 #define WRAP_STATIC_MEMBER(...) \
     SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
+
+#define WRAP_PRIVATE_MEMBER(...) \
+    SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
 
 
 // MakeFake implementations
@@ -568,6 +661,12 @@ static auto MakeFake(Signature Class::*func_ptr, Functor f)
     typedef internal::remove_func_cv_t<Signature Class::*> FuncType;
     return Fake<FuncType>(
         Wrapper<FuncType>::WrapperObject(internal::unify_pmf(func_ptr)), f);
+}
+
+template <typename PrivateMemberTag, typename Functor>
+static auto MakeFake(Functor f)
+{
+    return MakeFake(get_addr(PrivateMemberTag()), f);
 }
 
 // PrototypeExtractor implementations

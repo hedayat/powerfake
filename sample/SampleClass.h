@@ -37,6 +37,15 @@ class SampleClass
         std::unique_ptr<int> GetIntPtr();
         std::unique_ptr<int> &GetIntPtrReference();
         const std::unique_ptr<int> &GetIntPtrConstReference();
+
+        void CallSamplePrivate() { SamplePrivate(); }
+        void CallOverloadedPrivate(int a) { OverloadedPrivate(a); }
+        void CallOverloadedPrivate(float b) { OverloadedPrivate(b); }
+
+    private:
+        void SamplePrivate();
+        void OverloadedPrivate(int a);
+        void OverloadedPrivate(float b);
 };
 
 

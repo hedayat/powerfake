@@ -27,6 +27,12 @@ using namespace PowerFake;
 using namespace FakeTest;
 
 
+TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
+TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, SampleClass, void (int),
+    SampleClass::OverloadedPrivate);
+TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, SampleClass, void (float),
+    SampleClass::OverloadedPrivate);
+
 // Sample showing how MakeFake can be used inside struct/classes, since
 // auto is not allowed here
 struct SampleStruct
@@ -176,6 +182,21 @@ void FakeOverloaded()
     auto vfk = MakeFake(&SampleClass2::CallVirtual, [](int) { cout << "Faked called for SampleClass2::CallVirtual" << endl; });
     cout << "-> Fake call" << endl;
     sc2.CallVirtual(6);
+
+    cout << "\n Private function Tests\n"
+            "----------------------------------------------" << endl;
+    cout << "-> Real calls" << endl;
+    sc2.CallSamplePrivate();
+    sc2.CallOverloadedPrivate(4);
+    sc2.CallOverloadedPrivate(4.0f);
+
+    cout << "-> Fake calls" << endl;
+    auto pfk = MakeFake<SamplePrivate>([]() { cout << "Faked call for SamplePrivate" << endl; });
+    auto pfk2 = MakeFake<OverloadedPrivateInt>([](int) { cout << "Faked call for OverloadedPrivate(int)" << endl; });
+    auto pfk3 = MakeFake<OverloadedPrivateFloat>([](float) { cout << "Faked call for OverloadedPrivate(float)" << endl; });
+    sc2.CallSamplePrivate();
+    sc2.CallOverloadedPrivate(4);
+    sc2.CallOverloadedPrivate(4.0f);
 
     cout << "\n VirtualSample Tests\n"
             "----------------------------------------------" << endl;
