@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     {
         bool passive_mode = false;
         bool leading_underscore = false;
-        bool use_objcopy = false;
+        bool use_objcopy = true;
         int argc_inc = 0;
 
         for (int i = 1; i < argc; ++i)
@@ -62,9 +62,14 @@ int main(int argc, char **argv)
                 passive_mode = true;
                 argc_inc++;
             }
-            else if (argv[i] == "--objcopy"s)
+            else if (argv[i] == "--objcopy"s) // old option, for compatibility
             {
                 use_objcopy = true;
+                argc_inc++;
+            }
+            else if (argv[i] == "--no-objcopy"s)
+            {
+                use_objcopy = false;
                 argc_inc++;
             }
             else
