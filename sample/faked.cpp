@@ -37,9 +37,9 @@ TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, SampleClass, void (float),
 // auto is not allowed here
 struct SampleStruct
 {
-        FakeType<decltype(&normal_func)> normal_fake =
+        FakePtr normal_fake =
                 MakeFake(normal_func, [this](int) {});
-        FakeType<void (int)> ov = MakeFake<void (int)>(overloaded, [](int){});
+        FakePtr ov = MakeFake<void (int)>(overloaded, [](int){});
 };
 
 

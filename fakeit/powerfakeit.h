@@ -34,9 +34,9 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         class FakeData
         {
             public:
-                FakeData(FakeBase *fake,
+                FakeData(std::unique_ptr<FakeBase> fake,
                     fakeit::Destructible *recorder) :
-                        fake(fake), recorder(recorder)
+                        fake(std::move(fake)), recorder(recorder)
                 {}
 
                 template <typename R, typename ...Args>
@@ -67,11 +67,12 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
             {
                 auto recorder = createRecordedMethodBody<R, Args...>(*this,
                         std::string(typeid(func_ptr).name()));
-                auto fake_ptr = new auto( MakeFake(func_ptr,
+                auto fake_ptr = MakeFake(func_ptr,
                     [recorder](Args... args) {
                         recorder->handleMethodInvocation(args...);
-                    }) );
-                auto ins = mocked.emplace(f_key, FakeData(fake_ptr, recorder));
+                    });
+                auto ins = mocked.emplace(f_key, FakeData(std::move(fake_ptr),
+                    recorder));
                 mocked_it = ins.first;
             }
             return fakeit::MockingContext<R, Args...>(
@@ -87,11 +88,12 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
             {
                 auto recorder = createRecordedMethodBody<R, Args...>(*this,
                         std::string(typeid(func_ptr).name()));
-                auto fake_ptr = new auto( MakeFake(func_ptr,
+                auto fake_ptr = MakeFake(func_ptr,
                     [recorder](Args... args) {
                         return recorder->handleMethodInvocation(args...);
-                    }) );
-                auto ins = mocked.emplace(f_key, FakeData(fake_ptr, recorder));
+                    });
+                auto ins = mocked.emplace(f_key, FakeData(std::move(fake_ptr),
+                    recorder));
                 mocked_it = ins.first;
             }
             return fakeit::MockingContext<R, Args...>(

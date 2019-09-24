@@ -15,6 +15,7 @@
 
 #include <array>
 #include <map>
+#include <memory>
 #include <vector>
 #include <functional>
 #include <typeindex>
@@ -237,8 +238,7 @@ class Fake<R (T::*)(Args...)>: public FakeBase
         typename WT::FakeFunction orig_fake;
 };
 
-template <typename FuncType>
-using FakeType = Fake<PowerFake::internal::remove_func_cv_t<std::decay_t<FuncType>>>;
+using FakePtr = std::unique_ptr<FakeBase>;
 
 /**
  * Creates the fake object for the given function, faked with function object
@@ -249,7 +249,7 @@ using FakeType = Fake<PowerFake::internal::remove_func_cv_t<std::decay_t<FuncTyp
  * while this object lives
  */
 template <typename Signature, typename Functor>
-static auto MakeFake(Signature *func_ptr, Functor f);
+static FakePtr MakeFake(Signature *func_ptr, Functor f);
 
 /**
  * Creates the fake object for the given member function, faked with @p f
@@ -259,7 +259,7 @@ static auto MakeFake(Signature *func_ptr, Functor f);
  * while this object lives
  */
 template<typename Signature, typename Class, typename Functor>
-static auto MakeFake(Signature Class::*func_ptr, Functor f);
+static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
  * Creates a fake object for a private member function tagged with
@@ -270,7 +270,7 @@ static auto MakeFake(Signature Class::*func_ptr, Functor f);
  * Fake is in effect while this object lives
  */
 template <typename PrivateMemberTag, typename Functor>
-static auto MakeFake(Functor f);
+static FakePtr MakeFake(Functor f);
 
 /**
  * It is not possible to pass private member functions directly to MakeFake(),
@@ -649,22 +649,22 @@ class Wrapper: public WrapperBase
 
 // MakeFake implementations
 template <typename Signature, typename Functor>
-static auto MakeFake(Signature *func_ptr, Functor f)
+static FakePtr MakeFake(Signature *func_ptr, Functor f)
 {
     typedef internal::remove_func_cv_t<Signature *> FuncType;
-    return Fake<FuncType>(Wrapper<FuncType>::WrapperObject(func_ptr), f);
+    return std::make_unique<Fake<FuncType>>(Wrapper<FuncType>::WrapperObject(func_ptr), f);
 }
 
 template<typename Signature, typename Class, typename Functor>
-static auto MakeFake(Signature Class::*func_ptr, Functor f)
+static FakePtr MakeFake(Signature Class::*func_ptr, Functor f)
 {
     typedef internal::remove_func_cv_t<Signature Class::*> FuncType;
-    return Fake<FuncType>(
+    return std::make_unique<Fake<FuncType>>(
         Wrapper<FuncType>::WrapperObject(internal::unify_pmf(func_ptr)), f);
 }
 
 template <typename PrivateMemberTag, typename Functor>
-static auto MakeFake(Functor f)
+static FakePtr MakeFake(Functor f)
 {
     return MakeFake(get_addr(PrivateMemberTag()), f);
 }
