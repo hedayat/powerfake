@@ -13,8 +13,8 @@
 #ifndef FAKEIT_POWERFAKEIT_H_
 #define FAKEIT_POWERFAKEIT_H_
 
-#include <fakeit.hpp>
 #include <powerfake.h>
+#include <fakeit.hpp>
 
 
 #define Function(power_mock, function) \
