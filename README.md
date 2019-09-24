@@ -8,6 +8,7 @@ member functions. It is built on top of GNU Linker's --wrap option.
 * Faking static class member functions
 * Faking member functions of a class
 * Provides control over the life time of faking
+* Provides integration with FakeIt(https://github.com/eranpeer/FakeIt)
 
 ## Limitations
 * Cannot fake constructors/destructors
@@ -26,3 +27,4 @@ member functions. It is built on top of GNU Linker's --wrap option.
 ## Roadmap
 * Provide support for other build systems (e.g. QMake, Autotools, Meson)
 * Integrate with some C++ mocking frameworks
+* Support faking virtual functions with virtual dispatch
