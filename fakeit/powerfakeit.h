@@ -14,7 +14,7 @@
 #define FAKEIT_POWERFAKEIT_H_
 
 #include <fakeit.hpp>
-#include "powerfake.h"
+#include <powerfake.h>
 
 
 #define Function(power_mock, function) \
