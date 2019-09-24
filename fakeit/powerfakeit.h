@@ -156,6 +156,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         static WrapperBase::FunctionKey FuncKey(FuncType func_ptr)
         {
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
             return std::make_pair(reinterpret_cast<void *>(func_ptr),
                 std::type_index(typeid(FuncType)));
