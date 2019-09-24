@@ -20,6 +20,9 @@
 #define Function(power_mock, function) \
         power_mock.stub(&function).setMethodDetails(#power_mock,#function)
 
+#define PrivateMethod(mock, method_tag) \
+    mock.template stub<method_tag>().setMethodDetails(#mock,#method_tag)
+
 
 namespace PowerFake
 {
@@ -100,6 +103,12 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                 new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
+        template <typename Tag>
+        auto stub()
+        {
+            return stub(internal::unify_pmf(get_addr(Tag())));
+        }
+
         // swallow cv-qualified PMF types
         template <typename T, typename R>
         auto stub(R (T::*func_ptr))
@@ -146,10 +155,11 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         template <typename FuncType>
         static WrapperBase::FunctionKey FuncKey(FuncType func_ptr)
         {
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
             return std::make_pair(reinterpret_cast<void *>(func_ptr),
                 std::type_index(typeid(FuncType)));
-#pragma GCC diagnostic warning "-Wpmf-conversions"
+#pragma GCC diagnostic pop
         }
 
         // borrowed from FakeIt MockImpl implementation

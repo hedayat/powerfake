@@ -236,10 +236,16 @@ void FakeItSamples()
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
         When(OverloadedMethod(pfk2, OverloadedCall, int())).Return(4);
         When(ConstOverloadedMethod(pfk2, OverloadedCall, int(int))).Return(5);
+        When(PrivateMethod(pfk2, SamplePrivate)).Do([]() { cout << "Private WOW!" << endl; });
+        When(PrivateMethod(pfk2, OverloadedPrivateInt)).Do([](int) { cout << "Overloaded(int) Private WOW!" << endl; });
+        When(PrivateMethod(pfk2, OverloadedPrivateFloat)).Do([](float) { cout << "Overloaded(float) Private WOW!" << endl; });
 
         SampleClass s;
         s.CallThis();
         s.OverloadedCall();
+        s.CallSamplePrivate();
+        s.CallOverloadedPrivate(4);
+        s.CallOverloadedPrivate(4.0f);
 
         Verify(Method(pfk2, CallThis)).Exactly(1);
         Using(pfk2).Verify(Method(pfk2, CallThis)
