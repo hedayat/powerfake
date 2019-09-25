@@ -20,7 +20,7 @@ option(ENABLE_FAKEIT "Enable building FakeIt integration samples" OFF)
 
 # =============================================================================
 if(CMAKE_COMPILER_IS_GNUCXX)
-    set(EXTRA_FLAGS "-pthread -Wall -Wextra -Woverloaded-virtual")
+    set(EXTRA_FLAGS "-pthread -Wall -Wextra -Woverloaded-virtual -Wpedantic")
 
     # Add some security flags
     include(CheckCXXCompilerFlag)

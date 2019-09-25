@@ -174,19 +174,19 @@ struct TagBase {
     static decltype(auto) Call(Class &obj, Args... args)
     {
         return (obj.*GetAddress(Tag()))(args...);
-    };
+    }
 
     template <typename Class>
     static auto &Value(Class &obj)
     {
         return obj.*GetAddress(Tag());
-    };
+    }
 
     template <typename Class>
     static const auto &Value(const Class &obj)
     {
         return obj.*GetAddress(Tag());
-    };
+    }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
