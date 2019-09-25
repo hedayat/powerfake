@@ -160,7 +160,7 @@ std::string ToStr(uint32_t q, bool mangled = false);
 template<typename Tag, auto PrivMemfuncPtr>
 struct PrivateFunctionExtractor
 {
-    friend auto get_addr(Tag) { return PrivMemfuncPtr; }
+    friend auto GetAddress(Tag) { return PrivMemfuncPtr; }
 };
 
 /**
@@ -190,7 +190,7 @@ struct TagBase {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
-    friend auto get_addr(Tag);
+    friend auto GetAddress(Tag);
 #pragma GCC diagnostic pop
 };
 
@@ -303,12 +303,16 @@ static FakePtr MakeFake(Functor f);
  * Note that it cannot be called inside a block
  */
 #define TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> {}; \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #MEMBER_FUNCTION; \
+    }; \
     template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
                                                             &MEMBER_FUNCTION>
 
 #define TAG_OVERLOADED_PRIVATE(TAG, CLASS, FTYPE, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> {}; \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #MEMBER_FUNCTION; \
+    }; \
     template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
         static_cast<decltype( \
             PowerFake::internal::FuncType<FTYPE, CLASS>(nullptr))>( \
@@ -503,7 +507,7 @@ class Wrapper: public WrapperBase
 #define SELECT_3RD(_1, _2, NAME,...) NAME
 #define SELECT_4TH(_1, _2, _3, NAME,...) NAME
 #define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
-#define PRIVMEMBER_ADDR(ALIAS) get_addr(PRIVATE_TAG(ALIAS)())
+#define PRIVMEMBER_ADDR(ALIAS) GetAddress(PRIVATE_TAG(ALIAS)())
 
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
@@ -689,7 +693,7 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f)
 template <typename PrivateMemberTag, typename Functor>
 static FakePtr MakeFake(Functor f)
 {
-    return MakeFake(get_addr(PrivateMemberTag()), f);
+    return MakeFake(GetAddress(PrivateMemberTag()), f);
 }
 
 // PrototypeExtractor implementations

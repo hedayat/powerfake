@@ -18,10 +18,11 @@
 
 
 #define Function(power_mock, function) \
-        power_mock.stub(&function).setMethodDetails(#power_mock,#function)
+        power_mock.stub(&function).setMethodDetails(#power_mock, #function)
 
 #define PrivateMethod(mock, method_tag) \
-    mock.template stub<method_tag>().setMethodDetails(#mock,#method_tag)
+    mock.template stub<method_tag>().setMethodDetails(#mock, \
+        method_tag::member_name)
 
 
 namespace PowerFake
@@ -106,7 +107,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         template <typename Tag>
         auto stub()
         {
-            return stub(internal::unify_pmf(get_addr(Tag())));
+            return stub(internal::unify_pmf(GetAddress(Tag())));
         }
 
         // swallow cv-qualified PMF types
