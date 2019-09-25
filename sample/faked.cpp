@@ -27,6 +27,7 @@ using namespace PowerFake;
 using namespace FakeTest;
 
 
+TAG_PRIVATE_MEMBER(SamplePrivateValue, SampleClass::private_val);
 TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
 TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, SampleClass, void (int),
     SampleClass::OverloadedPrivate);
@@ -189,6 +190,13 @@ void FakeOverloaded()
     sc2.CallSamplePrivate();
     sc2.CallOverloadedPrivate(4);
     sc2.CallOverloadedPrivate(4.0f);
+
+    cout << "-> Real calls of private functions directly" << endl;
+    SamplePrivate::Call(sc2);
+    SamplePrivateValue::Value(sc2) = 25;
+    SamplePrivate::Call(sc2);
+    OverloadedPrivateInt::Call(sc2, 10);
+    OverloadedPrivateFloat::Call(sc2, 5);
 
     cout << "-> Fake calls" << endl;
     auto pfk = MakeFake<SamplePrivate>([]() { cout << "Faked call for SamplePrivate" << endl; });

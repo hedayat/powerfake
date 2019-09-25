@@ -43,6 +43,8 @@ class SampleClass
         void CallOverloadedPrivate(float b) { OverloadedPrivate(b); }
 
     private:
+        int private_val = 100;
+
         void SamplePrivate();
         void OverloadedPrivate(int a);
         void OverloadedPrivate(float b);

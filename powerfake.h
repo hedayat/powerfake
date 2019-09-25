@@ -3,7 +3,7 @@
  *
  *  Created on: ۲۷ شهریور ۱۳۹۶
  *
- *  Copyright Hedayat Vatankhah 2017, 2018.
+ *  Copyright Hedayat Vatankhah 2017-2020.
  *
  *  Distributed under the Boost Software License, Version 1.0.
  *     (See accompanying file LICENSE_1_0.txt or copy at
@@ -163,8 +163,31 @@ struct PrivateFunctionExtractor
     friend auto get_addr(Tag) { return PrivMemfuncPtr; }
 };
 
+/**
+ * Base class for tags used to refer to private class members. It also enables
+ * calling of private functions & access to private member variables using
+ * Call() & Value() functions
+ */
 template <typename Tag>
 struct TagBase {
+    template <typename Class, typename ...Args>
+    static decltype(auto) Call(Class &obj, Args... args)
+    {
+        return (obj.*GetAddress(Tag()))(args...);
+    };
+
+    template <typename Class>
+    static auto &Value(Class &obj)
+    {
+        return obj.*GetAddress(Tag());
+    };
+
+    template <typename Class>
+    static const auto &Value(const Class &obj)
+    {
+        return obj.*GetAddress(Tag());
+    };
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
     friend auto get_addr(Tag);
