@@ -18,6 +18,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <stdexcept>
 #include <typeindex>
 #include <type_traits>
 #include <boost/core/demangle.hpp>
