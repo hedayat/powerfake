@@ -56,8 +56,6 @@ std::string ToStr(uint32_t q, bool mangled)
     return res;
 }
 
-}  // namespace internal
-
 // using pointers, as we can't rely on the order of construction of static
 // objects
 WrapperBase::Prototypes *WrapperBase::wrapped_funcs = nullptr;
@@ -96,5 +94,7 @@ void WrapperBase::AddFunction(FunctionKey func_key,
         wrappers = new FunctionWrappers;
     (*wrappers)[func_key] = this;
 }
+
+}  // namespace internal
 
 }  // namespace PowerFake

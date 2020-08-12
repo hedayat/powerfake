@@ -38,7 +38,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         class FakeData
         {
             public:
-                FakeData(std::unique_ptr<FakeBase> fake,
+                FakeData(std::unique_ptr<internal::FakeBase> fake,
                     fakeit::Destructible *recorder) :
                         fake(std::move(fake)), recorder(recorder)
                 {}
@@ -57,7 +57,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                 }
 
             private:
-                std::unique_ptr<FakeBase> fake;
+                std::unique_ptr<internal::FakeBase> fake;
                 std::unique_ptr<fakeit::Destructible> recorder;
         };
 
@@ -151,10 +151,10 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         }
 
     private:
-        std::map<WrapperBase::FunctionKey, FakeData> mocked;
+        std::map<internal::WrapperBase::FunctionKey, FakeData> mocked;
 
         template <typename FuncType>
-        static WrapperBase::FunctionKey FuncKey(FuncType func_ptr)
+        static internal::WrapperBase::FunctionKey FuncKey(FuncType func_ptr)
         {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"

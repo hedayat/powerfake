@@ -28,6 +28,7 @@
 
 using namespace std;
 using namespace PowerFake;
+using namespace PowerFake::internal;
 
 struct Tag {};
 using TestMemberFuncType = void (Tag::*)(int);

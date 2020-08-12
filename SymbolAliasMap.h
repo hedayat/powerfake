@@ -17,7 +17,7 @@
 #include <map>
 #include <string>
 
-using PowerFake::WrapperBase;
+using PowerFake::internal::WrapperBase;
 
 class SymbolAliasMap
 {
@@ -36,7 +36,7 @@ class SymbolAliasMap
             const std::string &demangled, const char *symbol_name);
         bool IsFunction(const char *symbol_name, const std::string &demangled);
         bool IsSameFunction(const std::string &demangled,
-            const PowerFake::FunctionPrototype &proto);
+            const PowerFake::internal::FunctionPrototype &proto);
         std::string FunctionName(const std::string &demangled);
 };
 

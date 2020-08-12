@@ -110,7 +110,7 @@ bool SymbolAliasMap::IsFunction(const char *symbol_name  [[gnu::unused]],
 }
 
 bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
-    const PowerFake::FunctionPrototype &proto)
+    const PowerFake::internal::FunctionPrototype &proto)
 {
     const string base_sig = proto.name + proto.params;
     string qs = internal::ToStr(proto.qual, true);
