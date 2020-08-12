@@ -18,6 +18,11 @@ member functions. It is built on top of GNU Linker's --wrap option.
 * Cannot work with GCC LTO, since ld's --wrap is not supported in this case
 * Currently, it only provides CMake integration
 
+## Usage
+Currently, there are no docs for using PowerFake, but you can refer to the sample
+directory to see a show case of PowerFake features and how to use it in other
+projects. Hopefully, there will be some docs someday!
+
 ## Dependencies
 * GNU Linker (ld)
 * GCC
