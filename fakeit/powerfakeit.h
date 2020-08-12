@@ -21,7 +21,7 @@
         power_mock.stub(&function).setMethodDetails(#power_mock, #function)
 
 #define PrivateMethod(mock, method_tag) \
-    mock.template stub<method_tag>().setMethodDetails(#mock, \
+    mock.template stub<__COUNTER__, method_tag>().setMethodDetails(#mock, \
         method_tag::member_name)
 
 
@@ -104,7 +104,7 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                 new MethodMockingContextImpl<R, Args...>(*this, mocked_it->second));
         }
 
-        template <typename Tag>
+        template <int id, typename Tag>
         auto stub()
         {
             return stub(internal::unify_pmf(GetAddress(Tag())));
@@ -242,6 +242,20 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                     throw std::runtime_error("Not supported!");
                 }
         };
+};
+
+template<typename C, typename ... baseclasses>
+class ExMock: public fakeit::Mock<C, baseclasses...> {
+    public:
+        using fakeit::Mock<C, baseclasses...>::Mock;
+
+        using fakeit::Mock<C, baseclasses...>::stub;
+
+        template <int id, typename Tag>
+        auto stub()
+        {
+            return stub<id>(PowerFake::internal::unify_pmf(GetAddress(Tag())));
+        }
 };
 
 } /* namespace PowerFake */

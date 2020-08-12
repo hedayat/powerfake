@@ -5,7 +5,8 @@
 include_directories(${CMAKE_SOURCE_DIR})
 
 if (ENABLE_FAKEIT)
-    include_directories(../third_party/FakeIt/single_header/standalone)
+    include_directories(../third_party/FakeIt/include
+        ../third_party/FakeIt/config/standalone)
     add_definitions(-DENABLE_FAKEIT)
 endif ()
 

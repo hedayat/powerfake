@@ -117,10 +117,15 @@ void SampleClass2::CallVirtual(int b [[gnu::unused]])
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
 
+void SampleBase::CallNonPublics(int b)
+{
+    CallProtectedVirtual(b);
+    CallPrivateVirtual(b);
+}
+
 void VirtualSample::CallVirtual(int b [[gnu::unused]])
 {
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
-
 
 }  // namespace FakeTest

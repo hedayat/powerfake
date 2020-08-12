@@ -14,7 +14,6 @@
 #include <powerfake.h>
 
 #ifdef ENABLE_FAKEIT
-#include <fakeit.hpp>
 #include <fakeit/powerfakeit.h>
 using namespace fakeit;
 #endif
@@ -29,6 +28,8 @@ using namespace FakeTest;
 
 TAG_PRIVATE_MEMBER(SamplePrivateValue, SampleClass::private_val);
 TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
+TAG_PRIVATE_MEMBER(VirtualPrivate, SampleBase::CallPrivateVirtual);
+TAG_PRIVATE_MEMBER(VirtualProtected, SampleBase::CallProtectedVirtual);
 TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, SampleClass, void (int),
     SampleClass::OverloadedPrivate);
 TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, SampleClass, void (float),
@@ -238,7 +239,7 @@ void FakeItSamples()
 
         normal_func(100);
 
-        Verify(Function(pfk, normal_func).Using(100)).Exactly(1);
+        Verify(Function(pfk, normal_func).Using(100)).Exactly(Once);
 
         PowerFakeIt<SampleClass> pfk2;
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
@@ -255,11 +256,19 @@ void FakeItSamples()
         s.CallOverloadedPrivate(4);
         s.CallOverloadedPrivate(4.0f);
 
-        Verify(Method(pfk2, CallThis)).Exactly(1);
+        Verify(Method(pfk2, CallThis)).Exactly(Once);
         Using(pfk2).Verify(Method(pfk2, CallThis)
             + OverloadedMethod(pfk2, OverloadedCall, int()));
 
         VerifyNoOtherInvocations(Method(pfk2, CallThis));
+
+        ExMock<SampleBase> mock;
+        Fake(PrivateMethod(mock, VirtualPrivate));
+        Fake(PrivateMethod(mock, VirtualProtected));
+
+        mock.get().CallNonPublics(30);
+        Verify(PrivateMethod(mock, VirtualProtected),
+            PrivateMethod(mock, VirtualPrivate)).Exactly(Once);
     }
     catch (std::exception& e)
     {

@@ -66,7 +66,15 @@ class SampleClass2: virtual public SampleClass
 class SampleBase
 {
     public:
+        virtual ~SampleBase() {}
         virtual void CallVirtual(int b) = 0;
+        void CallNonPublics(int b);
+
+    protected:
+        virtual void CallProtectedVirtual(int b [[maybe_unused]]) {}
+
+    private:
+        virtual void CallPrivateVirtual(int b [[maybe_unused]]) {}
 };
 
 class VirtualSample: public SampleClass2, virtual public SampleClass, public SampleBase
