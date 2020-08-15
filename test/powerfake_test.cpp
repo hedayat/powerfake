@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         internal::Qualifiers::NO_QUAL, "alias1")));
     protos.insert(make_pair("test_function2", FunctionPrototype("int", "test_function2", "()",
         internal::Qualifiers::NO_QUAL, "alias2")));
-    protos.insert(make_pair("test_function1", FunctionPrototype("int", "test_function", "()",
+    protos.insert(make_pair("test_function", FunctionPrototype("int", "test_function", "()",
         internal::Qualifiers::NO_QUAL, "alias3")));
     protos.insert(make_pair("A::folani", FunctionPrototype("void", "A::folani", "(int)",
         internal::Qualifiers::NO_QUAL, "alias4")));
@@ -251,6 +251,7 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
     for (int i = 0; i < 4; ++i)
     {
         string no = to_string(i+1);
+        BOOST_TEST_MESSAGE("Checking alias no. " << no);
         auto a = sm.Map().find("alias" + no);
         BOOST_TEST(
             (a != sm.Map().end() && a->second == "symbol_for_alias" + no));

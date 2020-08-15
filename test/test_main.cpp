@@ -19,11 +19,11 @@
  * there is no need to link with any libraries. But it makes compilation of
  * this file very slow. It's better to keep actual tests in other source files.
  */
-#include <boost/test/included/unit_test.hpp>
+//#include <boost/test/included/unit_test.hpp>
 
 // Include the following header instead of the above if you link with compiled
 // boost_test library
-//#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 // Disable buffering for stdout, specially useful for XML output
 // This is needed to get progress bar in Eclipse

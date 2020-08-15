@@ -92,7 +92,7 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
     }
 }
 
-bool SymbolAliasMap::IsFunction(const char *symbol_name  [[gnu::unused]],
+bool SymbolAliasMap::IsFunction(const char *symbol_name  [[maybe_unused]],
     const std::string &demangled)
 {
 

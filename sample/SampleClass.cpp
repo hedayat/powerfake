@@ -51,13 +51,13 @@ int SampleClass::OverloadedCall()
     return 0;
 }
 
-int SampleClass::OverloadedCall(int b [[gnu::unused]])
+int SampleClass::OverloadedCall(int b [[maybe_unused]])
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
     return 0;
 }
 
-int SampleClass::OverloadedCall(int b [[gnu::unused]]) const
+int SampleClass::OverloadedCall(int b [[maybe_unused]]) const
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
     return 0;
@@ -106,13 +106,13 @@ void SampleClass2::DerivedFunc()
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
 
-void SampleClass2::CallThis(int a  [[gnu::unused]])
+void SampleClass2::CallThis(int a  [[maybe_unused]])
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
 
 
-void SampleClass2::CallVirtual(int b [[gnu::unused]])
+void SampleClass2::CallVirtual(int b [[maybe_unused]])
 {
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
@@ -123,7 +123,7 @@ void SampleBase::CallNonPublics(int b)
     CallPrivateVirtual(b);
 }
 
-void VirtualSample::CallVirtual(int b [[gnu::unused]])
+void VirtualSample::CallVirtual(int b [[maybe_unused]])
 {
     cout << "Real virtual function: " << __PRETTY_FUNCTION__ << " called." << endl;
 }
