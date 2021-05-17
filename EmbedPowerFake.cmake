@@ -13,8 +13,8 @@ add_library(PowerFake::powerfake ALIAS powerfake)
 
 set(pair_sources ${POWERFAKE_DIR}/powerfake ${POWERFAKE_DIR}/SymbolAliasMap
     ${POWERFAKE_DIR}/NMSymbolReader ${POWERFAKE_DIR}/Reader)
-set(bindfakes_core_sources $<JOIN:${pair_sources},.cpp >)
-set(bindfakes_core_headers $<JOIN:${pair_sources},.h >)
+set(bindfakes_core_sources $<JOIN:${pair_sources},.cpp >.cpp)
+set(bindfakes_core_headers $<JOIN:${pair_sources},.h >.h)
 
 add_library(pw_bindfakes STATIC ${POWERFAKE_DIR}/bind_fakes.cpp
     ${bindfakes_core_sources} ${bindfakes_core_headers})
