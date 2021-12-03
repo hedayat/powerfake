@@ -13,9 +13,12 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
         -Wl,--whole-archive ${wrapper_funcs_lib} -Wl,--no-whole-archive
         $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
 
-    add_custom_command(TARGET ${target_name} PRE_LINK
+    add_custom_command(OUTPUT powerfake.link_flags
+        DEPENDS ${wrapper_funcs_lib}
         COMMAND ${bind_fakes_tgt} ${ARGV3}
                 $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>)
+    add_custom_target(exec_bind_${target_name} DEPENDS powerfake.link_flags)
+    add_dependencies(${target_name} exec_bind_${target_name})
 
     # Add powerfake link flags
     set_property(TARGET ${target_name} APPEND_STRING PROPERTY
