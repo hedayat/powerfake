@@ -15,13 +15,18 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
         # Create a duplicate target with BIND_FAKES flag set, as --gc-sections
         # doesn't remove unused __wrap_ functions created by WRAP_FUNCTION()
         # macros under MINGW
-        set(bf_wrap_lib ${wrapper_funcs_lib}_copy)
-        add_library(${bf_wrap_lib} STATIC
-            $<TARGET_PROPERTY:${wrapper_funcs_lib},SOURCES>)
-        target_compile_definitions(${bf_wrap_lib} PRIVATE BIND_FAKES)
+        set(bf_wrap_lib ${CMAKE_STATIC_LIBRARY_PREFIX}${wrapper_funcs_lib}_copy${CMAKE_STATIC_LIBRARY_SUFFIX})
+        add_custom_command(OUTPUT ${bf_wrap_lib}
+            DEPENDS ${wrapper_funcs_lib}
+            COMMAND objcopy --remove-section=*wrapper_*_alias_*
+                $<TARGET_FILE:${wrapper_funcs_lib}> ${bf_wrap_lib})
+        add_custom_target(wrap_lib_copy_${target_name} DEPENDS ${bf_wrap_lib})
+        add_dependencies(${bind_fakes_tgt} wrap_lib_copy_${target_name})
         if (CMAKE_SIZEOF_VOID_P EQUAL 4)
             set(RUN_OPTIONS "--leading-underscore")
         endif()
+
+        set(bf_wrap_lib "-L. ${bf_wrap_lib}")
     else (MINGW)
         set(bf_wrap_lib ${wrapper_funcs_lib})
     endif (MINGW)
