@@ -236,6 +236,7 @@ FuncPtr FuncType(FuncPtr);
 
 std::string ToStr(uint32_t q, bool mangled = false);
 
+#if __cplusplus >= 201703L
 // Provide access to private member functions. Inspired by:
 // http://bloglitb.blogspot.com/2011/12/access-to-private-members-safer.html
 template<typename Tag, auto PrivMemfuncPtr>
@@ -243,6 +244,7 @@ struct PrivateFunctionExtractor
 {
     friend auto GetAddress(Tag) { return PrivMemfuncPtr; }
 };
+#endif
 
 /**
  * Base class for tags used to refer to private class members. It also enables
