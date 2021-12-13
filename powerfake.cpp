@@ -13,7 +13,6 @@
 
 #include "powerfake.h"
 
-#include <iostream>
 #include <vector>
 
 /*
@@ -74,8 +73,8 @@ void WrapperBase::AddFunction(FunctionKey func_key,
 #ifdef BIND_FAKES
     if (!wrapped_funcs)
         wrapped_funcs = new Prototypes();
-    std::cout << "Add function prototype(" << prototype.alias << "): "
-            << prototype.Str() << std::endl;
+//    std::cout << "Add function prototype(" << prototype.alias << "): "
+//            << prototype.Str() << std::endl;
     auto nstart = prototype.name.rfind(':', prototype.name.length()-1);
     std::string name;
     if (nstart != std::string::npos)
