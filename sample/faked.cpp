@@ -30,9 +30,9 @@ TAG_PRIVATE_MEMBER(SamplePrivateValue, SampleClass::private_val);
 TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
 TAG_PRIVATE_MEMBER(VirtualPrivate, SampleBase::CallPrivateVirtual);
 TAG_PRIVATE_MEMBER(VirtualProtected, SampleBase::CallProtectedVirtual);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, SampleClass, void (int),
+TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, void (int),
     SampleClass::OverloadedPrivate);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, SampleClass, void (float),
+TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, void (float),
     SampleClass::OverloadedPrivate);
 
 // Sample showing how MakeFake can be used inside struct/classes, since

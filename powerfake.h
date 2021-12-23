@@ -97,13 +97,13 @@ static FakePtr MakeFake(Functor f);
     template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
                                                             &MEMBER_FUNCTION>
 
-#define TAG_OVERLOADED_PRIVATE(TAG, CLASS, FTYPE, MEMBER_FUNCTION) \
+#define TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
     struct TAG: public PowerFake::internal::TagBase<TAG> { \
         static constexpr const char *member_name = #MEMBER_FUNCTION; \
     }; \
     template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
         static_cast<decltype( \
-            PowerFake::internal::FuncType<FTYPE, CLASS>(nullptr))>( \
+            PowerFake::internal::FuncType<FTYPE>(&MEMBER_FUNCTION))>( \
                     &MEMBER_FUNCTION)>
 
 namespace internal
@@ -629,9 +629,10 @@ class Wrapper: public WrapperBase
     TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
     WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
 
-#define WRAP_PRIVATE_MEMBER_IMPL_2(CLASS, FTYPE, FNAME, ALIAS) \
-    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), CLASS, FTYPE, FNAME); \
+#define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS) \
+    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
     WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
+
 
 /**
  * Define a wrapper for function with type FTYPE and name FNAME.
@@ -663,16 +664,9 @@ class Wrapper: public WrapperBase
 /**
  * Define a wrapper for private member function with type FTYPE and name FNAME
  */
-#define WRAP_OVERLOADED_PRIVATE(CLASS, FTYPE, FNAME) \
-        WRAP_PRIVATE_MEMBER_IMPL_2(CLASS, FTYPE, FNAME, \
-            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
-
 #define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
     WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
         BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
-
-#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS) \
-    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS)
 
 /**
  * Define a wrapper for private member function with name FNAME
@@ -680,6 +674,10 @@ class Wrapper: public WrapperBase
 #define WRAP_PRIVATE_MEMBER_1(FNAME) \
     WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
         BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+
+#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS) \
+    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS)
+
 
 // MakeFake implementations
 template <typename Signature, typename Functor>
