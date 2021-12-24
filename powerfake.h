@@ -367,6 +367,19 @@ struct FunctionPrototype
     std::string alias;
 };
 
+enum class FakeType
+{
+    WRAPPED,
+    HIDDEN
+};
+
+struct FunctionInfo
+{
+    FunctionPrototype prototype;
+    FakeType fake_type = FakeType::WRAPPED;
+    std::string symbol = "";
+};
+
 /**
  * This class provides an Extract() method which extracts the FunctionPrototype
  * for a given function. Can be used for both normal functions and member
@@ -417,7 +430,7 @@ struct PrototypeExtractor<R (*)(Args...)>
 class WrapperBase
 {
     public:
-        typedef std::multimap<std::string, FunctionPrototype> Prototypes;
+        typedef std::multimap<std::string, FunctionInfo> Functions;
         typedef std::pair<void *, std::type_index> FunctionKey;
         typedef std::map<FunctionKey, WrapperBase *> FunctionWrappers;
 
@@ -425,16 +438,16 @@ class WrapperBase
         /**
          * @return function prototype of all wrapped functions
          */
-        static const Prototypes &WrappedFunctions();
+        static const Functions &WrappedFunctions();
 
         /**
          * Add wrapped function prototype and alias
          */
         WrapperBase(std::string alias, FunctionKey key,
-            FunctionPrototype prototype)
+            FunctionPrototype prototype, FakeType fake_type = FakeType::WRAPPED)
         {
             prototype.alias = alias;
-            AddFunction(key, prototype);
+            AddFunction(key, prototype, fake_type);
         }
 
     protected:
@@ -448,10 +461,11 @@ class WrapperBase
             return static_cast<RetType *>(w->second);
         }
 
-        void AddFunction(FunctionKey func_key, FunctionPrototype sig);
+        void AddFunction(FunctionKey func_key, FunctionPrototype sig,
+            FakeType fake_type);
 
     private:
-        static Prototypes *wrapped_funcs;
+        static Functions *wrapped_funcs;
         static FunctionWrappers *wrappers;
 };
 

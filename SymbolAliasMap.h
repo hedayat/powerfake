@@ -32,7 +32,7 @@ class SymbolAliasMap
     private:
         MapType sym_map;
 
-        void FindWrappedSymbol(WrapperBase::Prototypes protos,
+        void FindWrappedSymbol(WrapperBase::Functions protos,
             const std::string &demangled, const char *symbol_name);
         bool IsFunction(const char *symbol_name, const std::string &demangled);
         bool IsSameFunction(const std::string &demangled,

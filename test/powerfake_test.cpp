@@ -220,18 +220,18 @@ BOOST_FIXTURE_TEST_CASE(NMReaderTest, SampleLibConfig)
 
 BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
 {
-    WrapperBase::Prototypes protos;
-    protos.insert(make_pair("folan<char>", FunctionPrototype("char", "folan<char>", "(int)",
-        internal::Qualifiers::NO_QUAL, "alias1")));
-    protos.insert(make_pair("test_function2", FunctionPrototype("int", "test_function2", "()",
-        internal::Qualifiers::NO_QUAL, "alias2")));
-    protos.insert(make_pair("test_function", FunctionPrototype("int", "test_function", "()",
-        internal::Qualifiers::NO_QUAL, "alias3")));
-    protos.insert(make_pair("A::folani", FunctionPrototype("void", "A::folani", "(int)",
-        internal::Qualifiers::NO_QUAL, "alias4")));
-    protos.insert(make_pair("non_copyable_ref", FunctionPrototype(
+    WrapperBase::Functions protos;
+    protos.insert( { "folan<char>", { FunctionPrototype("char", "folan<char>", "(int)",
+        internal::Qualifiers::NO_QUAL, "alias1") } } );
+    protos.insert( { "test_function2", { FunctionPrototype("int", "test_function2", "()",
+        internal::Qualifiers::NO_QUAL, "alias2") } } );
+    protos.insert( { "test_function", { FunctionPrototype("int", "test_function", "()",
+        internal::Qualifiers::NO_QUAL, "alias3") } } );
+    protos.insert( { "A::folani", { FunctionPrototype("void", "A::folani", "(int)",
+        internal::Qualifiers::NO_QUAL, "alias4") } } );
+    protos.insert( { "non_copyable_ref", { FunctionPrototype(
         "std::unique_ptr<int, std::default_delete<int> >", "non_copyable_ref",
-        "()", internal::Qualifiers::NO_QUAL, "some_alias")));
+        "()", internal::Qualifiers::NO_QUAL, "some_alias") } } );
 
     SymbolAliasMap sm;
     sm.FindWrappedSymbol(protos, "char folan<char>(int)", "symbol_for_alias1");
