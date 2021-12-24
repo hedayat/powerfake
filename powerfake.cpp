@@ -60,7 +60,7 @@ std::string ToStr(uint32_t q, bool mangled)
 WrapperBase::Functions *WrapperBase::wrapped_funcs = nullptr;
 WrapperBase::FunctionWrappers *WrapperBase::wrappers = nullptr;
 
-const WrapperBase::Functions &WrapperBase::WrappedFunctions()
+WrapperBase::Functions &WrapperBase::WrappedFunctions()
 {
     if (!wrapped_funcs)
         wrapped_funcs = new Functions();

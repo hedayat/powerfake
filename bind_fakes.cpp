@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         // test binary
         ofstream link_flags("powerfake.link_flags");
         for (const auto &syms: symmap.Map())
-            link_flags << "-Wl,--wrap=" << syms.second << endl;
+            link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
 
         const string sym_prefix = leading_underscore ? "_" : "";
         // Rename our wrap/real symbols (which are mangled) to the ones expected
@@ -127,12 +127,12 @@ int main(int argc, char **argv)
                                 << ' ' << boost::core::demangle(symbol) << endl;
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
-                                << syms.second << '=' << sym_prefix
+                                << syms.second->second.symbol << '=' << sym_prefix
                                 << symbol_str << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second;
+                                + syms.second->second.symbol;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
@@ -141,11 +141,11 @@ int main(int argc, char **argv)
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << syms.second << endl;
+                                << syms.second->second.symbol << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second;
+                                + syms.second->second.symbol;
                     }
                 }
             }

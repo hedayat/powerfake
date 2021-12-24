@@ -438,7 +438,7 @@ class WrapperBase
         /**
          * @return function prototype of all wrapped functions
          */
-        static const Functions &WrappedFunctions();
+        static Functions &WrappedFunctions();
 
         /**
          * Add wrapped function prototype and alias

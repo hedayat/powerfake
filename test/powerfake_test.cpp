@@ -254,6 +254,6 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         BOOST_TEST_MESSAGE("Checking alias no. " << no);
         auto a = sm.Map().find("alias" + no);
         BOOST_TEST(
-            (a != sm.Map().end() && a->second == "symbol_for_alias" + no));
+            (a != sm.Map().end() && a->second->second.symbol == "symbol_for_alias" + no));
     }
 }
