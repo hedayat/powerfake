@@ -443,8 +443,8 @@ class WrapperBase
         /**
          * Add wrapped function prototype and alias
          */
-        WrapperBase(std::string alias, FunctionKey key,
-            FunctionPrototype prototype, FakeType fake_type = FakeType::WRAPPED)
+        WrapperBase(std::string alias, FunctionKey key, FakeType fake_type,
+            FunctionPrototype prototype)
         {
             prototype.alias = alias;
             AddFunction(key, prototype, fake_type);
@@ -489,16 +489,17 @@ class Wrapper: public WrapperBase
          * Add wrapped function prototype and alias
          */
         Wrapper(std::string alias, FuncType func_ptr, uint32_t fq,
-            std::string func_name) :
-                WrapperBase(alias, FuncKey(func_ptr),
+            std::string func_name, FakeType fake_type = FakeType::WRAPPED) :
+                WrapperBase(alias, FuncKey(func_ptr), fake_type,
                     PrototypeExtractor<FuncType>::Extract(func_name, fq))
         {
         }
 
         template<typename Class>
         Wrapper(internal::type_identity<Class>, std::string alias,
-            FuncType func_ptr, uint32_t fq, std::string func_name) :
-                WrapperBase(alias, FuncKey(func_ptr),
+            FuncType func_ptr, uint32_t fq, std::string func_name,
+            FakeType fake_type = FakeType::WRAPPED) :
+                WrapperBase(alias, FuncKey(func_ptr), fake_type,
                     PrototypeExtractor<FuncType>::template Extract<Class>(
                         func_name, fq))
         {
@@ -557,7 +558,7 @@ class Wrapper: public WrapperBase
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
 
-#define CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS) \
+#define CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
      * if available, otherwise it'll call the real function. */  \
@@ -567,10 +568,17 @@ class Wrapper: public WrapperBase
     { \
         static R TMP_WRAPPER_NAME(ALIAS)(T *o, Args... args) \
         { \
-            R TMP_REAL_NAME(ALIAS)(T *o, Args... args); \
             if (ALIAS.Callable()) \
                 return ALIAS.Call(o, args...); \
-            return TMP_REAL_NAME(ALIAS)(o, args...); \
+            if constexpr (PowerFake::internal::FakeType::FAKE_TYPE \
+                == PowerFake::internal::FakeType::WRAPPED) \
+            { \
+                R TMP_REAL_NAME(ALIAS)(T *o, Args... args); \
+                return TMP_REAL_NAME(ALIAS)(o, args...); \
+            } \
+            else \
+                throw std::logic_error("PowerFake: No implementation provided " \
+                    "for hidden function: " #FNAME); \
         } \
     }; \
     template <typename R , typename ...Args> \
@@ -578,10 +586,17 @@ class Wrapper: public WrapperBase
     { \
         static R TMP_WRAPPER_NAME(ALIAS)(Args... args) \
         { \
-            R TMP_REAL_NAME(ALIAS)(Args... args); \
             if (ALIAS.Callable()) \
                 return ALIAS.Call(args...); \
-            return TMP_REAL_NAME(ALIAS)(args...); \
+            if constexpr (PowerFake::internal::FakeType::FAKE_TYPE \
+                == PowerFake::internal::FakeType::WRAPPED) \
+            { \
+                R TMP_REAL_NAME(ALIAS)(Args... args); \
+                return TMP_REAL_NAME(ALIAS)(args...); \
+            } \
+            else \
+                throw std::logic_error("PowerFake: No implementation provided " \
+                    "for hidden function: " #FNAME); \
         } \
     }; \
     /* Explicitly instantiate the wrapper_##ALIAS struct, so that the appropriate
@@ -591,16 +606,18 @@ class Wrapper: public WrapperBase
     template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FTYPE>>
 
 
-#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS) \
+#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
     static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
         ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(FADDR), \
-            PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+            PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
+            PowerFake::internal::FakeType::FAKE_TYPE);
 
-#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS) \
+#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
         ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
                 #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-                PowerFake::internal::func_qual_v<FTYPE>, #FNAME);
+                PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
+                PowerFake::internal::FakeType::FAKE_TYPE);
 
 #ifndef BIND_FAKES
 
@@ -608,44 +625,44 @@ class Wrapper: public WrapperBase
  * Define wrapper for function FNAME with type FTYPE and alias ALIAS. Must be
  * used only once for each function in a cpp file.
  */
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS) \
-    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS) \
-    CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 /**
  * Define wrapper for static member function FNAME of class FCLASS with type
  * FTYPE and alias ALIAS.
  */
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS) \
-    CREATE_WRAPPER_FUNCTION(FTYPE, ALIAS)
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 #else // BIND_FAKES
 
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS) \
-    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, nullptr, ALIAS)
+#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, nullptr, ALIAS, FAKE_TYPE)
 
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS)
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 #endif
 
 
-#define WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS) \
+#define WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     WRAP_FUNCTION_BASE(decltype( \
         PowerFake::internal::FuncType<FTYPE>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
-        PRIVMEMBER_ADDR(ALIAS), ALIAS)
+        PRIVMEMBER_ADDR(ALIAS), ALIAS, FAKE_TYPE)
 
 /**
  * Wrap a private member function with alias ALIAS.
  */
-#define WRAP_PRIVATE_MEMBER_IMPL(FTYPE, FNAME, ALIAS) \
+#define WRAP_PRIVATE_MEMBER_IMPL(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
-    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
+    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
-#define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS) \
+#define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
-    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS)
+    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 
 /**
@@ -653,7 +670,8 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_FUNCTION_2(FTYPE, FNAME) \
     WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
-        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
+        WRAPPED)
 
 /**
  * Define a wrapper for function named FNAME.
@@ -667,7 +685,7 @@ class Wrapper: public WrapperBase
 #define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
     WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
             PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, \
-            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for static member function FNAME of class FCLASS.
@@ -680,17 +698,18 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
     WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for private member function with name FNAME
  */
 #define WRAP_PRIVATE_MEMBER_1(FNAME) \
     WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__))
+        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
-#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS) \
-    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS)
+#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS, FAKE_TYPE) \
+    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
+        FAKE_TYPE)
 
 
 // MakeFake implementations

@@ -99,8 +99,14 @@ int main(int argc, char **argv)
         // Create powerfake.link_flags containing link flags for linking
         // test binary
         ofstream link_flags("powerfake.link_flags");
+        ofstream link_script("powerfake.link_script");
         for (const auto &syms: symmap.Map())
-            link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
+        {
+            if (syms.second->second.fake_type == internal::FakeType::WRAPPED)
+                link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
+            else if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                link_script << "EXTERN(" << syms.second->second.symbol << ");" << endl;
+        }
 
         const string sym_prefix = leading_underscore ? "_" : "";
         // Rename our wrap/real symbols (which are mangled) to the ones expected
@@ -123,9 +129,14 @@ int main(int argc, char **argv)
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
-                        cout << "Found wrapper symbol to rename: " << symbol_str
-                                << ' ' << boost::core::demangle(symbol) << endl;
-                        if (!use_objcopy)
+                        cout << "Found wrapper symbol to rename/use: "
+                                << symbol_str << ' '
+                                << boost::core::demangle(symbol) << endl;
+                        if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                            link_script << "PROVIDE(" << sym_prefix
+                                << syms.second->second.symbol << " = "
+                                << sym_prefix << symbol_str << ");" << endl;
+                        else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
                                 << syms.second->second.symbol << '=' << sym_prefix
                                 << symbol_str << endl;
