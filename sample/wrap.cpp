@@ -28,7 +28,7 @@ WRAP_FUNCTION(std::string (int), overloaded2);
 WRAP_FUNCTION(std::string (float), overloaded2);
 WRAP_FUNCTION(void (int), overloaded);
 WRAP_FUNCTION(void (float), overloaded);
-WRAP_FUNCTION(normal_func);
+HIDE_FUNCTION(normal_func);
 
 WRAP_STATIC_MEMBER(SampleClass, SampleClass::StaticFunc);
 WRAP_FUNCTION(SampleClass::CallThis);

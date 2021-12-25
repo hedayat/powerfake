@@ -82,6 +82,9 @@ static FakePtr MakeFake(Functor f);
 #define WRAP_PRIVATE_MEMBER(...) \
     SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
 
+#define HIDE_FUNCTION(...) \
+    SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
+
 
 /**
  * It is not possible to pass private member functions directly to MakeFake(),
@@ -710,6 +713,19 @@ class Wrapper: public WrapperBase
 #define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS, FAKE_TYPE) \
     WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
         FAKE_TYPE)
+
+/**
+ * Define a wrapper for function named FNAME.
+ */
+#define HIDE_FUNCTION_1(FNAME) HIDE_FUNCTION_2(decltype(&FNAME), FNAME)
+
+/**
+ * Define a wrapper for function with type FTYPE and name FNAME.
+ */
+#define HIDE_FUNCTION_2(FTYPE, FNAME) \
+    WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
+        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
+        HIDDEN)
 
 
 // MakeFake implementations
