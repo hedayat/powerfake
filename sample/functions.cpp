@@ -45,9 +45,18 @@ void overloaded(float a)
             << endl;
 }
 
+[[gnu::optimize("no-optimize-sibling-calls")]]
 void normal_func(int b)
 {
     cout << "Normal function: " << __FUNCTION__ << " called with " << b
+            << endl;
+    called_by_normal_func(b);
+}
+
+[[gnu::noinline]]
+void called_by_normal_func(int b)
+{
+    cout << "Normal (internal call) function: " << __FUNCTION__ << " called with " << b
             << endl;
 }
 

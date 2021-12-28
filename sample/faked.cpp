@@ -81,6 +81,11 @@ void FakeOverloaded()
     overloaded(6.0F);
     noexcept_func();
 
+    auto internalfk = MakeFake(called_by_normal_func,
+        [](int) { cout << "Fake called for called_by_normal_func(int)" << endl; }
+    );
+    normal_func(3);
+
     auto normalfk = MakeFake(normal_func,
         [](int) { cout << "Fake called for normal_func(int)" << endl; }
     );
