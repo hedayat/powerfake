@@ -48,6 +48,7 @@ int main(int argc, char **argv)
         bool passive_mode = false;
         bool leading_underscore = false;
         bool use_objcopy = true;
+        string output_prefix = "powerfake";
         int argc_inc = 0;
 
         for (int i = 1; i < argc; ++i)
@@ -71,6 +72,13 @@ int main(int argc, char **argv)
             {
                 use_objcopy = false;
                 argc_inc++;
+            }
+            else if (argv[i] == "--output-prefix"s)
+            {
+                if (i >= argc)
+                    throw runtime_error("--output-prefix needs a parameter");
+                output_prefix = argv[++i];
+                argc_inc+=2;
             }
             else
                 break;
@@ -99,8 +107,8 @@ int main(int argc, char **argv)
         // Create powerfake.link_flags containing link flags for linking
         // test binary
         const string sym_prefix = leading_underscore ? "_" : "";
-        ofstream link_flags("powerfake.link_flags");
-        ofstream link_script("powerfake.link_script");
+        ofstream link_flags(output_prefix + ".link_flags");
+        ofstream link_script(output_prefix + ".link_script");
         for (const auto &syms: symmap.Map())
         {
             if (syms.second->second.fake_type == internal::FakeType::WRAPPED)

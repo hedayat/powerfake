@@ -40,19 +40,18 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
     if (NOT CMAKE_CROSSCOMPILING)
         add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
             DEPENDS ${wrapper_funcs_lib}
-            COMMAND ${bind_fakes_tgt} ${RUN_OPTIONS} ${ARGV3}
-                    $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file}
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_script ${link_script_file})
+            COMMAND ${bind_fakes_tgt} --output-prefix ${target_name}.powerfake
+                    ${RUN_OPTIONS} ${ARGV3}
+                    $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>)
     else ()
         add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
+                main.syms wrap.syms wrap.syms.objcopy_params
             DEPENDS ${wrapper_funcs_lib}
             COMMAND nm -po $<TARGET_FILE:${test_lib}> > main.syms
             COMMAND nm -po $<TARGET_FILE:${wrapper_funcs_lib}> > wrap.syms
-            COMMAND ${bind_fakes_tgt} ${RUN_OPTIONS} ${ARGV3} --passive main.syms wrap.syms
-            COMMAND objcopy -p @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file}
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_script ${link_script_file})
+            COMMAND ${bind_fakes_tgt} --output-prefix ${target_name}.powerfake
+                    ${RUN_OPTIONS} ${ARGV3} --passive main.syms wrap.syms
+            COMMAND objcopy -p @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>)
     endif ()
     add_custom_target(exec_bind_${target_name}
         DEPENDS ${link_flags_file} ${link_script_file})
