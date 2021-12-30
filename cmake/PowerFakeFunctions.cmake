@@ -36,26 +36,30 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
         $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
 
     set(link_flags_file ${target_name}.powerfake.link_flags)
+    set(link_script_file ${target_name}.powerfake.link_script)
     if (NOT CMAKE_CROSSCOMPILING)
-        add_custom_command(OUTPUT ${link_flags_file}
+        add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
             DEPENDS ${wrapper_funcs_lib}
             COMMAND ${bind_fakes_tgt} ${RUN_OPTIONS} ${ARGV3}
                     $<TARGET_FILE:${test_lib}> $<TARGET_FILE:${wrapper_funcs_lib}>
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file})
+            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file}
+            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_script ${link_script_file})
     else ()
-        add_custom_command(OUTPUT ${link_flags_file}
+        add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
             DEPENDS ${wrapper_funcs_lib}
             COMMAND nm -po $<TARGET_FILE:${test_lib}> > main.syms
             COMMAND nm -po $<TARGET_FILE:${wrapper_funcs_lib}> > wrap.syms
             COMMAND ${bind_fakes_tgt} ${RUN_OPTIONS} ${ARGV3} --passive main.syms wrap.syms
-            COMMAND objcopy @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>
-            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file})
+            COMMAND objcopy -p @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>
+            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file}
+            COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_script ${link_script_file})
     endif ()
-    add_custom_target(exec_bind_${target_name} DEPENDS ${link_flags_file})
+    add_custom_target(exec_bind_${target_name}
+        DEPENDS ${link_flags_file} ${link_script_file})
     add_dependencies(${target_name} exec_bind_${target_name})
 
     # Add powerfake link flags
     set_property(TARGET ${target_name} APPEND_STRING PROPERTY
-        LINK_FLAGS @${CMAKE_CURRENT_BINARY_DIR}/${link_flags_file})
+        LINK_FLAGS "@${CMAKE_CURRENT_BINARY_DIR}/${link_flags_file} ${CMAKE_CURRENT_BINARY_DIR}/${link_script_file}")
     target_link_libraries(${target_name} PowerFake::powerfake)
 endfunction(bind_fakes)

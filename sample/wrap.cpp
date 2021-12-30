@@ -30,6 +30,10 @@ WRAP_FUNCTION(void (int), overloaded);
 WRAP_FUNCTION(void (float), overloaded);
 WRAP_FUNCTION(normal_func);
 
+#ifdef HIDE_FUNCTION
+HIDE_FUNCTION(called_by_normal_func);
+#endif
+
 WRAP_STATIC_MEMBER(SampleClass, SampleClass::StaticFunc);
 WRAP_FUNCTION(SampleClass::CallThis);
 WRAP_FUNCTION(SampleClass::CallThisNoExcept);

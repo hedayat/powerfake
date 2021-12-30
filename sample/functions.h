@@ -29,6 +29,8 @@ std::string overloaded2(float a);
 
 void normal_func(int b);
 
+void called_by_normal_func(int b);
+
 void call_virtual_func(FakeTest::SampleClass2 *sc);
 
 std::unique_ptr<int> &non_copyable_ref();

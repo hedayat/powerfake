@@ -57,22 +57,23 @@ std::string ToStr(uint32_t q, bool mangled)
 
 // using pointers, as we can't rely on the order of construction of static
 // objects
-WrapperBase::Prototypes *WrapperBase::wrapped_funcs = nullptr;
+WrapperBase::Functions *WrapperBase::wrapped_funcs = nullptr;
 WrapperBase::FunctionWrappers *WrapperBase::wrappers = nullptr;
 
-const WrapperBase::Prototypes &WrapperBase::WrappedFunctions()
+WrapperBase::Functions &WrapperBase::WrappedFunctions()
 {
     if (!wrapped_funcs)
-        wrapped_funcs = new Prototypes();
+        wrapped_funcs = new Functions();
     return *wrapped_funcs;
 }
 
 void WrapperBase::AddFunction(FunctionKey func_key,
-    FunctionPrototype prototype [[maybe_unused]])
+    FunctionPrototype prototype [[maybe_unused]],
+    FakeType fake_type [[maybe_unused]])
 {
 #ifdef BIND_FAKES
     if (!wrapped_funcs)
-        wrapped_funcs = new Prototypes();
+        wrapped_funcs = new Functions();
 //    std::cout << "Add function prototype(" << prototype.alias << "): "
 //            << prototype.Str() << std::endl;
     auto nstart = prototype.name.rfind(':', prototype.name.length()-1);
@@ -81,7 +82,7 @@ void WrapperBase::AddFunction(FunctionKey func_key,
         name = prototype.name.substr(nstart + 1);
     else
         name = prototype.name;
-    wrapped_funcs->insert(std::make_pair(name, prototype));
+    wrapped_funcs->insert( { name, { prototype, fake_type } } );
 #endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["
 //            << func_key.first << ", "

@@ -41,7 +41,7 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
     bool found_all = true;
     for (const auto &wfp: WrapperBase::WrappedFunctions())
     {
-        const auto &wf = wfp.second;
+        const auto &wf = wfp.second.prototype;
         if (sym_map.find(wf.alias) == sym_map.end())
         {
             found_all = false;
@@ -60,7 +60,7 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
  * @param demangled the demangled form of @a symbol_name
  * @param symbol_name a symbol in the object file
  */
-void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
+void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
     const std::string &demangled, const char *symbol_name)
 {
     if (!IsFunction(symbol_name, demangled))
@@ -71,20 +71,21 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Prototypes protos,
     auto range = protos.equal_range(name);
     for (auto p = range.first; p != range.second; ++p)
     {
-        auto func = p->second;
+        auto func = p->second.prototype;
         if (IsSameFunction(demangled, func))
         {
             const string sig = func.name + func.params;
-            auto inserted = sym_map.insert(make_pair(func.alias, symbol_name));
+            p->second.symbol = symbol_name;
+            auto inserted = sym_map.insert( { func.alias, p });
             if (inserted.second)
                 cout << "Found symbol for " << func.return_type << ' ' << sig
                         << " == " << symbol_name << " (" << demangled << ") "
                         << endl;
-            else if (inserted.first->second != symbol_name)
+            else if (inserted.first->second->second.symbol != symbol_name)
             {
                 cerr << "Error: (BUG) duplicate symbols found for: "
                         << func.return_type << ' ' << sig << ":\n" << '\t'
-                        << sym_map[func.alias] << '\n' << '\t' << symbol_name
+                        << sym_map[func.alias]->second.symbol << '\n' << '\t' << symbol_name
                         << endl;
                 exit(1);
             }

@@ -98,11 +98,17 @@ int main(int argc, char **argv)
 
         // Create powerfake.link_flags containing link flags for linking
         // test binary
-        ofstream link_flags("powerfake.link_flags");
-        for (const auto &syms: symmap.Map())
-            link_flags << "-Wl,--wrap=" << syms.second << endl;
-
         const string sym_prefix = leading_underscore ? "_" : "";
+        ofstream link_flags("powerfake.link_flags");
+        ofstream link_script("powerfake.link_script");
+        for (const auto &syms: symmap.Map())
+        {
+            if (syms.second->second.fake_type == internal::FakeType::WRAPPED)
+                link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
+            else if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                link_script << "EXTERN(" << sym_prefix + syms.second->second.symbol << ");" << endl;
+        }
+
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
         for (const auto &objfile: object_files)
@@ -123,16 +129,21 @@ int main(int argc, char **argv)
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
-                        cout << "Found wrapper symbol to rename: " << symbol_str
-                                << ' ' << boost::core::demangle(symbol) << endl;
-                        if (!use_objcopy)
+                        cout << "Found wrapper symbol to rename/use: "
+                                << symbol_str << ' '
+                                << boost::core::demangle(symbol) << endl;
+                        if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                            link_script << "PROVIDE(" << sym_prefix
+                                << syms.second->second.symbol << " = "
+                                << sym_prefix << symbol_str << ");" << endl;
+                        else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
-                                << syms.second << '=' << sym_prefix
+                                << syms.second->second.symbol << '=' << sym_prefix
                                 << symbol_str << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second;
+                                + syms.second->second.symbol;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
@@ -141,11 +152,11 @@ int main(int argc, char **argv)
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << syms.second << endl;
+                                << syms.second->second.symbol << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second;
+                                + syms.second->second.symbol;
                     }
                 }
             }
@@ -160,7 +171,7 @@ int main(int argc, char **argv)
                 }
                 else if (!objcopy_params.empty())
                 {
-                    string cmd = "objcopy" + objcopy_params + ' ' + objfile;
+                    string cmd = "objcopy -p" + objcopy_params + ' ' + objfile;
                     int ret = system(cmd.c_str());
     #ifdef _XOPEN_SOURCE
                     if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
