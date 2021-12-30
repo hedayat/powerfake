@@ -2,7 +2,7 @@
 #       (See accompanying file LICENSE_1_0.txt or copy at
 #             http://www.boost.org/LICENSE_1_0.txt)
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "DefaultFlags.cmake")
 project(powerfake VERSION 1.0.0

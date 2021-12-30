@@ -58,7 +58,8 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
     add_dependencies(${target_name} exec_bind_${target_name})
 
     # Add powerfake link flags
-    set_property(TARGET ${target_name} APPEND_STRING PROPERTY
-        LINK_FLAGS "@${CMAKE_CURRENT_BINARY_DIR}/${link_flags_file} ${CMAKE_CURRENT_BINARY_DIR}/${link_script_file}")
+    target_link_options(${target_name} PRIVATE
+        @${CMAKE_CURRENT_BINARY_DIR}/${link_flags_file}
+        ${CMAKE_CURRENT_BINARY_DIR}/${link_script_file})
     target_link_libraries(${target_name} PowerFake::powerfake)
 endfunction(bind_fakes)
