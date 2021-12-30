@@ -98,6 +98,7 @@ int main(int argc, char **argv)
 
         // Create powerfake.link_flags containing link flags for linking
         // test binary
+        const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags("powerfake.link_flags");
         ofstream link_script("powerfake.link_script");
         for (const auto &syms: symmap.Map())
@@ -105,10 +106,9 @@ int main(int argc, char **argv)
             if (syms.second->second.fake_type == internal::FakeType::WRAPPED)
                 link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
             else if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
-                link_script << "EXTERN(" << syms.second->second.symbol << ");" << endl;
+                link_script << "EXTERN(" << sym_prefix + syms.second->second.symbol << ");" << endl;
         }
 
-        const string sym_prefix = leading_underscore ? "_" : "";
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
         for (const auto &objfile: object_files)
