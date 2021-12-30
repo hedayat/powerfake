@@ -171,7 +171,7 @@ int main(int argc, char **argv)
                 }
                 else if (!objcopy_params.empty())
                 {
-                    string cmd = "objcopy" + objcopy_params + ' ' + objfile;
+                    string cmd = "objcopy -p" + objcopy_params + ' ' + objfile;
                     int ret = system(cmd.c_str());
     #ifdef _XOPEN_SOURCE
                     if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)

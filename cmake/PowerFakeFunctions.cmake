@@ -50,7 +50,7 @@ function(bind_fakes target_name test_lib wrapper_funcs_lib)
             COMMAND nm -po $<TARGET_FILE:${test_lib}> > main.syms
             COMMAND nm -po $<TARGET_FILE:${wrapper_funcs_lib}> > wrap.syms
             COMMAND ${bind_fakes_tgt} ${RUN_OPTIONS} ${ARGV3} --passive main.syms wrap.syms
-            COMMAND objcopy @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>
+            COMMAND objcopy -p @wrap.syms.objcopy_params $<TARGET_FILE:${wrapper_funcs_lib}>
             COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_flags ${link_flags_file}
             COMMAND ${CMAKE_COMMAND} -E rename powerfake.link_script ${link_script_file})
     endif ()
