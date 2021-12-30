@@ -70,8 +70,7 @@ static FakePtr MakeFake(Functor f);
  *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
  * For overloaded function, you need to specify the function signature so
  * that the target function can be selected among the overloaded ones:
- *      WRAP_FUNCTION(void (MyNameSpace::MyClass::*)(int, float),
- *          MyNameSpace::MyClass::MyFunction)
+ *      WRAP_FUNCTION(void (int, float), MyNameSpace::MyClass::MyFunction)
  */
 #define WRAP_FUNCTION(...) \
     SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
@@ -83,6 +82,14 @@ static FakePtr MakeFake(Functor f);
     SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
 
 #ifndef __MINGW32__
+/**
+ * Hides the given function, so that it can be replaced with a fake/mock. You
+ * cannot access the actual function anymore, but using HIDE_FUNCTION you can
+ * also capture function calls in the same translation unit (unless the call is
+ * optimized by the compiler, which can happen if function call is inlined or
+ * if it undergoes 'sibling call optimization' (e.g. when the function call is
+ * the last statement of the caller function).
+ */
 #define HIDE_FUNCTION(...) \
     SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
 #endif
