@@ -82,9 +82,10 @@ static FakePtr MakeFake(Functor f);
 #define WRAP_PRIVATE_MEMBER(...) \
     SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
 
+#ifndef __MINGW32__
 #define HIDE_FUNCTION(...) \
     SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
-
+#endif
 
 /**
  * It is not possible to pass private member functions directly to MakeFake(),
