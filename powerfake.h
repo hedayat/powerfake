@@ -73,13 +73,13 @@ static FakePtr MakeFake(Functor f);
  *      WRAP_FUNCTION(void (int, float), MyNameSpace::MyClass::MyFunction)
  */
 #define WRAP_FUNCTION(...) \
-    SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
+    PFK_SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
 
 #define WRAP_STATIC_MEMBER(...) \
-    SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
+    PFK_SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
 
 #define WRAP_PRIVATE_MEMBER(...) \
-    SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
+    PFK_SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
 
 #ifndef __MINGW32__
 /**
@@ -91,7 +91,7 @@ static FakePtr MakeFake(Functor f);
  * the last statement of the caller function).
  */
 #define HIDE_FUNCTION(...) \
-    SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
+    PFK_SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
 #endif
 
 /**
@@ -551,13 +551,13 @@ class Wrapper: public WrapperBase
 #define TMP_POSTFIX         __end__
 #define TMP_WRAPPER_PREFIX  __wrap_function_
 #define TMP_REAL_PREFIX     __real_function_
-#define BUILD_NAME_HELPER(A,B,C) A##B##C
-#define BUILD_NAME(A,B,C) BUILD_NAME_HELPER(A,B,C)
-#define TMP_REAL_NAME(base)  BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
-#define TMP_WRAPPER_NAME(base)  BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
+#define PFK_BUILD_NAME_HELPER(A,B,C) A##B##C
+#define PFK_BUILD_NAME(A,B,C) PFK_BUILD_NAME_HELPER(A,B,C)
+#define TMP_REAL_NAME(base)  PFK_BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
+#define TMP_WRAPPER_NAME(base)  PFK_BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 // select macro based on the number of args
-#define SELECT_3RD(_1, _2, NAME,...) NAME
-#define SELECT_4TH(_1, _2, _3, NAME,...) NAME
+#define PFK_SELECT_3RD(_1, _2, NAME,...) NAME
+#define PFK_SELECT_4TH(_1, _2, _3, NAME,...) NAME
 #define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
 #define PRIVMEMBER_ADDR(ALIAS) GetAddress(PRIVATE_TAG(ALIAS)())
 
@@ -681,7 +681,7 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_FUNCTION_2(FTYPE, FNAME) \
     WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
-        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
+        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
         WRAPPED)
 
 /**
@@ -696,7 +696,7 @@ class Wrapper: public WrapperBase
 #define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
     WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
             PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, \
-            BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+            PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for static member function FNAME of class FCLASS.
@@ -709,14 +709,14 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
     WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for private member function with name FNAME
  */
 #define WRAP_PRIVATE_MEMBER_1(FNAME) \
     WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
-        BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 #define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS, FAKE_TYPE) \
     WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
@@ -732,7 +732,7 @@ class Wrapper: public WrapperBase
  */
 #define HIDE_FUNCTION_2(FTYPE, FNAME) \
     WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
-        FNAME, &FNAME, BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
+        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
         HIDDEN)
 
 
