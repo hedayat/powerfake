@@ -71,15 +71,17 @@ static FakePtr MakeFake(Functor f);
  * For overloaded function, you need to specify the function signature so
  * that the target function can be selected among the overloaded ones:
  *      WRAP_FUNCTION(void (int, float), MyNameSpace::MyClass::MyFunction)
+ * For static or private functions, you should mark the function as such:
+ *      WRAP_FUNCTION(PFK_PRIVATE(MyClass::MyFunction));
+ *      WRAP_FUNCTION(PFK_STATIC(MyClass, MyClass::MyFunction));
+ *      WRAP_FUNCTION(PFK_STATIC(MyClass, PFK_PRIVATE(MyClass::MyFunction)));
  */
 #define WRAP_FUNCTION(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
-
-#define WRAP_STATIC_MEMBER(...) \
-    PFK_SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
-
-#define WRAP_PRIVATE_MEMBER(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
+    PFK_SELECT_9TH(__VA_ARGS__, \
+        WRAP_STATIC_PRIVATE_MEMBER_2, WRAP_STATIC_PRIVATE_MEMBER_1, \
+        WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1, \
+        WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1, \
+        WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
 
 #ifndef __MINGW32__
 /**
@@ -92,6 +94,23 @@ static FakePtr MakeFake(Functor f);
  */
 #define HIDE_FUNCTION(...) \
     PFK_SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
+#endif
+
+/**
+ * Additional macros to be used inside WRAP_FUNCTION() to specify private,
+ * static and static private member functions
+ */
+#define PFK_STATIC(CLASS, FUNCTION) CLASS, FUNCTION, _1
+#define PFK_PRIVATE(FUNCTION) FUNCTION, _1, _2, _3, _4
+
+#ifndef DISABLE_PFK_SIMPLE_NAMES
+/*
+ * Define very simple macro names to specify static/private functions,
+ * if DISABLE_PFK_SIMPLE_NAMES is not defined
+ */
+
+#define PRIVATE PFK_PRIVATE
+#define STATIC PFK_STATIC
 #endif
 
 /**
@@ -558,9 +577,9 @@ class Wrapper: public WrapperBase
 // select macro based on the number of args
 #define PFK_SELECT_3RD(_1, _2, NAME,...) NAME
 #define PFK_SELECT_4TH(_1, _2, _3, NAME,...) NAME
+#define PFK_SELECT_9TH(_1, _2, _3, _4, _5, _6, _7, _8, NAME,...) NAME
 #define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
 #define PRIVMEMBER_ADDR(ALIAS) GetAddress(PRIVATE_TAG(ALIAS)())
-
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
@@ -623,10 +642,10 @@ class Wrapper: public WrapperBase
             PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
             PowerFake::internal::FakeType::FAKE_TYPE);
 
-#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
     static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
         ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
-                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
+                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(FADDR), \
                 PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
                 PowerFake::internal::FakeType::FAKE_TYPE);
 
@@ -644,8 +663,8 @@ class Wrapper: public WrapperBase
  * Define wrapper for static member function FNAME of class FCLASS with type
  * FTYPE and alias ALIAS.
  */
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
     CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 #else // BIND_FAKES
@@ -653,14 +672,19 @@ class Wrapper: public WrapperBase
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
     DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, nullptr, ALIAS, FAKE_TYPE)
 
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE)
+#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, nullptr, ALIAS, FAKE_TYPE)
 
 #endif
 
 
 #define WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     WRAP_FUNCTION_BASE(decltype( \
+        PowerFake::internal::FuncType<FTYPE>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
+        PRIVMEMBER_ADDR(ALIAS), ALIAS, FAKE_TYPE)
+
+#define WRAP_STATIC_PRIVATE_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
         PowerFake::internal::FuncType<FTYPE>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
         PRIVMEMBER_ADDR(ALIAS), ALIAS, FAKE_TYPE)
 
@@ -674,6 +698,18 @@ class Wrapper: public WrapperBase
 #define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
     WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE)
+
+
+/**
+ * Wrap a static private member function with alias ALIAS.
+ */
+#define WRAP_STATIC_PRIVATE_MEMBER_IMPL(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
+    WRAP_STATIC_PRIVATE_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE)
+
+#define WRAP_STATIC_PRIVATE_MEMBER_IMPL_2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
+    WRAP_STATIC_PRIVATE_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 
 /**
@@ -693,33 +729,53 @@ class Wrapper: public WrapperBase
  * Define a wrapper for static member function of class FCLASS with type
  * FTYPE and name FNAME.
  */
-#define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
+#define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME, ...) \
     WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
-            PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, \
+            PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, &FNAME, \
             PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for static member function FNAME of class FCLASS.
  */
-#define WRAP_STATIC_MEMBER_1(FCLASS, FNAME) \
+#define WRAP_STATIC_MEMBER_1(FCLASS, FNAME, ...) \
     WRAP_STATIC_MEMBER_2(FCLASS, decltype(&FNAME), FNAME)
 
 /**
  * Define a wrapper for private member function with type FTYPE and name FNAME
  */
-#define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
+#define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME, ...) \
     WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
         PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 /**
  * Define a wrapper for private member function with name FNAME
  */
-#define WRAP_PRIVATE_MEMBER_1(FNAME) \
+#define WRAP_PRIVATE_MEMBER_1(FNAME, ...) \
     WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
         PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
 
 #define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS, FAKE_TYPE) \
     WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
+        FAKE_TYPE)
+
+/**
+ * Define a wrapper for static private member function of class FCLASS with
+ * type FTYPE and name FNAME
+ */
+#define WRAP_STATIC_PRIVATE_MEMBER_2(FCLASS, FTYPE, FNAME, ...) \
+    WRAP_STATIC_PRIVATE_MEMBER_IMPL_2(FCLASS, FTYPE, FNAME, \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+
+/**
+ * Define a wrapper for static private member function of class FCLASS with name
+ * FNAME
+ */
+#define WRAP_STATIC_PRIVATE_MEMBER_1(FCLASS, FNAME, ...) \
+    WRAP_STATIC_PRIVATE_MEMBER_1_HELPER(FCLASS, FNAME, \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+
+#define WRAP_STATIC_PRIVATE_MEMBER_1_HELPER(FCLASS, FNAME, ALIAS, FAKE_TYPE) \
+    WRAP_STATIC_PRIVATE_MEMBER_IMPL(FCLASS, decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
         FAKE_TYPE)
 
 /**
