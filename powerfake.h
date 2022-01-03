@@ -113,6 +113,9 @@ static FakePtr MakeFake(Functor f);
 #define STATIC PFK_STATIC
 #endif
 
+#define TAG_PRIVATE(...) \
+    PFK_SELECT_9TH(__VA_ARGS__,,,,,, _PFK_TAG_OVERLOADED_PRIVATE, _PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
+
 /**
  * It is not possible to pass private member functions directly to MakeFake(),
  * Therefore, we need to create a tag for that member function and pass it to
@@ -120,14 +123,14 @@ static FakePtr MakeFake(Functor f);
  *
  * Note that it cannot be called inside a block
  */
-#define TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
+#define _PFK_TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
     struct TAG: public PowerFake::internal::TagBase<TAG> { \
         static constexpr const char *member_name = #MEMBER_FUNCTION; \
     }; \
     template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
                                                             &MEMBER_FUNCTION>
 
-#define TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
+#define _PFK_TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
     struct TAG: public PowerFake::internal::TagBase<TAG> { \
         static constexpr const char *member_name = #MEMBER_FUNCTION; \
     }; \
@@ -683,11 +686,11 @@ class Wrapper: public WrapperBase
  * Wrap a private member function with alias ALIAS.
  */
 #define WRAP_PRIVATE_MEMBER_IMPL(FTYPE, FNAME, ALIAS, FAKE_TYPE, ...) \
-    TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
+    TAG_PRIVATE(PRIVATE_TAG(ALIAS), FNAME); \
     WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
 #define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS, FAKE_TYPE, ...) \
-    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
+    TAG_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
     WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
 /**

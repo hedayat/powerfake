@@ -26,14 +26,14 @@ using namespace PowerFake;
 using namespace FakeTest;
 
 
-TAG_PRIVATE_MEMBER(SamplePrivateValue, SampleClass::private_val);
-TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
-TAG_PRIVATE_MEMBER(VirtualPrivate, SampleBase::CallPrivateVirtual);
-TAG_PRIVATE_MEMBER(VirtualProtected, SampleBase::CallProtectedVirtual);
-TAG_PRIVATE_MEMBER(StaticPrivate, SampleClass::PrivateStaticFunc);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, void (int),
+TAG_PRIVATE(SamplePrivateValue, SampleClass::private_val);
+TAG_PRIVATE(SamplePrivate, SampleClass::SamplePrivate);
+TAG_PRIVATE(VirtualPrivate, SampleBase::CallPrivateVirtual);
+TAG_PRIVATE(VirtualProtected, SampleBase::CallProtectedVirtual);
+TAG_PRIVATE(StaticPrivate, SampleClass::PrivateStaticFunc);
+TAG_PRIVATE(OverloadedPrivateInt, void (int),
     SampleClass::OverloadedPrivate);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, void (float),
+TAG_PRIVATE(OverloadedPrivateFloat, void (float),
     SampleClass::OverloadedPrivate);
 
 // Sample showing how MakeFake can be used inside struct/classes, since
