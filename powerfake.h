@@ -738,6 +738,15 @@ class Wrapper: public WrapperBase
 
 #else // BIND_FAKES
 
+/*
+ * This allows re-compiling the file containing WRAP_FUNCTION/HIDE_FUNCTION
+ * macros with BIND_FAKES defined specifically to be linked against bind_fakes
+ * without extra dependencies
+ *
+ * It is not used in the current CMake integration, but might become handy for
+ * some users or might be used in future by default
+ */
+
 #define PFK_WRAP_FUNCTION_BASE(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE, ...) \
     DEFINE_WRAPPER_OBJECT(FSIG, FNAME, nullptr, ALIAS, FAKE_TYPE \
         __VA_OPT__(, PFK_GET_FIRST_ARG(__VA_ARGS__)))
