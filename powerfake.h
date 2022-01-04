@@ -180,26 +180,10 @@ static FakePtr MakeFake(Functor f);
  * @param PRIVATE_MEMBER the private member which we want to tag
  */
 #define TAG_PRIVATE(...) \
-    PFK_SELECT_9TH(__VA_ARGS__,,,,,, _PFK_TAG_OVERLOADED_PRIVATE, \
-        _PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
+    PFK_SELECT_9TH(__VA_ARGS__,,,,,, PFK_TAG_OVERLOADED_PRIVATE, \
+        PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
 
 /**@}*/
-
-#define _PFK_TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> { \
-        static constexpr const char *member_name = #MEMBER_FUNCTION; \
-    }; \
-    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
-                                                            &MEMBER_FUNCTION>
-
-#define _PFK_TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> { \
-        static constexpr const char *member_name = #MEMBER_FUNCTION; \
-    }; \
-    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
-        static_cast<decltype( \
-            PowerFake::internal::FuncType<FTYPE>(&MEMBER_FUNCTION))>( \
-                    &MEMBER_FUNCTION)>
 
 namespace internal
 {
@@ -644,7 +628,7 @@ class Wrapper: public WrapperBase
 #define PFK_SELECT_9TH(_1, _2, _3, _4, _5, _6, _7, _8, NAME,...) NAME
 #define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
 #define PRIVMEMBER_ADDR(ALIAS) GetAddress(PRIVATE_TAG(ALIAS)())
-#define _PFK_GET_FIRST_ARG(FIRST_ARG, ...) FIRST_ARG
+#define PFK_GET_FIRST_ARG(FIRST_ARG, ...) FIRST_ARG
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
@@ -727,14 +711,14 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE, ...) \
     DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE \
-        __VA_OPT__(, _PFK_GET_FIRST_ARG(__VA_ARGS__))) \
+        __VA_OPT__(, PFK_GET_FIRST_ARG(__VA_ARGS__))) \
     CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
 
 #else // BIND_FAKES
 
 #define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE, ...) \
     DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, nullptr, ALIAS, FAKE_TYPE \
-        __VA_OPT__(, _PFK_GET_FIRST_ARG(__VA_ARGS__)))
+        __VA_OPT__(, PFK_GET_FIRST_ARG(__VA_ARGS__)))
 
 #endif
 
@@ -841,6 +825,27 @@ class Wrapper: public WrapperBase
         FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
         HIDDEN)
 
+/**
+ * Tag a private class member
+ */
+#define PFK_TAG_PRIVATE_MEMBER(TAG, PRIVATE_MEMBER) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #PRIVATE_MEMBER; \
+    }; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+                                                            &PRIVATE_MEMBER>
+
+ /**
+  * Tag a private class overloaded function
+  */
+#define PFK_TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #MEMBER_FUNCTION; \
+    }; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+        static_cast<decltype( \
+            PowerFake::internal::FuncType<FTYPE>(&MEMBER_FUNCTION))>( \
+                    &MEMBER_FUNCTION)>
 
 // MakeFake implementations
 template <typename Signature, typename Functor>
