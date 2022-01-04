@@ -10,6 +10,12 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+/** @file powerfake.h
+    @brief PowerFake Main API
+
+    This file provides main user API
+*/
+
 #ifndef POWERFAKE_H_
 #define POWERFAKE_H_
 
@@ -32,11 +38,17 @@ class FakeBase;
 
 using FakePtr = std::unique_ptr<internal::FakeBase>;
 
+/** @defgroup user_api The User API
+ *  This is the basic user API (independent of any macking frameworks)
+ *  @{
+ */
+
 /**
  * Creates the fake object for the given function, faked with function object
  * @p f
  * @param func_ptr Pointer to the function to be faked
- * @param f the fake function
+ * @param f the fake function, which should have the same signature as the faked
+ * function
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
@@ -45,8 +57,10 @@ static FakePtr MakeFake(Signature *func_ptr, Functor f);
 
 /**
  * Creates the fake object for the given member function, faked with @p f
+ *
  * @param func_ptr Pointer to the function to be faked
- * @param f the fake function
+ * @param f the fake function, can receive object's this pointer if its first
+ * parameter is a pointer to @p Class
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
@@ -55,9 +69,12 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
  * Creates a fake object for a private member function tagged with
- * PrivateMemberTag; which should be created using TAG_PRIVATE_MEMBER() or
- * TAG_OVERLOADED_PRIVATE() macros
- * @param f the fake function
+ * PrivateMemberTag; which should be created using TAG_PRIVATE() macro.
+ *
+ * @tparam PrivateMemberTag the private member function tag defined using
+ * TAG_PRIVATE()
+ * @param f the fake function, which can receive object's this pointer as its
+ * first parameter
  * @return A fake object faking the function with the given tag with @p f.
  * Fake is in effect while this object lives
  */
@@ -67,14 +84,29 @@ static FakePtr MakeFake(Functor f);
 /**
  * Define a wrapper for the given function. For normal functions, it should be
  * called with the function name, e.g.:
+ *
  *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
+ *
  * For overloaded function, you need to specify the function signature so
  * that the target function can be selected among the overloaded ones:
+ *
  *      WRAP_FUNCTION(void (int, float), MyNameSpace::MyClass::MyFunction)
+ *
  * For static or private functions, you should mark the function as such:
+ *
  *      WRAP_FUNCTION(PFK_PRIVATE(MyClass::MyFunction));
  *      WRAP_FUNCTION(PFK_STATIC(MyClass, MyClass::MyFunction));
  *      WRAP_FUNCTION(PFK_STATIC(MyClass, PFK_PRIVATE(MyClass::MyFunction)));
+ *
+ * #### Usage
+ *     WRAP_FUNCTION(FUNC) \n
+ *     WRAP_FUNCTION(FTYPE, FUNC)
+ *
+ * @param FTYPE function type signature; required for overloaded functions;
+ *              e.g. void (int)
+ * @param FUNC specifies the function to wrap; for static, private and static
+ *              private functions, you should use #PFK_PRIVATE/#PFK_STATIC macros
+ *              to mark the function as such
  */
 #define WRAP_FUNCTION(...) \
     PFK_SELECT_9TH(__VA_ARGS__, \
@@ -86,21 +118,32 @@ static FakePtr MakeFake(Functor f);
 #ifndef __MINGW32__
 /**
  * Hides the given function, so that it can be replaced with a fake/mock. You
- * cannot access the actual function anymore, but using HIDE_FUNCTION you can
+ * cannot access the actual function anymore, but using HIDE_FUNCTION() you can
  * also capture function calls in the same translation unit (unless the call is
  * optimized by the compiler, which can happen if function call is inlined or
  * if it undergoes 'sibling call optimization' (e.g. when the function call is
  * the last statement of the caller function).
+ *
+ * #### Usage
+ *     HIDE_FUNCTION(FNAME) \n
+ *     HIDE_FUNCTION(FTYPE, FNAME)
+ *
+ * @param FTYPE function type signature; required for overloaded functions;
+ *              e.g. void (int)
+ * @param FNAME function to hide
  */
 #define HIDE_FUNCTION(...) \
     PFK_SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
 #endif
 
 /**
- * Additional macros to be used inside WRAP_FUNCTION() to specify private,
- * static and static private member functions
+ * Specifies a static member function for WRAP_FUNCTION/HIDE_FUNCTION macros
  */
 #define PFK_STATIC(CLASS, FUNCTION) CLASS, FUNCTION, _1
+
+/**
+ * Specifies a private member function for WRAP_FUNCTION/HIDE_FUNCTION macros
+ */
 #define PFK_PRIVATE(FUNCTION) FUNCTION, _1, _2, _3, _4
 
 #ifndef DISABLE_PFK_SIMPLE_NAMES
@@ -113,16 +156,35 @@ static FakePtr MakeFake(Functor f);
 #define STATIC PFK_STATIC
 #endif
 
-#define TAG_PRIVATE(...) \
-    PFK_SELECT_9TH(__VA_ARGS__,,,,,, _PFK_TAG_OVERLOADED_PRIVATE, _PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
-
 /**
- * It is not possible to pass private member functions directly to MakeFake(),
- * Therefore, we need to create a tag for that member function and pass it to
+ * Creates a tag class for the given private member. For overloaded functions
+ * the function type should be explicitly specified so that the correct function
+ * can be selected.
+ *
+ * It is not possible to pass private member functions directly to MakeFake();
+ * therefore, we need to create a tag for that member function and pass it to
  * MakeFake().
  *
- * Note that it cannot be called inside a block
+ * Additionally, you can use this macro to tag private member variables, and
+ * access them using the static Value() function of the tag class.
+ *
+ * @note It should be a top level call and cannot be called inside a block
+ *
+ * #### Usage
+ *     HIDE_FUNCTION(FNAME) \n
+ *     HIDE_FUNCTION(FTYPE, FNAME)
+ *
+ * @param TAG the name of the tag class to be used instead of the private member
+ * @param FTYPE overloaded function type, which can be specified in function
+ * signature format; e.g. void (int)
+ * @param PRIVATE_MEMBER the private member which we want to tag
  */
+#define TAG_PRIVATE(...) \
+    PFK_SELECT_9TH(__VA_ARGS__,,,,,, _PFK_TAG_OVERLOADED_PRIVATE, \
+        _PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
+
+/**@}*/
+
 #define _PFK_TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
     struct TAG: public PowerFake::internal::TagBase<TAG> { \
         static constexpr const char *member_name = #MEMBER_FUNCTION; \
