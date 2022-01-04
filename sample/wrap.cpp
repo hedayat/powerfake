@@ -10,6 +10,9 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+//#define DISABLE_PFK_SIMPLE_NAMES
+// You can define above to prevent defining PRIVATE/STATIC macros
+// You can always use these macros with PFK_ prefix, e.g. PFK_STATIC
 #include <powerfake.h>
 
 #include "functions.h"
@@ -34,7 +37,9 @@ WRAP_FUNCTION(normal_func);
 HIDE_FUNCTION(called_by_normal_func);
 #endif
 
-WRAP_STATIC_MEMBER(SampleClass, SampleClass::StaticFunc);
+WRAP_FUNCTION(STATIC(SampleClass, SampleClass::StaticFunc));
+WRAP_FUNCTION(STATIC(SampleClass, PRIVATE(SampleClass::PrivateStaticFunc)));
+//WRAP_FUNCTION(PRIVATE(STATIC(SampleClass, SampleClass::PrivateStaticFunc))); // this works too! :)
 WRAP_FUNCTION(SampleClass::CallThis);
 WRAP_FUNCTION(SampleClass::CallThisNoExcept);
 WRAP_FUNCTION(int (), SampleClass::OverloadedCall);
@@ -43,9 +48,9 @@ WRAP_FUNCTION(int (int) const, SampleClass::OverloadedCall);
 WRAP_FUNCTION(SampleClass::GetIntPtr);
 WRAP_FUNCTION(SampleClass::GetIntPtrReference);
 WRAP_FUNCTION(SampleClass::GetIntPtrConstReference);
-WRAP_PRIVATE_MEMBER(SampleClass::SamplePrivate);
-WRAP_PRIVATE_MEMBER(void (int), SampleClass::OverloadedPrivate);
-WRAP_PRIVATE_MEMBER(void (float), SampleClass::OverloadedPrivate);
+WRAP_FUNCTION(PFK_PRIVATE(SampleClass::SamplePrivate));
+WRAP_FUNCTION(void (int), PRIVATE(SampleClass::OverloadedPrivate));
+WRAP_FUNCTION(void (float), PRIVATE(SampleClass::OverloadedPrivate));
 
 
 WRAP_FUNCTION(void (int), SampleClass2::CallThis);

@@ -83,6 +83,11 @@ const std::unique_ptr<int> &SampleClass::GetIntPtrConstReference()
     return myuniq;
 }
 
+void SampleClass::PrivateStaticFunc()
+{
+    cout << "Class private static function: " << __PRETTY_FUNCTION__ << " called." << endl;
+}
+
 void FakeTest::SampleClass::SamplePrivate()
 {
     cout << "Real function: " << __PRETTY_FUNCTION__ << " called." << endl;

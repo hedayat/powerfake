@@ -26,6 +26,7 @@ class SampleClass
         ~SampleClass();
 
         static void StaticFunc();
+        static void CallPrivateStaticFunc() { PrivateStaticFunc(); }
 
         void CallThis() const;
         void CallThisNoExcept() const noexcept;
@@ -44,6 +45,8 @@ class SampleClass
 
     private:
         int private_val = 100;
+
+        static void PrivateStaticFunc();
 
         void SamplePrivate();
         void OverloadedPrivate(int a);

@@ -26,13 +26,14 @@ using namespace PowerFake;
 using namespace FakeTest;
 
 
-TAG_PRIVATE_MEMBER(SamplePrivateValue, SampleClass::private_val);
-TAG_PRIVATE_MEMBER(SamplePrivate, SampleClass::SamplePrivate);
-TAG_PRIVATE_MEMBER(VirtualPrivate, SampleBase::CallPrivateVirtual);
-TAG_PRIVATE_MEMBER(VirtualProtected, SampleBase::CallProtectedVirtual);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateInt, void (int),
+TAG_PRIVATE(SamplePrivateValue, SampleClass::private_val);
+TAG_PRIVATE(SamplePrivate, SampleClass::SamplePrivate);
+TAG_PRIVATE(VirtualPrivate, SampleBase::CallPrivateVirtual);
+TAG_PRIVATE(VirtualProtected, SampleBase::CallProtectedVirtual);
+TAG_PRIVATE(StaticPrivate, SampleClass::PrivateStaticFunc);
+TAG_PRIVATE(OverloadedPrivateInt, void (int),
     SampleClass::OverloadedPrivate);
-TAG_OVERLOADED_PRIVATE(OverloadedPrivateFloat, void (float),
+TAG_PRIVATE(OverloadedPrivateFloat, void (float),
     SampleClass::OverloadedPrivate);
 
 // Sample showing how MakeFake can be used inside struct/classes, since
@@ -191,6 +192,18 @@ void FakeOverloaded()
     auto vfk = MakeFake(&SampleClass2::CallVirtual, [](int) { cout << "Faked called for SampleClass2::CallVirtual" << endl; });
     cout << "-> Fake call" << endl;
     sc2.CallVirtual(6);
+
+    cout << "\n Static function Tests\n"
+            "----------------------------------------------" << endl;
+    cout << "-> Real calls" << endl;
+    SampleClass::StaticFunc();
+    SampleClass::CallPrivateStaticFunc();
+
+    cout << "-> Fake calls" << endl;
+    auto stfk = MakeFake(&SampleClass2::StaticFunc, []() { cout << "Faked call for StaticFunc" << endl; });
+    auto stpfk = MakeFake<StaticPrivate>([]() { cout << "Faked call for PrivateStaticFunc" << endl; });
+    SampleClass::StaticFunc();
+    SampleClass::CallPrivateStaticFunc();
 
     cout << "\n Private function Tests\n"
             "----------------------------------------------" << endl;

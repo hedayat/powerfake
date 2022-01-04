@@ -13,7 +13,8 @@ member functions. It is built on top of GNU Linker's --wrap option.
 ## Limitations
 * Cannot fake constructors/destructors
 * Cannot fake inlined functions
-* Cannot fake function calls in the same translation unit as the target function
+* Faking function calls in the same translation unit as the target function has
+some limitations
 * GCC & GNU Linker only
 * Cannot work with GCC LTO, since ld's --wrap is not supported in this case
 * Currently, it only provides CMake integration

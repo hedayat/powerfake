@@ -10,6 +10,12 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+/** @file powerfake.h
+    @brief PowerFake Main API
+
+    This file provides main user API
+*/
+
 #ifndef POWERFAKE_H_
 #define POWERFAKE_H_
 
@@ -32,11 +38,17 @@ class FakeBase;
 
 using FakePtr = std::unique_ptr<internal::FakeBase>;
 
+/** @defgroup user_api The User API
+ *  This is the basic user API (independent of any macking frameworks)
+ *  @{
+ */
+
 /**
  * Creates the fake object for the given function, faked with function object
  * @p f
  * @param func_ptr Pointer to the function to be faked
- * @param f the fake function
+ * @param f the fake function, which should have the same signature as the faked
+ * function
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
@@ -45,8 +57,10 @@ static FakePtr MakeFake(Signature *func_ptr, Functor f);
 
 /**
  * Creates the fake object for the given member function, faked with @p f
+ *
  * @param func_ptr Pointer to the function to be faked
- * @param f the fake function
+ * @param f the fake function, can receive object's this pointer if its first
+ * parameter is a pointer to @p Class
  * @return A fake object faking the given function with @p f. Fake is in effect
  * while this object lives
  */
@@ -55,9 +69,12 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
  * Creates a fake object for a private member function tagged with
- * PrivateMemberTag; which should be created using TAG_PRIVATE_MEMBER() or
- * TAG_OVERLOADED_PRIVATE() macros
- * @param f the fake function
+ * PrivateMemberTag; which should be created using TAG_PRIVATE() macro.
+ *
+ * @tparam PrivateMemberTag the private member function tag defined using
+ * TAG_PRIVATE()
+ * @param f the fake function, which can receive object's this pointer as its
+ * first parameter
  * @return A fake object faking the function with the given tag with @p f.
  * Fake is in effect while this object lives
  */
@@ -67,55 +84,114 @@ static FakePtr MakeFake(Functor f);
 /**
  * Define a wrapper for the given function. For normal functions, it should be
  * called with the function name, e.g.:
+ *
  *      WRAP_FUNCTION(MyNameSpace::MyClass::MyFunction);
+ *
  * For overloaded function, you need to specify the function signature so
  * that the target function can be selected among the overloaded ones:
+ *
  *      WRAP_FUNCTION(void (int, float), MyNameSpace::MyClass::MyFunction)
+ *
+ * For static or private functions, you should mark the function as such:
+ *
+ *      WRAP_FUNCTION(PFK_PRIVATE(MyClass::MyFunction));
+ *      WRAP_FUNCTION(PFK_STATIC(MyClass, MyClass::MyFunction));
+ *      WRAP_FUNCTION(PFK_STATIC(MyClass, PFK_PRIVATE(MyClass::MyFunction)));
+ *
+ * #### Usage
+ *     WRAP_FUNCTION(FUNC) \n
+ *     WRAP_FUNCTION(FSIG, FUNC)
+ *
+ * @param FSIG function type signature; required for overloaded functions;
+ *              e.g. void (int)
+ * @param FUNC specifies the function to wrap; for static, private and static
+ *              private functions, you should use #PFK_PRIVATE/#PFK_STATIC macros
+ *              to mark the function as such
  */
 #define WRAP_FUNCTION(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, WRAP_FUNCTION_2, WRAP_FUNCTION_1)(__VA_ARGS__)
-
-#define WRAP_STATIC_MEMBER(...) \
-    PFK_SELECT_4TH(__VA_ARGS__, WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1)(__VA_ARGS__)
-
-#define WRAP_PRIVATE_MEMBER(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1)(__VA_ARGS__)
+    PFK_SELECT_9TH(__VA_ARGS__, \
+        PFK_WRAP_OVERLOADED_STATIC_PRIVATE_MEMBER, PFK_WRAP_STATIC_PRIVATE_MEMBER, \
+        CALL_WRAP_OVERLOADED_PRIVATE_MEMBER, CALL_WRAP_PRIVATE_MEMBER, \
+        PFK_WRAP_OVERLOADED_STATIC_MEMBER, PFK_WRAP_STATIC_MEMBER, \
+        PFK_WRAP_OVERLOADED_FUNCTION, PFK_WRAP_FUNCTION)(WRAPPED, __VA_ARGS__)
 
 #ifndef __MINGW32__
 /**
  * Hides the given function, so that it can be replaced with a fake/mock. You
- * cannot access the actual function anymore, but using HIDE_FUNCTION you can
+ * cannot access the actual function anymore, but using HIDE_FUNCTION() you can
  * also capture function calls in the same translation unit (unless the call is
  * optimized by the compiler, which can happen if function call is inlined or
  * if it undergoes 'sibling call optimization' (e.g. when the function call is
  * the last statement of the caller function).
+ *
+ * #### Usage
+ *     HIDE_FUNCTION(FUNC) \n
+ *     HIDE_FUNCTION(FSIG, FUNC)
+ *
+ * @param FSIG function type signature; required for overloaded functions;
+ *              e.g. void (int)
+ * @param FUNC specifies the function to wrap; for static, private and static
+ *              private functions, you should use #PFK_PRIVATE/#PFK_STATIC macros
+ *              to mark the function as such
+ * @see WRAP_FUNCTION()
  */
 #define HIDE_FUNCTION(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
+    PFK_SELECT_9TH(__VA_ARGS__, \
+        PFK_WRAP_OVERLOADED_STATIC_PRIVATE_MEMBER, PFK_WRAP_STATIC_PRIVATE_MEMBER, \
+        CALL_WRAP_OVERLOADED_PRIVATE_MEMBER, CALL_WRAP_PRIVATE_MEMBER, \
+        PFK_WRAP_OVERLOADED_STATIC_MEMBER, PFK_WRAP_STATIC_MEMBER, \
+        PFK_WRAP_OVERLOADED_FUNCTION, PFK_WRAP_FUNCTION)(HIDDEN, __VA_ARGS__)
+
 #endif
 
 /**
- * It is not possible to pass private member functions directly to MakeFake(),
- * Therefore, we need to create a tag for that member function and pass it to
+ * Specifies a static member function for WRAP_FUNCTION/HIDE_FUNCTION macros
+ */
+#define PFK_STATIC(CLASS, FUNCTION) CLASS, FUNCTION, _1
+
+/**
+ * Specifies a private member function for WRAP_FUNCTION/HIDE_FUNCTION macros
+ */
+#define PFK_PRIVATE(FUNCTION) FUNCTION, _1, _2, _3, _4
+
+#ifndef DISABLE_PFK_SIMPLE_NAMES
+/*
+ * Define very simple macro names to specify static/private functions,
+ * if DISABLE_PFK_SIMPLE_NAMES is not defined
+ */
+
+#define PRIVATE PFK_PRIVATE
+#define STATIC PFK_STATIC
+#endif
+
+/**
+ * Creates a tag class for the given private member. For overloaded functions
+ * the function type should be explicitly specified so that the correct function
+ * can be selected.
+ *
+ * It is not possible to pass private member functions directly to MakeFake();
+ * therefore, we need to create a tag for that member function and pass it to
  * MakeFake().
  *
- * Note that it cannot be called inside a block
+ * Additionally, you can use this macro to tag private member variables, and
+ * access them using the static Value() function of the tag class.
+ *
+ * @note It should be a top level call and cannot be called inside a block
+ *
+ * #### Usage
+ *     TAG_PRIVATE(TAG, PRIVATE_MEMBER) \n
+ *     TAG_PRIVATE(TAG, FSIG, PRIVATE_MEMBER)
+ *
+ * @param TAG the name of the tag class to be used instead of the private member
+ * @param FSIG overloaded function type, which can be specified in function
+ * signature format; e.g. void (int)
+ * @param PRIVATE_MEMBER the private member which we want to tag
  */
-#define TAG_PRIVATE_MEMBER(TAG, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> { \
-        static constexpr const char *member_name = #MEMBER_FUNCTION; \
-    }; \
-    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
-                                                            &MEMBER_FUNCTION>
+#define TAG_PRIVATE(...) \
+    PFK_SELECT_9TH(__VA_ARGS__,,,,,, PFK_TAG_OVERLOADED_PRIVATE, \
+        PFK_TAG_PRIVATE_MEMBER)(__VA_ARGS__)
 
-#define TAG_OVERLOADED_PRIVATE(TAG, FTYPE, MEMBER_FUNCTION) \
-    struct TAG: public PowerFake::internal::TagBase<TAG> { \
-        static constexpr const char *member_name = #MEMBER_FUNCTION; \
-    }; \
-    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
-        static_cast<decltype( \
-            PowerFake::internal::FuncType<FTYPE>(&MEMBER_FUNCTION))>( \
-                    &MEMBER_FUNCTION)>
+/**@}*/
 
 namespace internal
 {
@@ -142,6 +218,9 @@ struct type_identity
 };
 #endif
 
+/**
+ * Separates functions base type and its qualifiers
+ */
 template <typename T>
 struct func_cv_processor;
 
@@ -547,7 +626,9 @@ class Wrapper: public WrapperBase
 } // namespace internal
 
 
-// helper macors
+// -----------------------------------------------------------------------------
+// Helper macors
+// -----------------------------------------------------------------------------
 #define TMP_POSTFIX         __end__
 #define TMP_WRAPPER_PREFIX  __wrap_function_
 #define TMP_REAL_PREFIX     __real_function_
@@ -556,23 +637,28 @@ class Wrapper: public WrapperBase
 #define TMP_REAL_NAME(base)  PFK_BUILD_NAME(TMP_REAL_PREFIX, base, TMP_POSTFIX)
 #define TMP_WRAPPER_NAME(base)  PFK_BUILD_NAME(TMP_WRAPPER_PREFIX, base, TMP_POSTFIX)
 // select macro based on the number of args
-#define PFK_SELECT_3RD(_1, _2, NAME,...) NAME
-#define PFK_SELECT_4TH(_1, _2, _3, NAME,...) NAME
+#define PFK_SELECT_9TH(_1, _2, _3, _4, _5, _6, _7, _8, NAME,...) NAME
 #define PRIVATE_TAG(ALIAS) ALIAS##PowerFakePrivateTag
 #define PRIVMEMBER_ADDR(ALIAS) GetAddress(PRIVATE_TAG(ALIAS)())
-
+#define PFK_GET_FIRST_ARG(FIRST_ARG, ...) FIRST_ARG
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
-/// errors can happen
+/// errors might happen
 #ifndef POWRFAKE_WRAP_NAMESPACE
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
 
-#define CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
+// -----------------------------------------------------------------------------
+// Main implementation for wrapping/hiding functions
+// -----------------------------------------------------------------------------
+#define CREATE_WRAPPER_FUNCTION(FSIG, FNAME, ALIAS, FAKE_TYPE) \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
-     * if available, otherwise it'll call the real function. */  \
+     * if available, otherwise it'll call the real function.
+     *
+     * For hidden functions, the real function is not accessible,
+     * so we throw an exception if no fakes are available to be called */  \
     template <typename T> struct wrapper_##ALIAS; \
     template <typename T, typename R , typename ...Args> \
     struct wrapper_##ALIAS<R (T::*)(Args...)> \
@@ -614,129 +700,184 @@ class Wrapper: public WrapperBase
      * wrapper function and real function symbol is actually generated by the
      * compiler. These symbols will be renamed to the name expected by 'ld'
      * linker by bind_fakes binary. */ \
-    template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FTYPE>>
+    template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FSIG>>
 
 
-#define DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
-    static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
-        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FTYPE>(FADDR), \
-            PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
+/*
+ * Define an instance of PowerFake::internal::Wrapper<> class for the given
+ * function
+ */
+#define DEFINE_WRAPPER_OBJECT(...) \
+        PFK_SELECT_9TH(__VA_ARGS__,,, DEFINE_WRAPPER_OBJECT_2, \
+            DEFINE_WRAPPER_OBJECT_1)(__VA_ARGS__)
+
+#define DEFINE_WRAPPER_OBJECT_1(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE) \
+    static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FSIG>> \
+        ALIAS(#ALIAS, PowerFake::internal::unify_pmf<FSIG>(FADDR), \
+            PowerFake::internal::func_qual_v<FSIG>, #FNAME, \
             PowerFake::internal::FakeType::FAKE_TYPE);
 
-#define DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FTYPE>> \
+#define DEFINE_WRAPPER_OBJECT_2(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE, FCLASS) \
+    static PowerFake::internal::Wrapper<PowerFake::internal::remove_func_cv_t<FSIG>> \
         ALIAS(PowerFake::internal::type_identity<FCLASS>(), \
-                #ALIAS, PowerFake::internal::unify_pmf<FTYPE>(&FNAME), \
-                PowerFake::internal::func_qual_v<FTYPE>, #FNAME, \
+                #ALIAS, PowerFake::internal::unify_pmf<FSIG>(FADDR), \
+                PowerFake::internal::func_qual_v<FSIG>, #FNAME, \
                 PowerFake::internal::FakeType::FAKE_TYPE);
 
 #ifndef BIND_FAKES
 
 /**
- * Define wrapper for function FNAME with type FTYPE and alias ALIAS. Must be
- * used only once for each function in a cpp file.
+ * Define wrapper for function FNAME with type FSIG and alias ALIAS. Must be
+ * used only once for each function in a cpp file. For static members, the class
+ * must be specified as the last argument
  */
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
-    CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
-
-/**
- * Define wrapper for static member function FNAME of class FCLASS with type
- * FTYPE and alias ALIAS.
- */
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    CREATE_WRAPPER_FUNCTION(FTYPE, FNAME, ALIAS, FAKE_TYPE)
+#define PFK_WRAP_FUNCTION_BASE(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE, ...) \
+    DEFINE_WRAPPER_OBJECT(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE \
+        __VA_OPT__(, PFK_GET_FIRST_ARG(__VA_ARGS__))) \
+    CREATE_WRAPPER_FUNCTION(FSIG, FNAME, ALIAS, FAKE_TYPE)
 
 #else // BIND_FAKES
 
-#define WRAP_FUNCTION_BASE(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT(FTYPE, FNAME, nullptr, ALIAS, FAKE_TYPE)
+/*
+ * This allows re-compiling the file containing WRAP_FUNCTION/HIDE_FUNCTION
+ * macros with BIND_FAKES defined specifically to be linked against bind_fakes
+ * without extra dependencies
+ *
+ * It is not used in the current CMake integration, but might become handy for
+ * some users or might be used in future by default
+ */
 
-#define WRAP_STATIC_MEMBER_BASE(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    DEFINE_WRAPPER_OBJECT2(FCLASS, FTYPE, FNAME, ALIAS, FAKE_TYPE)
+#define PFK_WRAP_FUNCTION_BASE(FSIG, FNAME, FADDR, ALIAS, FAKE_TYPE, ...) \
+    DEFINE_WRAPPER_OBJECT(FSIG, FNAME, nullptr, ALIAS, FAKE_TYPE \
+        __VA_OPT__(, PFK_GET_FIRST_ARG(__VA_ARGS__)))
 
 #endif
 
 
-#define WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    WRAP_FUNCTION_BASE(decltype( \
-        PowerFake::internal::FuncType<FTYPE>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
-        PRIVMEMBER_ADDR(ALIAS), ALIAS, FAKE_TYPE)
+// -----------------------------------------------------------------------------
+// Helper macros for wrapping private members
+// -----------------------------------------------------------------------------
+#define PFK_WRAP_PRIVATE_BASE(FSIG, FNAME, ALIAS, FAKE_TYPE, ...) \
+    PFK_WRAP_FUNCTION_BASE(decltype( \
+        PowerFake::internal::FuncType<FSIG>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
+        PRIVMEMBER_ADDR(ALIAS), ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
 /**
  * Wrap a private member function with alias ALIAS.
  */
-#define WRAP_PRIVATE_MEMBER_IMPL(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    TAG_PRIVATE_MEMBER(PRIVATE_TAG(ALIAS), FNAME); \
-    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE)
+#define PFK_WRAP_PRIVATE_MEMBER_IMPL(FSIG, FNAME, ALIAS, FAKE_TYPE, ...) \
+    TAG_PRIVATE(PRIVATE_TAG(ALIAS), FNAME); \
+    PFK_WRAP_PRIVATE_BASE(FSIG, FNAME, ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
-#define WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    TAG_OVERLOADED_PRIVATE(PRIVATE_TAG(ALIAS), FTYPE, FNAME); \
-    WRAP_PRIVATE_BASE(FTYPE, FNAME, ALIAS, FAKE_TYPE)
-
-
-/**
- * Define a wrapper for function with type FTYPE and name FNAME.
- */
-#define WRAP_FUNCTION_2(FTYPE, FNAME) \
-    WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
-        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
-        WRAPPED)
+#define PFK_WRAP_OVERLOADED_PRIVATE_MEMBER_IMPL(FSIG, FNAME, ALIAS, FAKE_TYPE, ...) \
+    TAG_PRIVATE(PRIVATE_TAG(ALIAS), FSIG, FNAME); \
+    PFK_WRAP_PRIVATE_BASE(FSIG, FNAME, ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
 /**
- * Define a wrapper for function named FNAME.
+ * Define a wrapper for private member function with type FSIG and name FNAME
  */
-#define WRAP_FUNCTION_1(FNAME) WRAP_FUNCTION_2(decltype(&FNAME), FNAME)
-
-/**
- * Define a wrapper for static member function of class FCLASS with type
- * FTYPE and name FNAME.
- */
-#define WRAP_STATIC_MEMBER_2(FCLASS, FTYPE, FNAME) \
-    WRAP_STATIC_MEMBER_BASE(FCLASS, decltype( \
-            PowerFake::internal::FuncType<FTYPE>(&FNAME)), FNAME, \
-            PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
-
-/**
- * Define a wrapper for static member function FNAME of class FCLASS.
- */
-#define WRAP_STATIC_MEMBER_1(FCLASS, FNAME) \
-    WRAP_STATIC_MEMBER_2(FCLASS, decltype(&FNAME), FNAME)
-
-/**
- * Define a wrapper for private member function with type FTYPE and name FNAME
- */
-#define WRAP_PRIVATE_MEMBER_2(FTYPE, FNAME) \
-    WRAP_PRIVATE_MEMBER_IMPL_2(FTYPE, FNAME, \
-        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+#define PFK_WRAP_OVERLOADED_PRIVATE_MEMBER(FAKE_TYPE, FSIG, FNAME, ...) \
+    PFK_WRAP_OVERLOADED_PRIVATE_MEMBER_IMPL(FSIG, FNAME, \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), FAKE_TYPE \
+        __VA_OPT__(,) __VA_ARGS__)
 
 /**
  * Define a wrapper for private member function with name FNAME
  */
-#define WRAP_PRIVATE_MEMBER_1(FNAME) \
-    WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, \
-        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), WRAPPED)
+#define PFK_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME, ...) \
+    PFK_WRAP_PRIVATE_MEMBER_HELPER(FNAME, \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), FAKE_TYPE \
+        __VA_OPT__(,) __VA_ARGS__)
 
-#define WRAP_PRIVATE_MEMBER_1_HELPER(FNAME, ALIAS, FAKE_TYPE) \
-    WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, ALIAS, \
-        FAKE_TYPE)
+#define PFK_WRAP_PRIVATE_MEMBER_HELPER(FNAME, ALIAS, FAKE_TYPE, ...) \
+    PFK_WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, \
+        ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
+// -----------------------------------------------------------------------------
+// Macros called by main WRAP_FUNCTION/HIDE_FUNCTION macros
+// -----------------------------------------------------------------------------
 /**
  * Define a wrapper for function named FNAME.
  */
-#define HIDE_FUNCTION_1(FNAME) HIDE_FUNCTION_2(decltype(&FNAME), FNAME)
+#define PFK_WRAP_FUNCTION(FAKE_TYPE, FNAME, ...) \
+    PFK_WRAP_OVERLOADED_FUNCTION(FAKE_TYPE, decltype(&FNAME), FNAME \
+        __VA_OPT__(,) __VA_ARGS__)
 
 /**
- * Define a wrapper for function with type FTYPE and name FNAME.
+ * Define a wrapper for function with type FSIG and name FNAME.
  */
-#define HIDE_FUNCTION_2(FTYPE, FNAME) \
-    WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FTYPE>(&FNAME)), \
+#define PFK_WRAP_OVERLOADED_FUNCTION(FAKE_TYPE, FSIG, FNAME, ...) \
+    PFK_WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FSIG>(&FNAME)), \
         FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
-        HIDDEN)
+        FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
+/**
+ * Define a wrapper for static member function of class FCLASS with type
+ * FSIG and name FNAME.
+ */
+#define PFK_WRAP_OVERLOADED_STATIC_MEMBER(FAKE_TYPE, FSIG, FCLASS, FNAME, _1) \
+    PFK_WRAP_OVERLOADED_FUNCTION(FAKE_TYPE, FSIG, FNAME, FCLASS)
 
-// MakeFake implementations
+/**
+ * Define a wrapper for static member function FNAME of class FCLASS.
+ */
+#define PFK_WRAP_STATIC_MEMBER(FAKE_TYPE, FCLASS, FNAME, _1) \
+    PFK_WRAP_FUNCTION(FAKE_TYPE, FNAME, FCLASS)
+
+/**
+ * Define a wrapper for private member function with type FSIG and name FNAME
+ */
+#define CALL_WRAP_OVERLOADED_PRIVATE_MEMBER(FAKE_TYPE, FSIG, FNAME, ...) \
+    PFK_WRAP_OVERLOADED_PRIVATE_MEMBER(FAKE_TYPE, FSIG, FNAME)
+
+/**
+ * Define a wrapper for private member function with name FNAME
+ */
+#define CALL_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME, ...) \
+    PFK_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME)
+
+/**
+ * Define a wrapper for static private member function of class FCLASS with
+ * type FSIG and name FNAME
+ */
+#define PFK_WRAP_OVERLOADED_STATIC_PRIVATE_MEMBER(FAKE_TYPE, FCLASS, FSIG, FNAME, ...) \
+    PFK_WRAP_OVERLOADED_PRIVATE_MEMBER(FAKE_TYPE, FSIG, FNAME, FCLASS)
+
+/**
+ * Define a wrapper for static private member function of class FCLASS with name
+ * FNAME
+ */
+#define PFK_WRAP_STATIC_PRIVATE_MEMBER(FAKE_TYPE, FCLASS, FNAME, ...) \
+    PFK_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME, FCLASS)
+
+// -----------------------------------------------------------------------------
+// Macros called by TAG_PRIVATE()
+// -----------------------------------------------------------------------------
+/**
+ * Tag a private class member
+ */
+#define PFK_TAG_PRIVATE_MEMBER(TAG, PRIVATE_MEMBER) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #PRIVATE_MEMBER; \
+    }; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+                                                            &PRIVATE_MEMBER>
+
+ /**
+  * Tag a private class overloaded function
+  */
+#define PFK_TAG_OVERLOADED_PRIVATE(TAG, FSIG, MEMBER_FUNCTION) \
+    struct TAG: public PowerFake::internal::TagBase<TAG> { \
+        static constexpr const char *member_name = #MEMBER_FUNCTION; \
+    }; \
+    template struct PowerFake::internal::PrivateFunctionExtractor<TAG, \
+        static_cast<decltype( \
+            PowerFake::internal::FuncType<FSIG>(&MEMBER_FUNCTION))>( \
+                    &MEMBER_FUNCTION)>
+
+// -----------------------------------------------------------------------------
+// MakeFake implementation
+// -----------------------------------------------------------------------------
 template <typename Signature, typename Functor>
 static FakePtr MakeFake(Signature *func_ptr, Functor f)
 {
@@ -759,10 +900,12 @@ static FakePtr MakeFake(Functor f)
     return MakeFake(GetAddress(PrivateMemberTag()), f);
 }
 
+// -----------------------------------------------------------------------------
+// PrototypeExtractor implementation
+// -----------------------------------------------------------------------------
 namespace internal
 {
 
-// PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     const std::string &func_name, uint32_t fq)
