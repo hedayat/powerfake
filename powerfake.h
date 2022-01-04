@@ -179,8 +179,8 @@ static FakePtr MakeFake(Functor f);
  * @note It should be a top level call and cannot be called inside a block
  *
  * #### Usage
- *     HIDE_FUNCTION(FNAME) \n
- *     HIDE_FUNCTION(FSIG, FNAME)
+ *     TAG_PRIVATE(TAG, PRIVATE_MEMBER) \n
+ *     TAG_PRIVATE(TAG, FSIG, PRIVATE_MEMBER)
  *
  * @param TAG the name of the tag class to be used instead of the private member
  * @param FSIG overloaded function type, which can be specified in function
