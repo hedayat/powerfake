@@ -218,6 +218,9 @@ struct type_identity
 };
 #endif
 
+/**
+ * Separates functions base type and its qualifiers
+ */
 template <typename T>
 struct func_cv_processor;
 
