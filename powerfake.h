@@ -125,15 +125,23 @@ static FakePtr MakeFake(Functor f);
  * the last statement of the caller function).
  *
  * #### Usage
- *     HIDE_FUNCTION(FNAME) \n
- *     HIDE_FUNCTION(FSIG, FNAME)
+ *     HIDE_FUNCTION(FUNC) \n
+ *     HIDE_FUNCTION(FSIG, FUNC)
  *
  * @param FSIG function type signature; required for overloaded functions;
  *              e.g. void (int)
- * @param FNAME function to hide
+ * @param FUNC specifies the function to wrap; for static, private and static
+ *              private functions, you should use #PFK_PRIVATE/#PFK_STATIC macros
+ *              to mark the function as such
+ * @see WRAP_FUNCTION()
  */
 #define HIDE_FUNCTION(...) \
-    PFK_SELECT_3RD(__VA_ARGS__, HIDE_FUNCTION_2, HIDE_FUNCTION_1)(__VA_ARGS__)
+    PFK_SELECT_9TH(__VA_ARGS__, \
+        WRAP_STATIC_PRIVATE_MEMBER_2, WRAP_STATIC_PRIVATE_MEMBER_1, \
+        WRAP_PRIVATE_MEMBER_2, WRAP_PRIVATE_MEMBER_1, \
+        WRAP_STATIC_MEMBER_2, WRAP_STATIC_MEMBER_1, \
+        WRAP_FUNCTION_2, WRAP_FUNCTION_1)(HIDDEN, __VA_ARGS__)
+
 #endif
 
 /**
@@ -811,19 +819,6 @@ class Wrapper: public WrapperBase
  */
 #define WRAP_STATIC_PRIVATE_MEMBER_1(FAKE_TYPE, FCLASS, FNAME, ...) \
     WRAP_PRIVATE_MEMBER_1_BASE(FAKE_TYPE, FNAME, FCLASS)
-
-/**
- * Define a wrapper for function named FNAME.
- */
-#define HIDE_FUNCTION_1(FNAME) HIDE_FUNCTION_2(decltype(&FNAME), FNAME)
-
-/**
- * Define a wrapper for function with type FSIG and name FNAME.
- */
-#define HIDE_FUNCTION_2(FSIG, FNAME) \
-    WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FSIG>(&FNAME)), \
-        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
-        HIDDEN)
 
 /**
  * Tag a private class member
