@@ -623,7 +623,9 @@ class Wrapper: public WrapperBase
 } // namespace internal
 
 
-// helper macors
+// -----------------------------------------------------------------------------
+// Helper macors
+// -----------------------------------------------------------------------------
 #define TMP_POSTFIX         __end__
 #define TMP_WRAPPER_PREFIX  __wrap_function_
 #define TMP_REAL_PREFIX     __real_function_
@@ -639,15 +641,21 @@ class Wrapper: public WrapperBase
 
 /// If you use WRAP_FUNCTION() macros in more than a single file, you should
 /// define a different namespace for each file, otherwise 'multiple definition'
-/// errors can happen
+/// errors might happen
 #ifndef POWRFAKE_WRAP_NAMESPACE
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
 
+// -----------------------------------------------------------------------------
+// Main implementation for wrapping/hiding functions
+// -----------------------------------------------------------------------------
 #define CREATE_WRAPPER_FUNCTION(FSIG, FNAME, ALIAS, FAKE_TYPE) \
     /* Fake functions which will be called rather than the real function.
      * They call the function object in the alias Wrapper object
-     * if available, otherwise it'll call the real function. */  \
+     * if available, otherwise it'll call the real function.
+     *
+     * For hidden functions, the real function is not accessible,
+     * so we throw an exception if no fakes are available to be called */  \
     template <typename T> struct wrapper_##ALIAS; \
     template <typename T, typename R , typename ...Args> \
     struct wrapper_##ALIAS<R (T::*)(Args...)> \
@@ -692,6 +700,10 @@ class Wrapper: public WrapperBase
     template class wrapper_##ALIAS<PowerFake::internal::remove_func_cv_t<FSIG>>
 
 
+/*
+ * Define an instance of PowerFake::internal::Wrapper<> class for the given
+ * function
+ */
 #define DEFINE_WRAPPER_OBJECT(...) \
         PFK_SELECT_9TH(__VA_ARGS__,,, DEFINE_WRAPPER_OBJECT_2, \
             DEFINE_WRAPPER_OBJECT_1)(__VA_ARGS__)
@@ -730,6 +742,9 @@ class Wrapper: public WrapperBase
 #endif
 
 
+// -----------------------------------------------------------------------------
+// Helper macros for wrapping private members
+// -----------------------------------------------------------------------------
 #define PFK_WRAP_PRIVATE_BASE(FSIG, FNAME, ALIAS, FAKE_TYPE, ...) \
     PFK_WRAP_FUNCTION_BASE(decltype( \
         PowerFake::internal::FuncType<FSIG>(PRIVMEMBER_ADDR(ALIAS))), FNAME, \
@@ -766,7 +781,9 @@ class Wrapper: public WrapperBase
     PFK_WRAP_PRIVATE_MEMBER_IMPL(decltype(PRIVMEMBER_ADDR(ALIAS)), FNAME, \
         ALIAS, FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
-
+// -----------------------------------------------------------------------------
+// Macros called by main WRAP_FUNCTION/HIDE_FUNCTION macros
+// -----------------------------------------------------------------------------
 /**
  * Define a wrapper for function named FNAME.
  */
@@ -821,6 +838,9 @@ class Wrapper: public WrapperBase
 #define PFK_WRAP_STATIC_PRIVATE_MEMBER(FAKE_TYPE, FCLASS, FNAME, ...) \
     PFK_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME, FCLASS)
 
+// -----------------------------------------------------------------------------
+// Macros called by TAG_PRIVATE()
+// -----------------------------------------------------------------------------
 /**
  * Tag a private class member
  */
@@ -843,7 +863,9 @@ class Wrapper: public WrapperBase
             PowerFake::internal::FuncType<FSIG>(&MEMBER_FUNCTION))>( \
                     &MEMBER_FUNCTION)>
 
-// MakeFake implementations
+// -----------------------------------------------------------------------------
+// MakeFake implementation
+// -----------------------------------------------------------------------------
 template <typename Signature, typename Functor>
 static FakePtr MakeFake(Signature *func_ptr, Functor f)
 {
@@ -866,10 +888,12 @@ static FakePtr MakeFake(Functor f)
     return MakeFake(GetAddress(PrivateMemberTag()), f);
 }
 
+// -----------------------------------------------------------------------------
+// PrototypeExtractor implementation
+// -----------------------------------------------------------------------------
 namespace internal
 {
 
-// PrototypeExtractor implementations
 template<typename T, typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     const std::string &func_name, uint32_t fq)
