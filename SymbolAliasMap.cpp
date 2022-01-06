@@ -78,9 +78,12 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
             p->second.symbol = symbol_name;
             auto inserted = sym_map.insert( { func.alias, p });
             if (inserted.second)
-                cout << "Found symbol for " << func.return_type << ' ' << sig
-                        << " == " << symbol_name << " (" << demangled << ") "
-                        << endl;
+            {
+                if (verbose)
+                    cout << "Found symbol for " << func.return_type << ' ' << sig
+                            << " == " << symbol_name << " (" << demangled << ") "
+                            << endl;
+            }
             else if (inserted.first->second->second.symbol != symbol_name)
             {
                 cerr << "Error: (BUG) duplicate symbols found for: "
@@ -96,7 +99,6 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
 bool SymbolAliasMap::IsFunction(const char *symbol_name  [[maybe_unused]],
     const std::string &demangled)
 {
-
     // detect static variables inside functions, which are demangled in
     // this format: function_name()[ cv-qualification]::static_var_name
     auto params_end = demangled.rfind(')');

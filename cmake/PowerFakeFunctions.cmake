@@ -20,13 +20,14 @@
 # \flag:PASSIVE If bind_fakes should run in passive mode (enabled by default
 #         when cross-compiling)
 # \flag:USE_DEFSYM Use ld's --defsym instead of modifying wrapper libs/objects
+# \flag:VERBOSE Enable verbose logging in bind_fakes
 # \group:SUBJECT The test subject, usually main code libraries who will call
 #         faked functions specified in WRAPPERS
 # \group:WRAPPERS Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
 #
 function(bind_fakes target_name)
     # Argument processing
-    set(options PASSIVE USE_DEFSYM)
+    set(options PASSIVE USE_DEFSYM VERBOSE)
     set(single_val_args )
     set(multi_val_args SUBJECT WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
@@ -35,6 +36,9 @@ function(bind_fakes target_name)
     set(RUN_OPTIONS)
     if (BFARGS_USE_DEFSYM)
         list(APPEND RUN_OPTIONS "--no-objcopy")
+    endif()
+    if (BFARGS_VERBOSE)
+        list(APPEND RUN_OPTIONS "--verbose")
     endif()
     if (CMAKE_CROSSCOMPILING)
         set(BFARGS_PASSIVE True)

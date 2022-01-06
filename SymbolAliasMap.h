@@ -25,11 +25,13 @@ class SymbolAliasMap
         typedef std::map<std::string, WrapperBase::Functions::iterator> MapType;
 
     public:
+        SymbolAliasMap(bool verbose = false): verbose(verbose) {}
         void AddSymbol(const char *symbol_name);
         const MapType &Map() const { return sym_map; }
         bool FoundAllWrappedSymbols() const;
 
     private:
+        bool verbose;
         MapType sym_map;
 
         void FindWrappedSymbol(WrapperBase::Functions &protos,

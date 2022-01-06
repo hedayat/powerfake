@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 
     try
     {
+        bool verbose = false;
         bool passive_mode = false;
         bool leading_underscore = false;
         bool use_objcopy = true;
@@ -62,6 +63,8 @@ int main(int argc, char **argv)
                 passive_mode = true;
             else if (argv[i] == "--no-objcopy"s)
                 use_objcopy = false;
+            else if (argv[i] == "--verbose"s)
+                verbose = true;
             else if (argv[i] == "--output-prefix"s)
             {
                 if (i >= argc)
@@ -101,10 +104,14 @@ int main(int argc, char **argv)
                 collecting_symbol_files = collecting_wrapper_files = false;
         }
 
-        SymbolAliasMap symmap;
+        SymbolAliasMap symmap(verbose);
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
         {
+            if (verbose)
+                cout << "Looking for symbol names in " << symfile
+                    << "\n------------------------------------------------------------------------------------------------------"
+                    << endl;
             unique_ptr<Reader> reader(GetReader(passive_mode, symfile));
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
@@ -134,6 +141,12 @@ int main(int argc, char **argv)
         // by ld linker
         for (const auto &wrapperfile: wrapper_files)
         {
+            if (verbose)
+                cout << "Match real symbols with our fake ones in "
+                    << wrapperfile
+                    << "\n------------------------------------------------------------------------------------------------------"
+                    << endl;
+
             unique_ptr<Reader> reader(GetReader(passive_mode, wrapperfile));
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
@@ -150,9 +163,10 @@ int main(int argc, char **argv)
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
-                        cout << "Found wrapper symbol to rename/use: "
-                                << symbol_str << ' '
-                                << boost::core::demangle(symbol) << endl;
+                        if (verbose)
+                            cout << "Found wrapper symbol to rename/use: "
+                                    << symbol_str << ' '
+                                    << boost::core::demangle(symbol) << endl;
                         if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
                                 << syms.second->second.symbol << " = "
@@ -168,8 +182,9 @@ int main(int argc, char **argv)
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
-                        cout << "Found real symbol to rename: " << symbol_str
-                                << ' ' << boost::core::demangle(symbol) << endl;
+                        if (verbose)
+                            cout << "Found real symbol to rename: " << symbol_str
+                                    << ' ' << boost::core::demangle(symbol) << endl;
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
