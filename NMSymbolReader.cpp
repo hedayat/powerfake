@@ -29,16 +29,17 @@ NMSymbolReader::~NMSymbolReader()
 
 const char* NMSymbolReader::NextSymbol()
 {
-    const char *nm_line = reader->ReadLine();
-    if (!nm_line)
-        return nullptr;
+    const char *symbol_name;
 
-    const char *symbol_name = strrchr(nm_line, ' ');
-    if (!symbol_name)
+    do
     {
-        std::cerr << "Unknown input from nm: " << nm_line << std::endl;
-        return nullptr;
-    }
+        const char *nm_line = reader->ReadLine();
+        if (!nm_line)
+            return nullptr;
+
+        symbol_name = strrchr(nm_line, ' ');
+    } while (!symbol_name);
+
     ++symbol_name;
     if (leading_underscore && symbol_name[0] == '_')
         ++symbol_name;
