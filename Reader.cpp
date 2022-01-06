@@ -24,7 +24,7 @@ const char* Reader::ReadLine()
     int ch;
     while ((ch = getc(in_file)) != EOF && ch != '\n')
         line_buf += static_cast<char>(ch);
-    if (line_buf.empty())
+    if (ch == EOF && line_buf.empty())
         return nullptr;
     return line_buf.c_str();
 }
