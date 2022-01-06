@@ -81,8 +81,8 @@ function(bind_fakes target_name)
                 DEPENDS ${wrap_lib}
                 COMMAND objcopy --remove-section=*wrapper_*_alias_*
                     $<TARGET_FILE:${wrap_lib}> ${wcopy_name} VERBATIM)
-            add_custom_target(${wrap_lib}_copy_${target_name} DEPENDS ${wcopy_name})
-            add_dependencies(${bind_fakes_tgt} ${wrap_lib}_copy_${target_name})
+            add_custom_target(${wrap_lib}_${target_name} DEPENDS ${wcopy_name})
+            add_dependencies(${bind_fakes_tgt} ${wrap_lib}_${target_name})
         endforeach()
         if (CMAKE_SIZEOF_VOID_P EQUAL 4)
             list(APPEND RUN_OPTIONS "--leading-underscore")
@@ -104,7 +104,9 @@ function(bind_fakes target_name)
         add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
             DEPENDS ${BFARGS_WRAPPERS}
             COMMAND ${bind_fakes_tgt} --output-prefix ${target_name}.powerfake
-                    ${RUN_OPTIONS} ${main_lib_files} ${wrap_lib_files} VERBATIM)
+                    --symbol-files ${main_lib_files} ${RUN_OPTIONS}
+                    --wrapper-files ${wrap_lib_files}
+            VERBATIM)
     else()
         set(wrap_syms)
         set(wrap_objcopy_params)
@@ -131,7 +133,8 @@ function(bind_fakes target_name)
                 main.syms
             DEPENDS ${BFARGS_WRAPPERS}
             COMMAND ${bind_fakes_tgt} --output-prefix ${target_name}.powerfake
-                    ${RUN_OPTIONS} --passive main.syms ${wrap_syms}
+                    --passive ${RUN_OPTIONS}
+                    --symbol-files main.syms --wrapper-files ${wrap_syms}
             APPEND VERBATIM)
         foreach (wrap_lib IN LISTS BFARGS_WRAPPERS)
             add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}

@@ -48,51 +48,64 @@ int main(int argc, char **argv)
         bool passive_mode = false;
         bool leading_underscore = false;
         bool use_objcopy = true;
+        bool collecting_wrapper_files = false;
+        bool collecting_symbol_files = false;
         string output_prefix = "powerfake";
-        int argc_inc = 0;
+        vector<string> symbol_files, wrapper_files;
 
         for (int i = 1; i < argc; ++i)
         {
+            bool continue_collect = false;
             if (argv[i] == "--leading-underscore"s)
-            {
                 leading_underscore = true;
-                argc_inc++;
-            }
             else if (argv[i] == "--passive"s)
-            {
                 passive_mode = true;
-                argc_inc++;
-            }
-            else if (argv[i] == "--objcopy"s) // old option, for compatibility
-            {
-                use_objcopy = true;
-                argc_inc++;
-            }
             else if (argv[i] == "--no-objcopy"s)
-            {
                 use_objcopy = false;
-                argc_inc++;
-            }
             else if (argv[i] == "--output-prefix"s)
             {
                 if (i >= argc)
                     throw runtime_error("--output-prefix needs a parameter");
                 output_prefix = argv[++i];
-                argc_inc+=2;
             }
-            else
-                break;
-        }
+            else if (argv[i] == "--symbol-files"s)
+            {
+                collecting_symbol_files = true;
+                collecting_wrapper_files = false;
+                continue_collect = true;
+            }
+            else if (argv[i] == "--wrapper-files"s)
+            {
+                collecting_wrapper_files = true;
+                collecting_symbol_files = false;
+                continue_collect = true;
+            }
+            else if (collecting_symbol_files)
+            {
+                continue_collect = true;
+                symbol_files.push_back(argv[i]);
+            }
+            else if (collecting_wrapper_files)
+            {
+                continue_collect = true;
+                wrapper_files.push_back(argv[i]);
+            }
+            else if (argv[i][0] == '-')
+                throw runtime_error("Unknown option found: "s + argv[i]);
+            else if (symbol_files.empty())
+                symbol_files.push_back(argv[i]);
+            else if (wrapper_files.empty())
+                wrapper_files.push_back(argv[i]);
 
-        vector<string> object_files;
-        for (int i = argc_inc + 2; i < argc; ++i)
-            object_files.push_back(argv[i]);
+            if (!continue_collect)
+                collecting_symbol_files = collecting_wrapper_files = false;
+        }
 
         SymbolAliasMap symmap;
         // Found real symbols which we want to wrap
+        for (const auto &symfile: symbol_files)
         {
-            unique_ptr<Reader> reader(GetReader(passive_mode,
-                argv[argc_inc + 1]));
+            unique_ptr<Reader> reader(GetReader(passive_mode, symfile));
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             const char *symbol;
@@ -119,9 +132,9 @@ int main(int argc, char **argv)
 
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
-        for (const auto &objfile: object_files)
+        for (const auto &wrapperfile: wrapper_files)
         {
-            unique_ptr<Reader> reader(GetReader(passive_mode, objfile));
+            unique_ptr<Reader> reader(GetReader(passive_mode, wrapperfile));
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             string objcopy_params;
@@ -174,12 +187,12 @@ int main(int argc, char **argv)
                 {
                     // Create <objname>.objcopy_params containing objcopy
                     // params to modify symbol names
-                    ofstream objcopy_params_file(objfile + ".objcopy_params");
+                    ofstream objcopy_params_file(wrapperfile + ".objcopy_params");
                     objcopy_params_file << objcopy_params << endl;
                 }
                 else if (!objcopy_params.empty())
                 {
-                    string cmd = "objcopy -p" + objcopy_params + ' ' + objfile;
+                    string cmd = "objcopy -p" + objcopy_params + ' ' + wrapperfile;
                     int ret = system(cmd.c_str());
     #ifdef _XOPEN_SOURCE
                     if (!WIFEXITED(ret) || WEXITSTATUS(ret) != 0)
