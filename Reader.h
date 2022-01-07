@@ -20,12 +20,14 @@ class Reader
 {
     public:
         Reader(FILE *input_file);
+        ~Reader();
 
         const char *ReadLine();
 
     protected:
         FILE *in_file;
-        std::string line_buf;
+        char *line_buffer;
+        size_t buffer_size;
 };
 
 class FileReader: public Reader

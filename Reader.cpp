@@ -13,20 +13,25 @@
 #include "Reader.h"
 #include <stdexcept>
 
-Reader::Reader(FILE *input_file): in_file(input_file)
+Reader::Reader(FILE *input_file) :
+        in_file(input_file), line_buffer(nullptr), buffer_size(0)
 {
-    line_buf.reserve(1000);
+}
+
+Reader::~Reader()
+{
+    free(line_buffer);
 }
 
 const char* Reader::ReadLine()
 {
-    line_buf.clear();
-    int ch;
-    while ((ch = getc(in_file)) != EOF && ch != '\n')
-        line_buf += static_cast<char>(ch);
-    if (ch == EOF && line_buf.empty())
+    ssize_t ret = getline(&line_buffer, &buffer_size, in_file);
+    if (ret == -1)
         return nullptr;
-    return line_buf.c_str();
+
+    if (line_buffer[ret - 1] == '\n')
+        line_buffer[ret - 1] = 0;
+    return line_buffer;
 }
 
 FileReader::FileReader(std::string file_name) :
