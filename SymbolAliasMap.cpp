@@ -20,6 +20,21 @@ using namespace PowerFake;
 using namespace std;
 
 
+SymbolAliasMap::SymbolAliasMap(Functions &functions, bool verbose,
+    bool verify_mode) :
+        verbose(verbose), verify_mode(verify_mode)
+{
+    CreateFunctionMap(functions);
+}
+
+void SymbolAliasMap::Load(std::string_view filename)
+{
+}
+
+void SymbolAliasMap::Save(std::string_view filename)
+{
+}
+
 /**
  * For each symbol in the main library, finds its alias if it is wrapped and
  * inserts the alias and the actual symbol of the target function in sym_map.
@@ -29,8 +44,7 @@ using namespace std;
 void SymbolAliasMap::AddSymbol(const char *symbol_name)
 {
     std::string demangled = boost::core::demangle(symbol_name);
-
-    FindWrappedSymbol(WrapperBase::WrappedFunctions(), demangled, symbol_name);
+    FindWrappedSymbol(demangled, symbol_name);
 }
 
 /**
@@ -38,10 +52,13 @@ void SymbolAliasMap::AddSymbol(const char *symbol_name)
  */
 bool SymbolAliasMap::FoundAllWrappedSymbols() const
 {
+    if (!verify_mode)
+        return unresolved_functions.empty();
+
     bool found_all = true;
     for (const auto &wfp: WrapperBase::WrappedFunctions())
     {
-        const auto &wf = wfp.second.prototype;
+        const auto &wf = wfp.prototype;
         if (sym_map.find(wf.alias) == sym_map.end())
         {
             found_all = false;
@@ -53,6 +70,23 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
     return found_all;
 }
 
+void SymbolAliasMap::CreateFunctionMap(Functions &functions)
+{
+    for (auto it = functions.begin(); it != functions.end(); ++it)
+        functions_map.insert({ GetSimpleName(it->prototype), it });
+    unresolved_functions = functions_map;
+}
+
+std::string_view SymbolAliasMap::GetSimpleName(
+    const PowerFake::internal::FunctionPrototype &prototype)
+{
+    std::string_view name = prototype.name;
+    auto nstart = name.rfind(':', prototype.name.length()-1);
+    if (nstart != std::string::npos)
+        return name.substr(nstart + 1);
+    return name;
+}
+
 /**
  * For a given symbol and its demangled name, finds corresponding prototype
  * from @a protos set and stores the mapping
@@ -60,23 +94,23 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
  * @param demangled the demangled form of @a symbol_name
  * @param symbol_name a symbol in the object file
  */
-void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
-    const std::string &demangled, const char *symbol_name)
+void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
+    const char *symbol_name)
 {
     if (!IsFunction(symbol_name, demangled))
         return;
 
     string name = FunctionName(demangled);
 
-    auto range = protos.equal_range(name);
-    for (auto p = range.first; p != range.second; ++p)
+    auto range = unresolved_functions.equal_range(name);
+    for (auto p = range.first; p != range.second; )
     {
-        auto func = p->second.prototype;
+        auto func = p->second->prototype;
         if (IsSameFunction(demangled, func))
         {
             const string sig = func.name + func.params;
-            p->second.symbol = symbol_name;
-            auto inserted = sym_map.insert( { func.alias, p });
+            p->second->symbol = symbol_name;
+            auto inserted = sym_map.insert( { func.alias, p->second });
             if (inserted.second)
             {
                 if (verbose)
@@ -84,15 +118,18 @@ void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
                             << " == " << symbol_name << " (" << demangled << ") "
                             << endl;
             }
-            else if (inserted.first->second->second.symbol != symbol_name)
+            else if (inserted.first->second->symbol != symbol_name)
             {
-                cerr << "Error: (BUG) duplicate symbols found for: "
-                        << func.return_type << ' ' << sig << ":\n" << '\t'
-                        << sym_map[func.alias]->second.symbol << '\n' << '\t' << symbol_name
-                        << endl;
-                exit(1);
+                throw runtime_error(
+                    "Error: (BUG) duplicate symbols found for: "
+                            + func.return_type + ' ' + sig + ":\n" + '\t'
+                            + sym_map[func.alias]->symbol + '\n' + '\t'
+                            + symbol_name);
             }
+            p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
         }
+        else
+            ++p;
     }
 }
 

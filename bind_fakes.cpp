@@ -48,6 +48,7 @@ int main(int argc, char **argv)
     {
         bool timing = false;
         bool verbose = false;
+        bool verify = false;
         bool passive_mode = false;
         bool leading_underscore = false;
         bool use_objcopy = true;
@@ -69,6 +70,8 @@ int main(int argc, char **argv)
                 timing = true;
             else if (argv[i] == "--verbose"s)
                 verbose = true;
+            else if (argv[i] == "--verify"s)
+                verify = true;
             else if (argv[i] == "--output-prefix"s)
             {
                 if (i >= argc)
@@ -109,7 +112,8 @@ int main(int argc, char **argv)
         }
 
         auto process_start = chrono::system_clock::now();
-        SymbolAliasMap symmap(verbose);
+        SymbolAliasMap symmap(WrapperBase::WrappedFunctions(), verbose, verify);
+
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
         {
@@ -121,7 +125,7 @@ int main(int argc, char **argv)
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             const char *symbol;
-            while ((symbol = nm_reader.NextSymbol()))
+            while ((symbol = nm_reader.NextSymbol()) && (verify || !symmap.FoundAllWrappedSymbols()))
                 symmap.AddSymbol(symbol);
         }
 
@@ -138,10 +142,10 @@ int main(int argc, char **argv)
         ofstream link_script(output_prefix + ".link_script");
         for (const auto &syms: symmap.Map())
         {
-            if (syms.second->second.fake_type == internal::FakeType::WRAPPED)
-                link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
-            else if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
-                link_script << "EXTERN(" << sym_prefix + syms.second->second.symbol << ");" << endl;
+            if (syms.second->fake_type == internal::FakeType::WRAPPED)
+                link_flags << "-Wl,--wrap=" << syms.second->symbol << endl;
+            else if (syms.second->fake_type == internal::FakeType::HIDDEN)
+                link_script << "EXTERN(" << sym_prefix + syms.second->symbol << ");" << endl;
         }
 
         auto symmatch_start = chrono::system_clock::now();
@@ -175,18 +179,18 @@ int main(int argc, char **argv)
                             cout << "Found wrapper symbol to rename/use: "
                                     << symbol_str << ' '
                                     << boost::core::demangle(symbol) << endl;
-                        if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                        if (syms.second->fake_type == internal::FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
-                                << syms.second->second.symbol << " = "
+                                << syms.second->symbol << " = "
                                 << sym_prefix << symbol_str << ");" << endl;
                         else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
-                                << syms.second->second.symbol << '=' << sym_prefix
+                                << syms.second->symbol << '=' << sym_prefix
                                 << symbol_str << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second->second.symbol;
+                                + syms.second->symbol;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
@@ -196,11 +200,11 @@ int main(int argc, char **argv)
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << syms.second->second.symbol << endl;
+                                << syms.second->symbol << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second->second.symbol;
+                                + syms.second->symbol;
                     }
                 }
             }

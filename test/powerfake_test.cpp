@@ -221,31 +221,31 @@ BOOST_FIXTURE_TEST_CASE(NMReaderTest, SampleLibConfig)
 BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
 {
     WrapperBase::Functions protos;
-    protos.insert( { "folan<char>", { FunctionPrototype("char", "folan<char>", "(int)",
-        internal::Qualifiers::NO_QUAL, "alias1") } } );
-    protos.insert( { "test_function2", { FunctionPrototype("int", "test_function2", "()",
-        internal::Qualifiers::NO_QUAL, "alias2") } } );
-    protos.insert( { "test_function", { FunctionPrototype("int", "test_function", "()",
-        internal::Qualifiers::NO_QUAL, "alias3") } } );
-    protos.insert( { "A::folani", { FunctionPrototype("void", "A::folani", "(int)",
-        internal::Qualifiers::NO_QUAL, "alias4") } } );
-    protos.insert( { "non_copyable_ref", { FunctionPrototype(
+    protos.push_back( { FunctionPrototype("char", "folan<char>", "(int)",
+        internal::Qualifiers::NO_QUAL, "alias1") } );
+    protos.push_back( { FunctionPrototype("int", "test_function2", "()",
+        internal::Qualifiers::NO_QUAL, "alias2") } );
+    protos.push_back( { FunctionPrototype("int", "test_function", "()",
+        internal::Qualifiers::NO_QUAL, "alias3") } );
+    protos.push_back( { FunctionPrototype("void", "A::folani", "(int)",
+        internal::Qualifiers::NO_QUAL, "alias4") } );
+    protos.push_back( { FunctionPrototype(
         "std::unique_ptr<int, std::default_delete<int> >", "non_copyable_ref",
-        "()", internal::Qualifiers::NO_QUAL, "some_alias") } } );
+        "()", internal::Qualifiers::NO_QUAL, "some_alias") } );
 
-    SymbolAliasMap sm;
-    sm.FindWrappedSymbol(protos, "char folan<char>(int)", "symbol_for_alias1");
-    sm.FindWrappedSymbol(protos, "test_function2()", "symbol_for_alias2");
-    sm.FindWrappedSymbol(protos, "test_function", "symbol_for_alias3");
-    sm.FindWrappedSymbol(protos, "A::folani", "symbol_for_alias4");
-    sm.FindWrappedSymbol(protos, "some_nonexistent_function",
+    SymbolAliasMap sm(protos, true);
+    sm.FindWrappedSymbol("char folan<char>(int)", "symbol_for_alias1");
+    sm.FindWrappedSymbol("test_function2()", "symbol_for_alias2");
+    sm.FindWrappedSymbol("test_function()", "symbol_for_alias3");
+    sm.FindWrappedSymbol("A::folani(int)", "symbol_for_alias4");
+    sm.FindWrappedSymbol("some_nonexistent_function()",
         "symbol_for_non_wrapped");
 
     // test for ignoring static variables inside functions
-    sm.FindWrappedSymbol(protos, "non_copyable_ref()", "_Z16non_copyable_refv");
-    sm.FindWrappedSymbol(protos, "non_copyable_ref()::felfel",
+    sm.FindWrappedSymbol("non_copyable_ref()", "_Z16non_copyable_refv");
+    sm.FindWrappedSymbol("non_copyable_ref()::felfel",
         "_ZZ16non_copyable_refvE6felfel");
-    sm.FindWrappedSymbol(protos, "non_copyable_ref() const::felfel",
+    sm.FindWrappedSymbol("non_copyable_ref() const::felfel",
         "_ZZ16non_copyable_refvE6felfel2");
 
     for (int i = 0; i < 4; ++i)
@@ -254,6 +254,6 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         BOOST_TEST_MESSAGE("Checking alias no. " << no);
         auto a = sm.Map().find("alias" + no);
         BOOST_TEST(
-            (a != sm.Map().end() && a->second->second.symbol == "symbol_for_alias" + no));
+            (a != sm.Map().end() && a->second->symbol == "symbol_for_alias" + no));
     }
 }
