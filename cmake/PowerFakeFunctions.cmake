@@ -14,20 +14,21 @@
 #
 # 1. bind_fakes(target_name test_lib wrapper_funcs_lib)
 # 2. bind_fakes(target_name SUBJECT <lib1>... WRAPPERS <wlib1>...
-#               [PASSIVE][USE_DEFSYM])
+#               [PASSIVE] [USE_DEFSYM] [VERBOSE] [TIMING])
 #
 # \arg:target_name the name of the test runner binary
 # \flag:PASSIVE If bind_fakes should run in passive mode (enabled by default
 #         when cross-compiling)
 # \flag:USE_DEFSYM Use ld's --defsym instead of modifying wrapper libs/objects
 # \flag:VERBOSE Enable verbose logging in bind_fakes
+# \flag:TIMING Enable bind_fakes timing output
 # \group:SUBJECT The test subject, usually main code libraries who will call
 #         faked functions specified in WRAPPERS
 # \group:WRAPPERS Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
 #
 function(bind_fakes target_name)
     # Argument processing
-    set(options PASSIVE USE_DEFSYM VERBOSE)
+    set(options PASSIVE USE_DEFSYM VERBOSE TIMING)
     set(single_val_args )
     set(multi_val_args SUBJECT WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
@@ -39,6 +40,9 @@ function(bind_fakes target_name)
     endif()
     if (BFARGS_VERBOSE)
         list(APPEND RUN_OPTIONS "--verbose")
+    endif()
+    if (BFARGS_TIMING)
+        list(APPEND RUN_OPTIONS "--timing")
     endif()
     if (CMAKE_CROSSCOMPILING)
         set(BFARGS_PASSIVE True)

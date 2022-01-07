@@ -10,6 +10,7 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+#include <chrono>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -45,6 +46,7 @@ int main(int argc, char **argv)
 
     try
     {
+        bool timing = false;
         bool verbose = false;
         bool passive_mode = false;
         bool leading_underscore = false;
@@ -63,6 +65,8 @@ int main(int argc, char **argv)
                 passive_mode = true;
             else if (argv[i] == "--no-objcopy"s)
                 use_objcopy = false;
+            else if (argv[i] == "--timing"s)
+                timing = true;
             else if (argv[i] == "--verbose"s)
                 verbose = true;
             else if (argv[i] == "--output-prefix"s)
@@ -104,6 +108,7 @@ int main(int argc, char **argv)
                 collecting_symbol_files = collecting_wrapper_files = false;
         }
 
+        auto process_start = chrono::system_clock::now();
         SymbolAliasMap symmap(verbose);
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
@@ -124,6 +129,8 @@ int main(int argc, char **argv)
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
 
+        auto symfind_end = chrono::system_clock::now();
+
         // Create powerfake.link_flags containing link flags for linking
         // test binary
         const string sym_prefix = leading_underscore ? "_" : "";
@@ -137,6 +144,7 @@ int main(int argc, char **argv)
                 link_script << "EXTERN(" << sym_prefix + syms.second->second.symbol << ");" << endl;
         }
 
+        auto symmatch_start = chrono::system_clock::now();
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
         for (const auto &wrapperfile: wrapper_files)
@@ -215,6 +223,20 @@ int main(int argc, char **argv)
     #endif
                 }
             }
+        }
+
+        auto symmatch_end = chrono::system_clock::now();
+        if (timing)
+        {
+            auto ts_diff = [](auto end, auto start) {
+                return chrono::duration_cast<chrono::milliseconds>(end - start).count();
+            };
+            cout << "Timing:\n---------------------------\n"
+                    "- Finding Symbols: " << ts_diff(symfind_end, process_start)
+                    << "ms\n- Matching Symbols: " << ts_diff(symmatch_end,
+                        symmatch_start) << "ms\n"
+                    "- Total: " << ts_diff(symmatch_end, process_start)
+                    << "ms\n";
         }
     }
     catch (exception &e)
