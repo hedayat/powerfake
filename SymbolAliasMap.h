@@ -24,7 +24,6 @@ class SymbolAliasMap
 {
     public:
         using Functions = WrapperBase::Functions;
-        typedef std::map<std::string, WrapperBase::Functions::iterator> MapType;
         using FunctionNames = std::multimap<std::string_view, Functions::iterator>;
 
     public:
@@ -34,13 +33,11 @@ class SymbolAliasMap
         void Load(std::string_view filename);
         void Save(std::string_view filename);
         void AddSymbol(const char *symbol_name);
-        const MapType &Map() const { return sym_map; }
         bool FoundAllWrappedSymbols() const;
 
     private:
         bool verbose;
         bool verify_mode;
-        MapType sym_map;
         FunctionNames functions_map;
         FunctionNames unresolved_functions;
 

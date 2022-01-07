@@ -252,8 +252,8 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
     {
         string no = to_string(i+1);
         BOOST_TEST_MESSAGE("Checking alias no. " << no);
-        auto a = sm.Map().find("alias" + no);
+        auto a = std::find_if(protos.begin(), protos.end(), [no](const FunctionInfo &fi) { return fi.prototype.alias == "alias" + no; } );
         BOOST_TEST(
-            (a != sm.Map().end() && a->second->symbol == "symbol_for_alias" + no));
+            (a != protos.end() && a->symbol == "symbol_for_alias" + no));
     }
 }

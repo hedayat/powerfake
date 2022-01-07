@@ -58,10 +58,10 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
     bool found_all = true;
     for (const auto &wfp: WrapperBase::WrappedFunctions())
     {
-        const auto &wf = wfp.prototype;
-        if (sym_map.find(wf.alias) == sym_map.end())
+        if (wfp.symbol.empty())
         {
             found_all = false;
+            const auto &wf = wfp.prototype;
             cerr << "Error: Cannot find symbol for function: "
                     << wf.return_type << ' ' << wf.name << wf.params
                     << " (alias: " << wf.alias << ")" << endl;
@@ -109,23 +109,19 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
         if (IsSameFunction(demangled, func))
         {
             const string sig = func.name + func.params;
-            p->second->symbol = symbol_name;
-            auto inserted = sym_map.insert( { func.alias, p->second });
-            if (inserted.second)
-            {
-                if (verbose)
-                    cout << "Found symbol for " << func.return_type << ' ' << sig
-                            << " == " << symbol_name << " (" << demangled << ") "
-                            << endl;
-            }
-            else if (inserted.first->second->symbol != symbol_name)
-            {
+            if (verify_mode && !p->second->symbol.empty()
+                    && p->second->symbol != symbol_name)
                 throw runtime_error(
                     "Error: (BUG) duplicate symbols found for: "
-                            + func.return_type + ' ' + sig + ":\n" + '\t'
-                            + sym_map[func.alias]->symbol + '\n' + '\t'
-                            + symbol_name);
-            }
+                            + func.return_type + ' ' + sig + ":\n"
+                            + '\t' + p->second->symbol + '\n'
+                            + '\t' + symbol_name);
+
+            p->second->symbol = symbol_name;
+            if (verbose)
+                cout << "Found symbol for " << func.return_type << ' ' << sig
+                        << " == " << symbol_name << " (" << demangled << ") "
+                        << endl;
             p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
         }
         else

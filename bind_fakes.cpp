@@ -140,12 +140,12 @@ int main(int argc, char **argv)
         const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags(output_prefix + ".link_flags");
         ofstream link_script(output_prefix + ".link_script");
-        for (const auto &syms: symmap.Map())
+        for (const auto &wf: WrapperBase::WrappedFunctions())
         {
-            if (syms.second->fake_type == internal::FakeType::WRAPPED)
-                link_flags << "-Wl,--wrap=" << syms.second->symbol << endl;
-            else if (syms.second->fake_type == internal::FakeType::HIDDEN)
-                link_script << "EXTERN(" << sym_prefix + syms.second->symbol << ");" << endl;
+            if (wf.fake_type == internal::FakeType::WRAPPED)
+                link_flags << "-Wl,--wrap=" << wf.symbol << endl;
+            else if (wf.fake_type == internal::FakeType::HIDDEN)
+                link_script << "EXTERN(" << sym_prefix + wf.symbol << ");" << endl;
         }
 
         auto symmatch_start = chrono::system_clock::now();
@@ -168,10 +168,10 @@ int main(int argc, char **argv)
             {
                 if (symbol[0] == '.')
                     continue;
-                for (const auto &syms: symmap.Map())
+                for (const auto &wf: WrapperBase::WrappedFunctions())
                 {
-                    string wrapper_name = TMP_WRAPPER_NAME_STR(syms.first);
-                    string real_name = TMP_REAL_NAME_STR(syms.first);
+                    string wrapper_name = TMP_WRAPPER_NAME_STR(wf.prototype.alias);
+                    string real_name = TMP_REAL_NAME_STR(wf.prototype.alias);
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
@@ -179,18 +179,18 @@ int main(int argc, char **argv)
                             cout << "Found wrapper symbol to rename/use: "
                                     << symbol_str << ' '
                                     << boost::core::demangle(symbol) << endl;
-                        if (syms.second->fake_type == internal::FakeType::HIDDEN)
+                        if (wf.fake_type == internal::FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
-                                << syms.second->symbol << " = "
+                                << wf.symbol << " = "
                                 << sym_prefix << symbol_str << ");" << endl;
                         else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
-                                << syms.second->symbol << '=' << sym_prefix
+                                << wf.symbol << '=' << sym_prefix
                                 << symbol_str << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second->symbol;
+                                + wf.symbol;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
@@ -200,11 +200,11 @@ int main(int argc, char **argv)
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << syms.second->symbol << endl;
+                                << wf.symbol << endl;
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second->symbol;
+                                + wf.symbol;
                     }
                 }
             }

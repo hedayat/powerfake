@@ -24,4 +24,4 @@ target_link_libraries(samples wrap_lib corelib)
 bind_fakes(samples corelib wrap_lib)
 
 # Can also use full invocation form:
-# bind_fakes(samples SUBJECT corelib WRAPPERS wrap_lib)
+#bind_fakes(samples SUBJECT corelib WRAPPERS wrap_lib TIMING VERBOSE)
