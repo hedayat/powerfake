@@ -14,6 +14,7 @@
 #
 # 1. bind_fakes(target_name test_lib wrapper_funcs_lib)
 # 2. bind_fakes(target_name SUBJECT <lib1>... WRAPPERS <wlib1>...
+#               [BF_WRAPPERS <bfwlib1>...]
 #               [PASSIVE] [CACHE] [USE_DEFSYM] [VERBOSE] [TIMING] [VERIFY])
 #
 # \arg:target_name  The name of the test runner binary
@@ -29,12 +30,15 @@
 # \group:SUBJECT    The test subject, usually main code libraries who will call
 #                   faked functions specified in WRAPPERS
 # \group:WRAPPERS   Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
+# \group:BF_WRAPPERS Wrapper libraries separately compiled with BIND_FAKES
+#                   defined to be linked with bind_fakes executable instead of
+#                   the ones specified in WRAPPERS
 #
 function(bind_fakes target_name)
     # Argument processing
     set(options PASSIVE CACHE USE_DEFSYM VERBOSE TIMING VERIFY)
     set(single_val_args )
-    set(multi_val_args SUBJECT WRAPPERS)
+    set(multi_val_args SUBJECT WRAPPERS BF_WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
         "{single_val_args}" "${multi_val_args}")
 
@@ -53,6 +57,10 @@ function(bind_fakes target_name)
     endif()
     if (BFARGS_VERIFY)
         list(APPEND RUN_OPTIONS "--verify")
+    endif()
+
+    if (MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+        list(APPEND RUN_OPTIONS "--leading-underscore")
     endif()
     if (CMAKE_CROSSCOMPILING)
         set(BFARGS_PASSIVE True)
@@ -87,7 +95,9 @@ function(bind_fakes target_name)
     set_property(TARGET ${bind_fakes_tgt} APPEND PROPERTY
         LINK_FLAGS "-Wl,--gc-sections")
 
-    if (MINGW)
+    if (BFARGS_BF_WRAPPERS)
+        set(bf_wrap_lib ${BFARGS_BF_WRAPPERS})
+    elseif (MINGW)
         # Create a duplicate target with BIND_FAKES flag set, as --gc-sections
         # doesn't remove unused __wrap_ functions created by WRAP_FUNCTION()
         # macros under MINGW
@@ -102,9 +112,6 @@ function(bind_fakes target_name)
             add_custom_target(${wrap_lib}_${target_name} DEPENDS ${wcopy_name})
             add_dependencies(${bind_fakes_tgt} ${wrap_lib}_${target_name})
         endforeach()
-        if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-            list(APPEND RUN_OPTIONS "--leading-underscore")
-        endif()
 
         set(bf_wrap_lib "-L ." ${wrap_lib_copies})
     else()
