@@ -15,6 +15,8 @@
 
 #include <stdio.h>
 #include <string>
+#include <ext/stdio_filebuf.h>
+#include <istream>
 
 class Reader
 {
@@ -26,8 +28,9 @@ class Reader
 
     protected:
         FILE *in_file;
-        char *line_buffer;
-        size_t buffer_size;
+        __gnu_cxx::stdio_filebuf<char> filebuf;
+        std::istream in_stream;
+        std::string line_buffer;
 };
 
 class FileReader: public Reader

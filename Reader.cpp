@@ -11,27 +11,26 @@
  */
 
 #include "Reader.h"
+
 #include <stdexcept>
 
+using namespace std;
+
+
 Reader::Reader(FILE *input_file) :
-        in_file(input_file), line_buffer(nullptr), buffer_size(0)
+        in_file(input_file), filebuf(in_file, std::ios::in), in_stream(&filebuf)
 {
 }
 
 Reader::~Reader()
 {
-    free(line_buffer);
 }
 
 const char* Reader::ReadLine()
 {
-    ssize_t ret = getline(&line_buffer, &buffer_size, in_file);
-    if (ret == -1)
+    if (!std::getline(in_stream, line_buffer))
         return nullptr;
-
-    if (line_buffer[ret - 1] == '\n')
-        line_buffer[ret - 1] = 0;
-    return line_buffer;
+    return line_buffer.c_str();
 }
 
 FileReader::FileReader(std::string file_name) :
