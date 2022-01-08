@@ -10,7 +10,9 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+#include <charconv>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -32,7 +34,7 @@ using namespace PowerFake;
 
 string NMCommand(string objfile);
 Reader *GetReader(bool passive, string file);
-
+int GetAliasNo(string_view symbol);
 
 int main(int argc, char **argv)
 {
@@ -126,7 +128,7 @@ int main(int argc, char **argv)
             if (!verify && symmap.FoundAllWrappedSymbols())
                 break;
             if (verbose)
-                cout << "Looking for symbol names in " << symfile
+                cout << "\nLooking for symbol names in " << symfile
                     << "\n------------------------------------------------------------------------------------------------------"
                     << endl;
             unique_ptr<Reader> reader(GetReader(passive_mode, symfile));
@@ -152,8 +154,10 @@ int main(int argc, char **argv)
         const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags(output_prefix + ".link_flags");
         ofstream link_script(output_prefix + ".link_script");
+        std::map<int, const internal::FunctionInfo*> alias_map;
         for (const auto &wf: WrapperBase::WrappedFunctions())
         {
+            alias_map.insert({ GetAliasNo(wf.prototype.alias), &wf });
             if (wf.fake_type == internal::FakeType::WRAPPED)
                 link_flags << "-Wl,--wrap=" << wf.symbol << '\n';
             else if (wf.fake_type == internal::FakeType::HIDDEN)
@@ -166,7 +170,7 @@ int main(int argc, char **argv)
         for (const auto &wrapperfile: wrapper_files)
         {
             if (verbose)
-                cout << "Match real symbols with our fake ones in "
+                cout << "\nMatch real symbols with our fake ones in "
                     << wrapperfile
                     << "\n------------------------------------------------------------------------------------------------------"
                     << endl;
@@ -178,10 +182,13 @@ int main(int argc, char **argv)
             const char *symbol;
             while ((symbol = nm_reader.NextSymbol()))
             {
-                if (symbol[0] == '.')
+                auto alias_no = GetAliasNo(symbol);
+                if (symbol[0] == '.' || alias_no == -1)
                     continue;
-                for (const auto &wf: WrapperBase::WrappedFunctions())
+                auto alias_func_it = alias_map.find(alias_no);
+                if (alias_func_it != alias_map.end())
                 {
+                    const auto &wf = *alias_func_it->second;
                     string wrapper_name = TMP_WRAPPER_NAME_STR(wf.prototype.alias);
                     string real_name = TMP_REAL_NAME_STR(wf.prototype.alias);
                     string symbol_str = symbol;
@@ -204,7 +211,7 @@ int main(int argc, char **argv)
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
                                 + wf.symbol;
                     }
-                    if (symbol_str.find(real_name) != string::npos)
+                    else if (symbol_str.find(real_name) != string::npos)
                     {
                         if (verbose)
                             cout << "Found real symbol to rename: " << symbol_str
@@ -273,4 +280,18 @@ Reader *GetReader(bool passive, string file)
 {
     if (passive) return new FileReader(file);
     return new PipeReader(NMCommand(file));
+}
+
+int GetAliasNo(string_view symbol)
+{
+    auto p = symbol.find("_alias_");
+    if (p == string_view::npos)
+        return -1;
+
+    int res;
+    auto nums = symbol.substr(p + strlen("_alias_"));
+    auto [ptr, ec] = std::from_chars(nums.data(), nums.data() + nums.size(), res);
+    if (ec != std::errc())
+        return -1;
+    return res;
 }
