@@ -154,9 +154,11 @@ int main(int argc, char **argv)
         const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags(output_prefix + ".link_flags");
         ofstream link_script(output_prefix + ".link_script");
-        std::map<int, const internal::FunctionInfo*> alias_map;
+        std::multimap<int, const internal::FunctionInfo*> alias_map;
         for (const auto &wf: WrapperBase::WrappedFunctions())
         {
+            // if there are multiple wrap files, there can be more than one alias
+            // with the same alias number (but different prefix)
             alias_map.insert({ GetAliasNo(wf.prototype.alias), &wf });
             if (wf.fake_type == internal::FakeType::WRAPPED)
                 link_flags << "-Wl,--wrap=" << wf.symbol << '\n';
@@ -185,8 +187,9 @@ int main(int argc, char **argv)
                 auto alias_no = GetAliasNo(symbol);
                 if (symbol[0] == '.' || alias_no == -1)
                     continue;
-                auto alias_func_it = alias_map.find(alias_no);
-                if (alias_func_it != alias_map.end())
+                auto alias_range = alias_map.equal_range(alias_no);
+                for (auto alias_func_it = alias_range.first;
+                        alias_func_it != alias_range.second; ++alias_func_it)
                 {
                     const auto &wf = *alias_func_it->second;
                     string wrapper_name = TMP_WRAPPER_NAME_STR(wf.prototype.alias);
