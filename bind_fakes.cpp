@@ -122,8 +122,30 @@ int main(int argc, char **argv)
         if (enable_symcache)
             symmap.Load(output_prefix + ".symcache");
 
+        /*
+         * Most symbols are already available in wrap lib(s), however some
+         * symbols are not; e.g. virtual functions. So, we first look into wrap
+         * libraries and then we will look for remaining symbols (if any) in the
+         * main libs; which usually should result in faster runs since wrap libs
+         * usually have much less symbols than the main libraries.
+         */
+        vector<string> all_libs;
+        if (passive_mode)
+        {
+            all_libs = wrapper_files;
+            all_libs.insert(all_libs.end(), symbol_files.begin(), symbol_files.end());
+        }
+        else
+        {
+            // run nm on all files at once, which is faster
+            string s;
+            for (auto l: wrapper_files) s += l + ' ';
+            for (auto l: symbol_files) s += l + ' ';
+            all_libs.push_back(std::move(s));
+        }
+
         // Found real symbols which we want to wrap
-        for (const auto &symfile: symbol_files)
+        for (const auto &symfile: all_libs)
         {
             if (!verify && symmap.FoundAllWrappedSymbols())
                 break;
