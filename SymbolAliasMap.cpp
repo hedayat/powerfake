@@ -13,7 +13,8 @@
 #include "SymbolAliasMap.h"
 
 #include <iostream>
-#include <cstring>
+#include <fstream>
+#include <string>
 #include "powerfake.h"
 
 using namespace PowerFake;
@@ -29,10 +30,51 @@ SymbolAliasMap::SymbolAliasMap(Functions &functions, bool verbose,
 
 void SymbolAliasMap::Load(std::string_view filename)
 {
+    ifstream in(filename.data());
+    internal::FunctionInfo fi;
+
+    if (in && verbose)
+        cout << "Looking for symbol names in symbol cache"
+            << "\n-----------------------------------------------\n";
+    while (in >> fi.symbol)
+    {
+        in >> fi.prototype.name >> fi.prototype.qual;
+        in.ignore(10, ' ');
+        std::getline(in, fi.prototype.params);
+        std::getline(in, fi.prototype.return_type);
+
+        auto name = GetSimpleName(fi.prototype);
+        auto range = unresolved_functions.equal_range(string(name));
+        for (auto p = range.first; p != range.second; )
+        {
+            const auto &proto = p->second->prototype;
+            if (fi.prototype.name == proto.name
+                    && fi.prototype.params == proto.params
+                    && fi.prototype.qual == proto.qual
+                    && fi.prototype.return_type == proto.return_type)
+            {
+                if (verbose)
+                    cout << "Found symbol for " << proto.Str() << " == "
+                        << fi.symbol << '\n';
+                p->second->symbol = fi.symbol;
+                p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
+            }
+            else
+                ++p;
+        }
+    }
 }
 
 void SymbolAliasMap::Save(std::string_view filename)
 {
+    ofstream of(filename.data());
+    for (auto [name, it]: functions_map)
+    {
+        const internal::FunctionInfo &fi = *it;
+        of << fi.symbol << ' ' << fi.prototype.name << ' ' << fi.prototype.qual
+                << ' ' << fi.prototype.params << '\n';
+        of << fi.prototype.return_type << '\n';
+    }
 }
 
 /**
@@ -120,8 +162,7 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
             p->second->symbol = symbol_name;
             if (verbose)
                 cout << "Found symbol for " << func.return_type << ' ' << sig
-                        << " == " << symbol_name << " (" << demangled << ") "
-                        << endl;
+                        << " == " << symbol_name << " (" << demangled << ") \n";
             p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
         }
         else

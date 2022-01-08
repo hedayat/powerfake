@@ -438,6 +438,7 @@ class Fake<R (T::*)(Args...)>: public FakeBase
  */
 struct FunctionPrototype
 {
+    FunctionPrototype() = default;
     FunctionPrototype(std::string ret, std::string name, std::string params,
         uint32_t qual, std::string alias = "") :
             return_type(ret), name(name), params(params), qual(qual),

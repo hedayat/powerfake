@@ -114,9 +114,13 @@ int main(int argc, char **argv)
         auto process_start = chrono::system_clock::now();
         SymbolAliasMap symmap(WrapperBase::WrappedFunctions(), verbose, verify);
 
+        symmap.Load(output_prefix + ".symcache");
+
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
         {
+            if (!verify && symmap.FoundAllWrappedSymbols())
+                break;
             if (verbose)
                 cout << "Looking for symbol names in " << symfile
                     << "\n------------------------------------------------------------------------------------------------------"
@@ -125,13 +129,16 @@ int main(int argc, char **argv)
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             const char *symbol;
-            while ((symbol = nm_reader.NextSymbol()) && (verify || !symmap.FoundAllWrappedSymbols()))
+            while ((symbol = nm_reader.NextSymbol())
+                    && (verify || !symmap.FoundAllWrappedSymbols()))
                 symmap.AddSymbol(symbol);
         }
 
         if (!symmap.FoundAllWrappedSymbols())
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
+
+        symmap.Save(output_prefix + ".symcache");
 
         auto symfind_end = chrono::system_clock::now();
 
@@ -143,9 +150,9 @@ int main(int argc, char **argv)
         for (const auto &wf: WrapperBase::WrappedFunctions())
         {
             if (wf.fake_type == internal::FakeType::WRAPPED)
-                link_flags << "-Wl,--wrap=" << wf.symbol << endl;
+                link_flags << "-Wl,--wrap=" << wf.symbol << '\n';
             else if (wf.fake_type == internal::FakeType::HIDDEN)
-                link_script << "EXTERN(" << sym_prefix + wf.symbol << ");" << endl;
+                link_script << "EXTERN(" << sym_prefix + wf.symbol << ");\n";
         }
 
         auto symmatch_start = chrono::system_clock::now();
@@ -178,15 +185,15 @@ int main(int argc, char **argv)
                         if (verbose)
                             cout << "Found wrapper symbol to rename/use: "
                                     << symbol_str << ' '
-                                    << boost::core::demangle(symbol) << endl;
+                                    << boost::core::demangle(symbol) << '\n';
                         if (wf.fake_type == internal::FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
                                 << wf.symbol << " = "
-                                << sym_prefix << symbol_str << ");" << endl;
+                                << sym_prefix << symbol_str << ");\n";
                         else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
                                 << wf.symbol << '=' << sym_prefix
-                                << symbol_str << endl;
+                                << symbol_str << '\n';
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
@@ -196,11 +203,11 @@ int main(int argc, char **argv)
                     {
                         if (verbose)
                             cout << "Found real symbol to rename: " << symbol_str
-                                    << ' ' << boost::core::demangle(symbol) << endl;
+                                    << ' ' << boost::core::demangle(symbol) << '\n';
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << wf.symbol << endl;
+                                << wf.symbol << '\n';
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
