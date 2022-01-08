@@ -22,14 +22,15 @@ class Reader
 {
     public:
         Reader(FILE *input_file);
-        ~Reader();
 
         const char *ReadLine();
 
     protected:
         FILE *in_file;
+#ifdef __GLIBCXX__
         __gnu_cxx::stdio_filebuf<char> filebuf;
         std::istream in_stream;
+#endif
         std::string line_buffer;
 };
 

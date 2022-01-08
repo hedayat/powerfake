@@ -18,19 +18,30 @@ using namespace std;
 
 
 Reader::Reader(FILE *input_file) :
-        in_file(input_file), filebuf(in_file, std::ios::in), in_stream(&filebuf)
+        in_file(input_file)
+#ifdef __GLIBCXX__
+        , filebuf(in_file, std::ios::in), in_stream(&filebuf)
+#endif
 {
-}
-
-Reader::~Reader()
-{
+    line_buffer.reserve(1000);
 }
 
 const char* Reader::ReadLine()
 {
+#ifdef __GLIBCXX__
     if (!std::getline(in_stream, line_buffer))
         return nullptr;
     return line_buffer.c_str();
+#else
+    // a standard implementation
+    line_buffer.clear();
+    int ch;
+    while ((ch = getc(in_file)) != EOF && ch != '\n')
+        line_buffer += static_cast<char>(ch);
+    if (ch == EOF && line_buffer.empty())
+        return nullptr;
+    return line_buffer.c_str();
+#endif
 }
 
 FileReader::FileReader(std::string file_name) :
