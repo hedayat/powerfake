@@ -76,13 +76,7 @@ void WrapperBase::AddFunction(FunctionKey func_key,
         wrapped_funcs = new Functions();
 //    std::cout << "Add function prototype(" << prototype.alias << "): "
 //            << prototype.Str() << std::endl;
-    auto nstart = prototype.name.rfind(':', prototype.name.length()-1);
-    std::string name;
-    if (nstart != std::string::npos)
-        name = prototype.name.substr(nstart + 1);
-    else
-        name = prototype.name;
-    wrapped_funcs->insert( { name, { prototype, fake_type } } );
+    wrapped_funcs->push_back({ prototype, fake_type });
 #endif
 //    std::cout << this << ": Add function(" << prototype.alias << ")["
 //            << func_key.first << ", "

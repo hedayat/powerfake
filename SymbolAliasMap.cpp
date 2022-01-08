@@ -13,12 +13,69 @@
 #include "SymbolAliasMap.h"
 
 #include <iostream>
-#include <cstring>
+#include <fstream>
+#include <string>
 #include "powerfake.h"
 
 using namespace PowerFake;
 using namespace std;
 
+
+SymbolAliasMap::SymbolAliasMap(Functions &functions, bool verbose,
+    bool verify_mode) :
+        verbose(verbose), verify_mode(verify_mode)
+{
+    CreateFunctionMap(functions);
+}
+
+void SymbolAliasMap::Load(std::string_view filename)
+{
+    ifstream in(filename.data());
+    internal::FunctionInfo fi;
+
+    if (in && verbose)
+        cout << "Looking for symbol names in symbol cache"
+            << "\n-----------------------------------------------\n";
+    while (in >> fi.symbol)
+    {
+        in >> fi.prototype.name >> fi.prototype.qual;
+        in.ignore(10, ' ');
+        std::getline(in, fi.prototype.params);
+        std::getline(in, fi.prototype.return_type);
+
+        auto name = GetSimpleName(fi.prototype);
+        auto range = unresolved_functions.equal_range(string(name));
+        for (auto p = range.first; p != range.second; )
+        {
+            const auto &proto = p->second->prototype;
+            if (fi.prototype.name == proto.name
+                    && fi.prototype.params == proto.params
+                    && fi.prototype.qual == proto.qual
+                    && fi.prototype.return_type == proto.return_type)
+            {
+                if (verbose)
+                    cout << "Found symbol for " << proto.Str() << " == "
+                        << fi.symbol << '\n';
+                p->second->symbol = fi.symbol;
+                p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
+            }
+            else
+                ++p;
+        }
+    }
+}
+
+void SymbolAliasMap::Save(std::string_view filename)
+{
+    ofstream of(filename.data());
+    for (auto [name, it]: functions_map)
+    {
+        const internal::FunctionInfo &fi = *it;
+        of << fi.symbol << ' ' << fi.prototype.name << ' ' << fi.prototype.qual
+                << ' ' << fi.prototype.params << '\n';
+        of << fi.prototype.return_type << '\n';
+    }
+}
 
 /**
  * For each symbol in the main library, finds its alias if it is wrapped and
@@ -29,8 +86,7 @@ using namespace std;
 void SymbolAliasMap::AddSymbol(const char *symbol_name)
 {
     std::string demangled = boost::core::demangle(symbol_name);
-
-    FindWrappedSymbol(WrapperBase::WrappedFunctions(), demangled, symbol_name);
+    FindWrappedSymbol(demangled, symbol_name);
 }
 
 /**
@@ -38,19 +94,39 @@ void SymbolAliasMap::AddSymbol(const char *symbol_name)
  */
 bool SymbolAliasMap::FoundAllWrappedSymbols() const
 {
+    if (!verify_mode)
+        return unresolved_functions.empty();
+
     bool found_all = true;
     for (const auto &wfp: WrapperBase::WrappedFunctions())
     {
-        const auto &wf = wfp.second.prototype;
-        if (sym_map.find(wf.alias) == sym_map.end())
+        if (wfp.symbol.empty())
         {
             found_all = false;
+            const auto &wf = wfp.prototype;
             cerr << "Error: Cannot find symbol for function: "
                     << wf.return_type << ' ' << wf.name << wf.params
                     << " (alias: " << wf.alias << ")" << endl;
         }
     }
     return found_all;
+}
+
+void SymbolAliasMap::CreateFunctionMap(Functions &functions)
+{
+    for (auto it = functions.begin(); it != functions.end(); ++it)
+        functions_map.insert({ GetSimpleName(it->prototype), it });
+    unresolved_functions = functions_map;
+}
+
+std::string_view SymbolAliasMap::GetSimpleName(
+    const PowerFake::internal::FunctionPrototype &prototype)
+{
+    std::string_view name = prototype.name;
+    auto nstart = name.rfind(':', prototype.name.length()-1);
+    if (nstart != std::string::npos)
+        return name.substr(nstart + 1);
+    return name;
 }
 
 /**
@@ -60,39 +136,37 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
  * @param demangled the demangled form of @a symbol_name
  * @param symbol_name a symbol in the object file
  */
-void SymbolAliasMap::FindWrappedSymbol(WrapperBase::Functions &protos,
-    const std::string &demangled, const char *symbol_name)
+void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
+    const char *symbol_name)
 {
     if (!IsFunction(symbol_name, demangled))
         return;
 
     string name = FunctionName(demangled);
 
-    auto range = protos.equal_range(name);
-    for (auto p = range.first; p != range.second; ++p)
+    auto range = unresolved_functions.equal_range(name);
+    for (auto p = range.first; p != range.second; )
     {
-        auto func = p->second.prototype;
+        auto func = p->second->prototype;
         if (IsSameFunction(demangled, func))
         {
             const string sig = func.name + func.params;
-            p->second.symbol = symbol_name;
-            auto inserted = sym_map.insert( { func.alias, p });
-            if (inserted.second)
-            {
-                if (verbose)
-                    cout << "Found symbol for " << func.return_type << ' ' << sig
-                            << " == " << symbol_name << " (" << demangled << ") "
-                            << endl;
-            }
-            else if (inserted.first->second->second.symbol != symbol_name)
-            {
-                cerr << "Error: (BUG) duplicate symbols found for: "
-                        << func.return_type << ' ' << sig << ":\n" << '\t'
-                        << sym_map[func.alias]->second.symbol << '\n' << '\t' << symbol_name
-                        << endl;
-                exit(1);
-            }
+            if (verify_mode && !p->second->symbol.empty()
+                    && p->second->symbol != symbol_name)
+                throw runtime_error(
+                    "Error: (BUG) duplicate symbols found for: "
+                            + func.return_type + ' ' + sig + ":\n"
+                            + '\t' + p->second->symbol + '\n'
+                            + '\t' + symbol_name);
+
+            p->second->symbol = symbol_name;
+            if (verbose)
+                cout << "Found symbol for " << func.return_type << ' ' << sig
+                        << " == " << symbol_name << " (" << demangled << ") \n";
+            p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
         }
+        else
+            ++p;
     }
 }
 

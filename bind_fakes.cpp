@@ -10,6 +10,7 @@
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
+#include <chrono>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -45,12 +46,15 @@ int main(int argc, char **argv)
 
     try
     {
+        bool timing = false;
         bool verbose = false;
-        bool passive_mode = false;
-        bool leading_underscore = false;
+        bool verify = false;
         bool use_objcopy = true;
-        bool collecting_wrapper_files = false;
+        bool passive_mode = false;
+        bool enable_symcache = false;
+        bool leading_underscore = false;
         bool collecting_symbol_files = false;
+        bool collecting_wrapper_files = false;
         string output_prefix = "powerfake";
         vector<string> symbol_files, wrapper_files;
 
@@ -63,8 +67,14 @@ int main(int argc, char **argv)
                 passive_mode = true;
             else if (argv[i] == "--no-objcopy"s)
                 use_objcopy = false;
+            else if (argv[i] == "--cache"s)
+                enable_symcache = true;
+            else if (argv[i] == "--timing"s)
+                timing = true;
             else if (argv[i] == "--verbose"s)
                 verbose = true;
+            else if (argv[i] == "--verify"s)
+                verify = true;
             else if (argv[i] == "--output-prefix"s)
             {
                 if (i >= argc)
@@ -104,10 +114,17 @@ int main(int argc, char **argv)
                 collecting_symbol_files = collecting_wrapper_files = false;
         }
 
-        SymbolAliasMap symmap(verbose);
+        auto process_start = chrono::system_clock::now();
+        SymbolAliasMap symmap(WrapperBase::WrappedFunctions(), verbose, verify);
+
+        if (enable_symcache)
+            symmap.Load(output_prefix + ".symcache");
+
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
         {
+            if (!verify && symmap.FoundAllWrappedSymbols())
+                break;
             if (verbose)
                 cout << "Looking for symbol names in " << symfile
                     << "\n------------------------------------------------------------------------------------------------------"
@@ -116,7 +133,8 @@ int main(int argc, char **argv)
             NMSymbolReader nm_reader(reader.get(), leading_underscore);
 
             const char *symbol;
-            while ((symbol = nm_reader.NextSymbol()))
+            while ((symbol = nm_reader.NextSymbol())
+                    && (verify || !symmap.FoundAllWrappedSymbols()))
                 symmap.AddSymbol(symbol);
         }
 
@@ -124,19 +142,25 @@ int main(int argc, char **argv)
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
 
+        if (enable_symcache)
+            symmap.Save(output_prefix + ".symcache");
+
+        auto symfind_end = chrono::system_clock::now();
+
         // Create powerfake.link_flags containing link flags for linking
         // test binary
         const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags(output_prefix + ".link_flags");
         ofstream link_script(output_prefix + ".link_script");
-        for (const auto &syms: symmap.Map())
+        for (const auto &wf: WrapperBase::WrappedFunctions())
         {
-            if (syms.second->second.fake_type == internal::FakeType::WRAPPED)
-                link_flags << "-Wl,--wrap=" << syms.second->second.symbol << endl;
-            else if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
-                link_script << "EXTERN(" << sym_prefix + syms.second->second.symbol << ");" << endl;
+            if (wf.fake_type == internal::FakeType::WRAPPED)
+                link_flags << "-Wl,--wrap=" << wf.symbol << '\n';
+            else if (wf.fake_type == internal::FakeType::HIDDEN)
+                link_script << "EXTERN(" << sym_prefix + wf.symbol << ");\n";
         }
 
+        auto symmatch_start = chrono::system_clock::now();
         // Rename our wrap/real symbols (which are mangled) to the ones expected
         // by ld linker
         for (const auto &wrapperfile: wrapper_files)
@@ -156,43 +180,43 @@ int main(int argc, char **argv)
             {
                 if (symbol[0] == '.')
                     continue;
-                for (const auto &syms: symmap.Map())
+                for (const auto &wf: WrapperBase::WrappedFunctions())
                 {
-                    string wrapper_name = TMP_WRAPPER_NAME_STR(syms.first);
-                    string real_name = TMP_REAL_NAME_STR(syms.first);
+                    string wrapper_name = TMP_WRAPPER_NAME_STR(wf.prototype.alias);
+                    string real_name = TMP_REAL_NAME_STR(wf.prototype.alias);
                     string symbol_str = symbol;
                     if (symbol_str.find(wrapper_name) != string::npos)
                     {
                         if (verbose)
                             cout << "Found wrapper symbol to rename/use: "
                                     << symbol_str << ' '
-                                    << boost::core::demangle(symbol) << endl;
-                        if (syms.second->second.fake_type == internal::FakeType::HIDDEN)
+                                    << boost::core::demangle(symbol) << '\n';
+                        if (wf.fake_type == internal::FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
-                                << syms.second->second.symbol << " = "
-                                << sym_prefix << symbol_str << ");" << endl;
+                                << wf.symbol << " = "
+                                << sym_prefix << symbol_str << ");\n";
                         else if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix << "__wrap_"
-                                << syms.second->second.symbol << '=' << sym_prefix
-                                << symbol_str << endl;
+                                << wf.symbol << '=' << sym_prefix
+                                << symbol_str << '\n';
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__wrap_"
-                                + syms.second->second.symbol;
+                                + wf.symbol;
                     }
                     if (symbol_str.find(real_name) != string::npos)
                     {
                         if (verbose)
                             cout << "Found real symbol to rename: " << symbol_str
-                                    << ' ' << boost::core::demangle(symbol) << endl;
+                                    << ' ' << boost::core::demangle(symbol) << '\n';
                         if (!use_objcopy)
                             link_flags << "-Wl,--defsym=" << sym_prefix
                                 << symbol_str << '=' << sym_prefix << "__real_"
-                                << syms.second->second.symbol << endl;
+                                << wf.symbol << '\n';
                         else
                             objcopy_params += " --redefine-sym " + sym_prefix
                                 + symbol_str + "=" + sym_prefix + "__real_"
-                                + syms.second->second.symbol;
+                                + wf.symbol;
                     }
                 }
             }
@@ -215,6 +239,20 @@ int main(int argc, char **argv)
     #endif
                 }
             }
+        }
+
+        auto symmatch_end = chrono::system_clock::now();
+        if (timing)
+        {
+            auto ts_diff = [](auto end, auto start) {
+                return chrono::duration_cast<chrono::milliseconds>(end - start).count();
+            };
+            cout << "Timing:\n---------------------------\n"
+                    "- Finding Symbols: " << ts_diff(symfind_end, process_start)
+                    << "ms\n- Matching Symbols: " << ts_diff(symmatch_end,
+                        symmatch_start) << "ms\n"
+                    "- Total: " << ts_diff(symmatch_end, process_start)
+                    << "ms\n";
         }
     }
     catch (exception &e)
