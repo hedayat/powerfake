@@ -14,29 +14,34 @@
 #
 # 1. bind_fakes(target_name test_lib wrapper_funcs_lib)
 # 2. bind_fakes(target_name SUBJECT <lib1>... WRAPPERS <wlib1>...
-#               [PASSIVE] [USE_DEFSYM] [VERBOSE] [TIMING] [VERIFY])
+#               [PASSIVE] [CACHE] [USE_DEFSYM] [VERBOSE] [TIMING] [VERIFY])
 #
-# \arg:target_name the name of the test runner binary
-# \flag:PASSIVE If bind_fakes should run in passive mode (enabled by default
-#         when cross-compiling)
-# \flag:USE_DEFSYM Use ld's --defsym instead of modifying wrapper libs/objects
-# \flag:VERBOSE Enable verbose logging in bind_fakes
-# \flag:TIMING Enable bind_fakes timing output
-# \flag:VERIFY Run bind_fakes in verify mode, useful for debugging bind_fakes
-#              symbol matching logic
-# \group:SUBJECT The test subject, usually main code libraries who will call
-#         faked functions specified in WRAPPERS
-# \group:WRAPPERS Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
+# \arg:target_name  The name of the test runner binary
+# \flag:PASSIVE     If bind_fakes should run in passive mode (enabled by default
+#                   when cross-compiling)
+# \flag:CACHE       Enable symbol caching; can run faster in subsequent builds
+#                   in big projects
+# \flag:USE_DEFSYM  Use ld's --defsym instead of modifying wrapper libs/objects
+# \flag:VERBOSE     Enable verbose logging in bind_fakes
+# \flag:TIMING      Enable bind_fakes timing output
+# \flag:VERIFY      Run bind_fakes in verify mode, useful for debugging
+#                   bind_fakes symbol matching logic
+# \group:SUBJECT    The test subject, usually main code libraries who will call
+#                   faked functions specified in WRAPPERS
+# \group:WRAPPERS   Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
 #
 function(bind_fakes target_name)
     # Argument processing
-    set(options PASSIVE USE_DEFSYM VERBOSE TIMING VERIFY)
+    set(options PASSIVE CACHE USE_DEFSYM VERBOSE TIMING VERIFY)
     set(single_val_args )
     set(multi_val_args SUBJECT WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
         "{single_val_args}" "${multi_val_args}")
 
     set(RUN_OPTIONS)
+    if (BFARGS_CACHE)
+        list(APPEND RUN_OPTIONS "--cache")
+    endif()
     if (BFARGS_USE_DEFSYM)
         list(APPEND RUN_OPTIONS "--no-objcopy")
     endif()
@@ -116,6 +121,7 @@ function(bind_fakes target_name)
     if (NOT BFARGS_PASSIVE)
         add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
             DEPENDS ${BFARGS_WRAPPERS}
+            BYPRODUCTS ${target_name}.powerfake.symcache
             COMMAND ${bind_fakes_tgt} --output-prefix ${target_name}.powerfake
                     --symbol-files ${main_lib_files} ${RUN_OPTIONS}
                     --wrapper-files ${wrap_lib_files}
@@ -131,6 +137,7 @@ function(bind_fakes target_name)
         add_custom_command(OUTPUT ${link_flags_file} ${link_script_file}
                 main.syms ${wrap_syms} ${wrap_objcopy_params}
             DEPENDS ${BFARGS_WRAPPERS}
+            BYPRODUCTS ${target_name}.powerfake.symcache
             COMMAND nm -po ${main_lib_files} > main.syms
             VERBATIM)
 

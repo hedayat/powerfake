@@ -49,11 +49,12 @@ int main(int argc, char **argv)
         bool timing = false;
         bool verbose = false;
         bool verify = false;
-        bool passive_mode = false;
-        bool leading_underscore = false;
         bool use_objcopy = true;
-        bool collecting_wrapper_files = false;
+        bool passive_mode = false;
+        bool enable_symcache = false;
+        bool leading_underscore = false;
         bool collecting_symbol_files = false;
+        bool collecting_wrapper_files = false;
         string output_prefix = "powerfake";
         vector<string> symbol_files, wrapper_files;
 
@@ -66,6 +67,8 @@ int main(int argc, char **argv)
                 passive_mode = true;
             else if (argv[i] == "--no-objcopy"s)
                 use_objcopy = false;
+            else if (argv[i] == "--cache"s)
+                enable_symcache = true;
             else if (argv[i] == "--timing"s)
                 timing = true;
             else if (argv[i] == "--verbose"s)
@@ -114,7 +117,8 @@ int main(int argc, char **argv)
         auto process_start = chrono::system_clock::now();
         SymbolAliasMap symmap(WrapperBase::WrappedFunctions(), verbose, verify);
 
-        symmap.Load(output_prefix + ".symcache");
+        if (enable_symcache)
+            symmap.Load(output_prefix + ".symcache");
 
         // Found real symbols which we want to wrap
         for (const auto &symfile: symbol_files)
@@ -138,7 +142,8 @@ int main(int argc, char **argv)
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
 
-        symmap.Save(output_prefix + ".symcache");
+        if (enable_symcache)
+            symmap.Save(output_prefix + ".symcache");
 
         auto symfind_end = chrono::system_clock::now();
 
