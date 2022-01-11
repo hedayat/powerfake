@@ -13,7 +13,7 @@
 
 #include "powerfake.h"
 
-#include <vector>
+#include <stdexcept>
 
 /*
  * These are actually used by bind_fakes, but is also needed to satisfy link
@@ -85,7 +85,12 @@ void WrapperBase::AddFunction(FunctionKey func_key,
 //            << ' ' << prototype.name << prototype.params << std::endl;
     if (!wrappers)
         wrappers = new FunctionWrappers;
-    (*wrappers)[func_key] = this;
+    auto [it, inserted] = wrappers->insert({func_key, this});
+    if (!inserted)
+        throw std::runtime_error("Cannot register wrapped function: "
+            + prototype.Str() + "! Either it is marked with HIDE/WRAP_FUNCTION "
+                    "macros multiple times, or this is a PowerFake bug. In the "
+                    "latter case please report an issue to PowerFake project.");
 }
 
 }  // namespace internal
