@@ -15,7 +15,7 @@ member functions. It is built on top of GNU Linker's --wrap option.
 * Cannot fake inlined functions
 * Faking function calls in the same translation unit as the target function has
 some limitations
-* Supported compilers: GCC, MinGW
+* Supported compilers: GCC, MinGW, and Clang (experimental)
 * Supported linkers: LLD, GNU Linker
 * Cannot work with GCC LTO, since ld's --wrap is not supported in this case
 * Currently, it only provides CMake integration
@@ -27,7 +27,7 @@ projects. Hopefully, there will be some docs someday!
 
 ## Dependencies
 * GNU Linker (ld) or LLVM Linker (lld)
-* GCC
+* GCC or Clang
 * CMake
 * Boost Core
 

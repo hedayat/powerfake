@@ -156,12 +156,17 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         template <typename FuncType>
         static internal::WrapperBase::FunctionKey FuncKey(FuncType func_ptr)
         {
+#ifdef USE_PMF_ADDR
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
             return std::make_pair(reinterpret_cast<void *>(func_ptr),
                 std::type_index(typeid(FuncType)));
 #pragma GCC diagnostic pop
+#else
+            return { PowerFake::internal::HashFunctionPtr(func_ptr),
+                std::type_index(typeid(FuncType)) };
+#endif
         }
 
         // borrowed from FakeIt MockImpl implementation

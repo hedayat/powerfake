@@ -19,12 +19,13 @@
 #ifndef POWERFAKE_H_
 #define POWERFAKE_H_
 
-#include <array>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <vector>
 #include <functional>
 #include <stdexcept>
+#include <string_view>
 #include <typeindex>
 #include <type_traits>
 #include <boost/core/demangle.hpp>
@@ -361,10 +362,14 @@ struct TagBase {
         return obj.*GetAddress(Tag());
     }
 
+#if !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-template-friend"
+#endif
     friend auto GetAddress(Tag);
+#if !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 };
 
 /**
@@ -514,15 +519,33 @@ struct PrototypeExtractor<R (*)(Args...)>
         uint32_t fq = internal::Qualifiers::NO_QUAL);
 };
 
+template <typename T>
+size_t HashFunctionPtr(T *func_ptr);
+
+template <typename Signature, typename Class>
+size_t HashFunctionPtr(Signature Class::*func_ptr);
+
+#if defined(__GNUC__) && !defined(__clang__)
+// todo lets keep using pmf address for now. If the alternative impmlmementation
+// works well, we can switch using it under GCC too.
+#define USE_PMF_ADDR
+#endif
 
 /**
  * Collects prototypes of all wrapped functions, to be used by bind_fakes
  */
 class WrapperBase
 {
+    private:
+#ifdef USE_PMF_ADDR
+        typedef void *FuncPtrID;
+#else
+        typedef size_t FuncPtrID;
+#endif
+
     public:
         typedef std::vector<FunctionInfo> Functions;
-        typedef std::pair<void *, std::type_index> FunctionKey;
+        typedef std::pair<FuncPtrID, std::type_index> FunctionKey;
         typedef std::map<FunctionKey, WrapperBase *> FunctionWrappers;
 
     public:
@@ -615,12 +638,17 @@ class Wrapper: public WrapperBase
 
         static FunctionKey FuncKey(FuncType func_ptr)
         {
+#ifdef USE_PMF_ADDR
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
 #pragma GCC diagnostic ignored "-Wpedantic"
             return std::make_pair(reinterpret_cast<void *>(func_ptr),
                 std::type_index(typeid(FuncType)));
 #pragma GCC diagnostic pop
+#else
+            return { HashFunctionPtr(func_ptr),
+                std::type_index(typeid(FuncType)) };
+#endif
         }
 };
 
@@ -937,6 +965,20 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
     const std::string &func_name, uint32_t fq)
 {
     return PrototypeExtractor<R (Class::*)(Args...)>::Extract(func_name, fq);
+}
+
+template <typename T>
+size_t HashFunctionPtr(T *func_ptr)
+{
+    return std::hash<T*>{}(func_ptr);
+}
+
+template <typename Signature, typename Class>
+size_t HashFunctionPtr(Signature Class::*func_ptr)
+{
+    char buf[sizeof(func_ptr)];
+    std::memcpy(&buf, &func_ptr, sizeof(func_ptr));
+    return std::hash<std::string_view>{}(std::string_view(buf, sizeof buf));
 }
 
 } // namespace internal
