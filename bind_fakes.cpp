@@ -24,6 +24,8 @@
 #include "SymbolAliasMap.h"
 
 #define TO_STR(a) #a
+#define INDIRECT_STR(A) TO_STR(A)
+#define ALIAS_MARKER_STR INDIRECT_STR(ALIAS_MARKER)
 #define BUILD_NAME_STR(pref, base, post) TO_STR(pref) + base + TO_STR(post)
 #define TMP_WRAPPER_NAME_STR(name) BUILD_NAME_STR(TMP_WRAPPER_PREFIX, name, TMP_POSTFIX)
 #define TMP_REAL_NAME_STR(name) BUILD_NAME_STR(TMP_REAL_PREFIX, name, TMP_POSTFIX)
@@ -309,12 +311,12 @@ Reader *GetReader(bool passive, string file)
 
 int GetAliasNo(string_view symbol)
 {
-    auto p = symbol.find("_alias_");
+    auto p = symbol.find(ALIAS_MARKER_STR);
     if (p == string_view::npos)
         return -1;
 
     int res;
-    auto nums = symbol.substr(p + strlen("_alias_"));
+    auto nums = symbol.substr(p + strlen(ALIAS_MARKER_STR));
     auto [ptr, ec] = std::from_chars(nums.data(), nums.data() + nums.size(), res);
     if (ec != std::errc())
         return -1;

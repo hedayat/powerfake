@@ -658,6 +658,7 @@ class Wrapper: public WrapperBase
 // -----------------------------------------------------------------------------
 // Helper macors
 // -----------------------------------------------------------------------------
+#define ALIAS_MARKER        __pfkalias__
 #define TMP_POSTFIX         __end__
 #define TMP_WRAPPER_PREFIX  __wrap_function_
 #define TMP_REAL_PREFIX     __real_function_
@@ -807,7 +808,7 @@ class Wrapper: public WrapperBase
  */
 #define PFK_WRAP_OVERLOADED_PRIVATE_MEMBER(FAKE_TYPE, FSIG, FNAME, ...) \
     PFK_WRAP_OVERLOADED_PRIVATE_MEMBER_IMPL(FSIG, FNAME, \
-        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), FAKE_TYPE \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, ALIAS_MARKER, __LINE__), FAKE_TYPE \
         __VA_OPT__(,) __VA_ARGS__)
 
 /**
@@ -815,7 +816,7 @@ class Wrapper: public WrapperBase
  */
 #define PFK_WRAP_PRIVATE_MEMBER(FAKE_TYPE, FNAME, ...) \
     PFK_WRAP_PRIVATE_MEMBER_HELPER(FNAME, \
-        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), FAKE_TYPE \
+        PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, ALIAS_MARKER, __LINE__), FAKE_TYPE \
         __VA_OPT__(,) __VA_ARGS__)
 
 #define PFK_WRAP_PRIVATE_MEMBER_HELPER(FNAME, ALIAS, FAKE_TYPE, ...) \
@@ -837,7 +838,7 @@ class Wrapper: public WrapperBase
  */
 #define PFK_WRAP_OVERLOADED_FUNCTION(FAKE_TYPE, FSIG, FNAME, ...) \
     PFK_WRAP_FUNCTION_BASE(decltype(PowerFake::internal::FuncType<FSIG>(&FNAME)), \
-        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, _alias_, __LINE__), \
+        FNAME, &FNAME, PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, ALIAS_MARKER, __LINE__), \
         FAKE_TYPE __VA_OPT__(,) __VA_ARGS__)
 
 /**
