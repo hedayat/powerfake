@@ -9,6 +9,8 @@ include(${POWERFAKE_DIR}/cmake/PowerFakeFunctions.cmake)
 add_library(powerfake STATIC ${POWERFAKE_DIR}/powerfake.cpp
     ${POWERFAKE_DIR}/powerfake.h)
 target_link_libraries(powerfake PUBLIC Boost::boost)
+target_include_directories(powerfake PUBLIC
+    $<BUILD_INTERFACE:${POWERFAKE_DIR}/third_party/ctti/include>)
 add_library(PowerFake::powerfake ALIAS powerfake)
 
 set(pair_sources ${POWERFAKE_DIR}/powerfake ${POWERFAKE_DIR}/SymbolAliasMap
@@ -20,4 +22,6 @@ add_library(pw_bindfakes STATIC ${POWERFAKE_DIR}/bind_fakes.cpp
     ${bindfakes_core_sources} ${bindfakes_core_headers})
 set_property(TARGET pw_bindfakes APPEND PROPERTY COMPILE_DEFINITIONS BIND_FAKES)
 target_link_libraries(pw_bindfakes PUBLIC Boost::boost)
+target_include_directories(pw_bindfakes PUBLIC
+    $<BUILD_INTERFACE:${POWERFAKE_DIR}/third_party/ctti/include>)
 add_library(PowerFake::pw_bindfakes ALIAS pw_bindfakes)
