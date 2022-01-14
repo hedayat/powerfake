@@ -1,0 +1,25 @@
+build/
+*.idea
+*.vcxproj*
+Debug/
+Release/
+*.exe
+*.s
+
+# More VS stuff
+*.sln
+*.sdf
+*.opensdf
+*.vs*
+
+# conan.io stuff
+conanbuildinfo.txt
+conaninfo.txt
+conanfile.pyc
+
+# Buck / Buckaroo
+/buck-out/
+/.buckd/
+/buckaroo/
+.buckconfig.local
+BUCKAROO_DEPS
