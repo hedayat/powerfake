@@ -352,6 +352,13 @@ struct TagBase {
         return (obj.*GetAddress(Tag()))(args...);
     }
 
+    // for static private member functions
+    template <typename ...Args>
+    static decltype(auto) Call(Args... args)
+    {
+        return GetAddress(Tag())(args...);
+    }
+
     template <typename Class>
     static auto &Value(Class &obj)
     {
@@ -362,6 +369,12 @@ struct TagBase {
     static const auto &Value(const Class &obj)
     {
         return obj.*GetAddress(Tag());
+    }
+
+    // for static private member variables
+    static auto &Value()
+    {
+        return *GetAddress(Tag());
     }
 
 #if !defined(__clang__)

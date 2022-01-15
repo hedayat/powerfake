@@ -19,12 +19,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/framework.hpp>
 
-
-// A hack since we cannot test AddSymbol() directly
-#define private public
 #include "SymbolAliasMap.h"
-#undef private
-
 
 using namespace std;
 using namespace PowerFake;
@@ -37,6 +32,9 @@ namespace PowerFake
 {
 struct NsTag {};
 }  // namespace PowerFake
+
+TAG_PRIVATE(FindWrappedSymbolFunc, SymbolAliasMap::FindWrappedSymbol);
+TAG_PRIVATE(WrappersMap, WrapperBase::wrappers);
 
 struct SampleLibConfig
 {
@@ -54,6 +52,12 @@ struct SampleLibConfig
         std::string sample_lib;
 };
 
+struct WrapperCleanup
+{
+    ~WrapperCleanup() { if (WrappersMap::Value()) WrappersMap::Value()->clear(); }
+};
+
+BOOST_FIXTURE_TEST_SUITE(PowerFakeTests, WrapperCleanup);
 
 BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
 {
@@ -234,18 +238,18 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         "()", internal::Qualifiers::NO_QUAL, "some_alias") } );
 
     SymbolAliasMap sm(protos, true);
-    sm.FindWrappedSymbol("char folan<char>(int)", "symbol_for_alias1");
-    sm.FindWrappedSymbol("test_function2()", "symbol_for_alias2");
-    sm.FindWrappedSymbol("test_function()", "symbol_for_alias3");
-    sm.FindWrappedSymbol("A::folani(int)", "symbol_for_alias4");
-    sm.FindWrappedSymbol("some_nonexistent_function()",
+    FindWrappedSymbolFunc::Call(sm, "char folan<char>(int)", "symbol_for_alias1");
+    FindWrappedSymbolFunc::Call(sm, "test_function2()", "symbol_for_alias2");
+    FindWrappedSymbolFunc::Call(sm, "test_function()", "symbol_for_alias3");
+    FindWrappedSymbolFunc::Call(sm, "A::folani(int)", "symbol_for_alias4");
+    FindWrappedSymbolFunc::Call(sm, "some_nonexistent_function()",
         "symbol_for_non_wrapped");
 
     // test for ignoring static variables inside functions
-    sm.FindWrappedSymbol("non_copyable_ref()", "_Z16non_copyable_refv");
-    sm.FindWrappedSymbol("non_copyable_ref()::felfel",
+    FindWrappedSymbolFunc::Call(sm, "non_copyable_ref()", "_Z16non_copyable_refv");
+    FindWrappedSymbolFunc::Call(sm, "non_copyable_ref()::felfel",
         "_ZZ16non_copyable_refvE6felfel");
-    sm.FindWrappedSymbol("non_copyable_ref() const::felfel",
+    FindWrappedSymbolFunc::Call(sm, "non_copyable_ref() const::felfel",
         "_ZZ16non_copyable_refvE6felfel2");
 
     for (int i = 0; i < 4; ++i)
@@ -257,3 +261,5 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
             (a != protos.end() && a->symbol == "symbol_for_alias" + no));
     }
 }
+
+BOOST_AUTO_TEST_SUITE_END();
