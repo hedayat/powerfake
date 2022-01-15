@@ -38,7 +38,6 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
             if (wfile.gcount() <= 0) continue;
 
             string_view strbuf(buff_mem, read_start + wfile.gcount());
-            read_start = 0;
             auto p_start = strbuf.find(START_MARKER);
             while (p_start != string_view::npos)
             {
@@ -51,17 +50,7 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                     p_end = strbuf.find(PREFIX, p_end + PREFIX.size());
                 }
 
-                if (p_end == string_view::npos)
-                {
-                    if (p_start >= MIN_ACCEPTABLE_INCOMPLETE_POS)
-                    {
-                        auto incomplete_proto = strbuf.substr(p_start);
-                        memcpy(buff_mem, incomplete_proto.data(), incomplete_proto.size());
-                        read_start = incomplete_proto.size();
-                    }
-                    break;
-                }
-                else
+                if (p_end != string_view::npos)
                 {
                     auto infostr = strbuf.substr(p_start, p_end - p_start + END_MARKER.size());
                     if (verbose)
@@ -71,7 +60,21 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                     else
                         cout << "Skipped: " << infostr << endl;
                 }
+                else
+                    break;
                 p_start = strbuf.find(START_MARKER, p_end + END_MARKER.size());
+            }
+
+            if (wfile)
+            {
+                string_view::size_type keep_start;
+                if (p_start == string_view::npos || p_start < MIN_ACCEPTABLE_INCOMPLETE_POS)
+                    keep_start = strbuf.size() - START_MARKER.size();
+                else
+                    keep_start = p_start;
+                auto handover_data = strbuf.substr(keep_start);
+                memcpy(buff_mem, handover_data.data(), handover_data.size());
+                read_start = handover_data.size();
             }
         } while (wfile);
     }
