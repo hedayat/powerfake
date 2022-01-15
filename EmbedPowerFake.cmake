@@ -14,7 +14,8 @@ target_include_directories(powerfake PUBLIC
 add_library(PowerFake::powerfake ALIAS powerfake)
 
 set(pair_sources ${POWERFAKE_DIR}/powerfake ${POWERFAKE_DIR}/SymbolAliasMap
-    ${POWERFAKE_DIR}/NMSymbolReader ${POWERFAKE_DIR}/Reader)
+    ${POWERFAKE_DIR}/NMSymbolReader ${POWERFAKE_DIR}/Reader
+    ${POWERFAKE_DIR}/ParseUtils)
 set(bindfakes_core_sources $<JOIN:${pair_sources},.cpp >.cpp)
 set(bindfakes_core_headers $<JOIN:${pair_sources},.h >.h)
 

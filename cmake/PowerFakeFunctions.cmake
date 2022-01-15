@@ -36,7 +36,7 @@
 #
 function(bind_fakes target_name)
     # Argument processing
-    set(options PASSIVE CACHE USE_DEFSYM VERBOSE TIMING VERIFY)
+    set(options PASSIVE CACHE STANDALONE USE_DEFSYM VERBOSE TIMING VERIFY)
     set(single_val_args )
     set(multi_val_args SUBJECT WRAPPERS BF_WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
@@ -57,6 +57,9 @@ function(bind_fakes target_name)
     endif()
     if (BFARGS_VERIFY)
         list(APPEND RUN_OPTIONS "--verify")
+    endif()
+    if (BFARGS_STANDALONE)
+        list(APPEND RUN_OPTIONS "--standalone")
     endif()
 
     if (MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 4)

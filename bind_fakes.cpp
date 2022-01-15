@@ -22,6 +22,7 @@
 #include "powerfake.h"
 #include "NMSymbolReader.h"
 #include "SymbolAliasMap.h"
+#include "ParseUtils.h"
 
 #define TO_STR(a) #a
 #define INDIRECT_STR(A) TO_STR(A)
@@ -32,7 +33,7 @@
 
 using namespace std;
 using namespace PowerFake;
-
+using namespace PowerFake::internal;
 
 string NMCommand(string objfile);
 Reader *GetReader(bool passive, string file);
@@ -53,6 +54,7 @@ int main(int argc, char **argv)
         bool timing = false;
         bool verbose = false;
         bool verify = false;
+        bool standalone = false;
         bool use_objcopy = true;
         bool passive_mode = false;
         bool enable_symcache = false;
@@ -75,6 +77,8 @@ int main(int argc, char **argv)
                 enable_symcache = true;
             else if (argv[i] == "--timing"s)
                 timing = true;
+            else if (argv[i] == "--standalone"s)
+                standalone = true;
             else if (argv[i] == "--verbose"s)
                 verbose = true;
             else if (argv[i] == "--verify"s)
@@ -119,7 +123,11 @@ int main(int argc, char **argv)
         }
 
         auto process_start = chrono::system_clock::now();
-        SymbolAliasMap symmap(WrapperBase::WrappedFunctions(), verbose, verify);
+
+        Functions functions =
+                standalone ? ReadFunctionsList(wrapper_files) :
+                        std::move(WrapperBase::WrappedFunctions());
+        SymbolAliasMap symmap(functions, verbose, verify);
 
         if (enable_symcache)
             symmap.Load(output_prefix + ".symcache");
@@ -165,8 +173,11 @@ int main(int argc, char **argv)
         }
 
         if (!symmap.FoundAllWrappedSymbols())
+        {
+            symmap.PrintUnresolvedSymbols();
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
+        }
 
         if (enable_symcache)
             symmap.Save(output_prefix + ".symcache");
@@ -178,15 +189,15 @@ int main(int argc, char **argv)
         const string sym_prefix = leading_underscore ? "_" : "";
         ofstream link_flags(output_prefix + ".link_flags");
         ofstream link_script(output_prefix + ".link_script");
-        std::multimap<int, const internal::FunctionInfo*> alias_map;
-        for (const auto &wf: WrapperBase::WrappedFunctions())
+        std::multimap<int, const FunctionInfo*> alias_map;
+        for (const auto &wf: functions)
         {
             // if there are multiple wrap files, there can be more than one alias
             // with the same alias number (but different prefix)
             alias_map.insert({ GetAliasNo(wf.prototype.alias), &wf });
-            if (wf.fake_type == internal::FakeType::WRAPPED)
+            if (wf.fake_type == FakeType::WRAPPED)
                 link_flags << "-Wl,--wrap=" << wf.symbol << '\n';
-            else if (wf.fake_type == internal::FakeType::HIDDEN)
+            else if (wf.fake_type == FakeType::HIDDEN)
                 link_script << "EXTERN(" << sym_prefix + wf.symbol << ");\n";
         }
 
@@ -225,7 +236,7 @@ int main(int argc, char **argv)
                             cout << "Found wrapper symbol to rename/use: "
                                     << symbol_str << ' '
                                     << boost::core::demangle(symbol) << '\n';
-                        if (wf.fake_type == internal::FakeType::HIDDEN)
+                        if (wf.fake_type == FakeType::HIDDEN)
                             link_script << "PROVIDE(" << sym_prefix
                                 << wf.symbol << " = "
                                 << sym_prefix << symbol_str << ");\n";

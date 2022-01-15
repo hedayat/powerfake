@@ -23,7 +23,7 @@ using namespace std;
 
 SymbolAliasMap::SymbolAliasMap(Functions &functions, bool verbose,
     bool verify_mode) :
-        verbose(verbose), verify_mode(verify_mode)
+        functions(functions), verbose(verbose), verify_mode(verify_mode)
 {
     CreateFunctionMap(functions);
 }
@@ -98,7 +98,7 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
         return unresolved_functions.empty();
 
     bool found_all = true;
-    for (const auto &wfp: WrapperBase::WrappedFunctions())
+    for (const auto &wfp: functions)
     {
         if (wfp.symbol.empty())
         {
@@ -110,6 +110,31 @@ bool SymbolAliasMap::FoundAllWrappedSymbols() const
         }
     }
     return found_all;
+}
+
+void SymbolAliasMap::PrintUnresolvedSymbols()
+{
+    if (verify_mode)
+    {
+        for (const auto &wfp: functions)
+        {
+            if (wfp.symbol.empty())
+            {
+                const auto &wf = wfp.prototype;
+                cerr << "Error: Cannot find symbol for function: "
+                        << wf.Str() << " (alias: " << wf.alias << ")" << endl;
+            }
+        }
+    }
+    else
+    {
+        for (auto [sn, it]: unresolved_functions)
+        {
+            const auto &wf = it->prototype;
+            cerr << "Error: Cannot find symbol for function: "
+                    << wf.Str() << " (alias: " << wf.alias << ")" << endl;
+        }
+    }
 }
 
 void SymbolAliasMap::CreateFunctionMap(Functions &functions)

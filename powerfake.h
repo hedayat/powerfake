@@ -461,7 +461,7 @@ struct FunctionPrototype
     std::string return_type;
     std::string name;
     std::string params;
-    uint32_t qual;
+    uint32_t qual = Qualifiers::NO_QUAL;
     std::string alias;
 };
 
@@ -678,8 +678,11 @@ struct CStringJoin
 template <ctti::detail::cstring const&... Strs>
 static constexpr auto CStringJoin_v = CStringJoin<Strs...>::value;
 
+#define PFK_PROTO_PREFIX    "PFKPrototype"
+#define PFK_PROTO_START     PFK_PROTO_PREFIX "Start: "
+#define PFK_PROTO_END       PFK_PROTO_PREFIX "End"
 constexpr static ctti::detail::cstring STR_SEPARATOR = " | ";
-constexpr static ctti::detail::cstring PROTO_END = " | PrototypeEnd";
+constexpr static ctti::detail::cstring PROTO_END = " | " PFK_PROTO_END;
 
 } // namespace internal
 
@@ -822,7 +825,7 @@ constexpr static ctti::detail::cstring PROTO_END = " | PrototypeEnd";
 
 #define STATIC_PROTOTYPE_HDR(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
     constexpr static auto FUNCTYPE_##ALIAS = ctti::nameof<FTYPE>(); \
-    constexpr static ctti::detail::cstring PREFIX_##ALIAS = "Wrapping: " \
+    constexpr static ctti::detail::cstring PREFIX_##ALIAS = PFK_PROTO_START \
         #FAKE_TYPE " | " #FNAME " | " #ALIAS " | "
 
 // -----------------------------------------------------------------------------
