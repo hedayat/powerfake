@@ -15,7 +15,7 @@ using namespace std;
 using namespace PowerFake;
 using namespace PowerFake::internal;
 
-Functions ReadFunctionsList(vector<string> wrapper_files)
+Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
 {
     const string_view::size_type BUF_SIZE = 1 * 1024 * 1024;
     const string_view::size_type MIN_ACCEPTABLE_INCOMPLETE_POS = BUF_SIZE - 10 * 1024;
@@ -26,6 +26,10 @@ Functions ReadFunctionsList(vector<string> wrapper_files)
     char buff_mem[BUF_SIZE];
     for (const auto &wf_name: wrapper_files)
     {
+        if (verbose)
+            cout << "\nLooking for marked functions in " << wf_name
+                << "\n------------------------------------------------------------------------------------------------------"
+                << endl;
         ifstream wfile(wf_name, ios::binary);
         int read_start = 0;
         do
@@ -60,7 +64,8 @@ Functions ReadFunctionsList(vector<string> wrapper_files)
                 else
                 {
                     auto infostr = strbuf.substr(p_start, p_end - p_start + END_MARKER.size());
-//                    cout << "Found Prototype: " << infostr << endl;
+                    if (verbose)
+                        cout << "Found Prototype: " << infostr << endl;
                     if (auto finfo = GetFunctionInfo(infostr))
                         functions.push_back(finfo.value());
                     else

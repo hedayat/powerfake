@@ -17,7 +17,8 @@
 
 using Functions = PowerFake::internal::WrapperBase::Functions;
 
-Functions ReadFunctionsList(std::vector<std::string> wrapper_files);
+Functions ReadFunctionsList(std::vector<std::string> wrapper_files,
+    bool verbose = false);
 std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(
     std::string_view function_str);
 

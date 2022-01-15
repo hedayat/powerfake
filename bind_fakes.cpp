@@ -125,7 +125,7 @@ int main(int argc, char **argv)
         auto process_start = chrono::system_clock::now();
 
         Functions functions =
-                standalone ? ReadFunctionsList(wrapper_files) :
+                standalone ? ReadFunctionsList(wrapper_files, verbose) :
                         std::move(WrapperBase::WrappedFunctions());
         SymbolAliasMap symmap(functions, verbose, verify);
 
