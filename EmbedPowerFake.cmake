@@ -27,5 +27,9 @@ target_include_directories(pw_bindfakes PUBLIC
     $<BUILD_INTERFACE:${POWERFAKE_DIR}/third_party/ctti/include>)
 add_library(PowerFake::pw_bindfakes ALIAS pw_bindfakes)
 
+if (MINGW)
+    set(CMAKE_CROSSCOMPILING_EMULATOR "wine")
+endif()
+
 add_executable(bind_fakes EXCLUDE_FROM_ALL)
 target_link_libraries(bind_fakes PowerFake::pw_bindfakes)

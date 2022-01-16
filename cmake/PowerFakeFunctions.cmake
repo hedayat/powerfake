@@ -88,8 +88,6 @@ function(bind_fakes target_name)
     endforeach()
 
     # Build bind_fakes executable
-    set(CMAKE_CROSSCOMPILING_EMULATOR "wine")
-
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
     target_sources(bind_fakes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 
