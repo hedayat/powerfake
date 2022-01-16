@@ -67,9 +67,6 @@ function(bind_fakes target_name)
     if (MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 4)
         list(APPEND RUN_OPTIONS "--leading-underscore")
     endif()
-    if (CMAKE_CROSSCOMPILING)
-        set(BFARGS_PASSIVE True)
-    endif()
 
     if (NOT BFARGS_SUBJECT AND BFARGS_UNPARSED_ARGUMENTS)
         list(GET BFARGS_UNPARSED_ARGUMENTS 0 BFARGS_SUBJECT)
@@ -87,13 +84,11 @@ function(bind_fakes target_name)
         list(APPEND wrap_lib_files $<TARGET_FILE:${wrap_lib}>)
     endforeach()
 
-    # Build bind_fakes executable
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
-    target_sources(bind_fakes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
-
     if (BFARGS_STANDALONE)
         set(bind_fakes_tgt bind_fakes)
     else()
+        # Build bind_fakes executable
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
         set(bind_fakes_tgt bind_fakes_${target_name})
         add_executable(${bind_fakes_tgt} EXCLUDE_FROM_ALL
             ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
@@ -115,7 +110,7 @@ function(bind_fakes target_name)
                 list(APPEND wrap_lib_copies ${wcopy_name})
                 add_custom_command(OUTPUT ${wcopy_name}
                     DEPENDS ${wrap_lib}
-                    COMMAND objcopy --remove-section=*wrapper_*_alias_*
+                    COMMAND objcopy --remove-section=*wrapper_*_pfkalias_*
                         $<TARGET_FILE:${wrap_lib}> ${wcopy_name} VERBATIM)
                 add_custom_target(${wrap_lib}_${target_name} DEPENDS ${wcopy_name})
                 add_dependencies(${bind_fakes_tgt} ${wrap_lib}_${target_name})
@@ -129,6 +124,10 @@ function(bind_fakes target_name)
         target_link_libraries(${bind_fakes_tgt} PowerFake::pw_bindfakes
             -Wl,--whole-archive ${bf_wrap_lib} -Wl,--no-whole-archive
             $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
+
+        if (CMAKE_CROSSCOMPILING)
+            set(BFARGS_PASSIVE True)
+        endif()
     endif()
 
     # Run bind_fakes on the libs and create final output
