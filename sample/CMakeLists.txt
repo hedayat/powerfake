@@ -21,7 +21,7 @@ add_library(wrap_lib STATIC wrap.cpp)
 # Test runner build
 add_executable(samples ${test_sources})
 target_link_libraries(samples wrap_lib corelib)
-bind_fakes(samples SUBJECT corelib WRAPPERS wrap_lib TIMING CACHE)
+bind_fakes(samples SUBJECT corelib WRAPPERS wrap_lib STANDALONE CACHE TIMING)
 
 # Can also use simple invocation form with no options:
 #bind_fakes(samples corelib wrap_lib)

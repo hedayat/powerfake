@@ -14,10 +14,12 @@
 #
 # 1. bind_fakes(target_name test_lib wrapper_funcs_lib)
 # 2. bind_fakes(target_name SUBJECT <lib1>... WRAPPERS <wlib1>...
-#               [BF_WRAPPERS <bfwlib1>...]
+#               [BF_WRAPPERS <bfwlib1>...] [STANDALONE]
 #               [PASSIVE] [CACHE] [USE_DEFSYM] [VERBOSE] [TIMING] [VERIFY])
 #
 # \arg:target_name  The name of the test runner binary
+# \flag:STANDALONE  Build bind_fakes as generic executable instead of linking to
+#                   wrapping libraries
 # \flag:PASSIVE     If bind_fakes should run in passive mode (enabled by default
 #                   when cross-compiling)
 # \flag:CACHE       Enable symbol caching; can run faster in subsequent builds
@@ -32,11 +34,11 @@
 # \group:WRAPPERS   Libraries/objects which call WRAP_FUNCTION/HIDE_FUNCTION macros
 # \group:BF_WRAPPERS Wrapper libraries separately compiled with BIND_FAKES
 #                   defined to be linked with bind_fakes executable instead of
-#                   the ones specified in WRAPPERS
+#                   the ones specified in WRAPPERS (not applicable with STANDALONE)
 #
 function(bind_fakes target_name)
     # Argument processing
-    set(options PASSIVE CACHE USE_DEFSYM VERBOSE TIMING VERIFY)
+    set(options PASSIVE CACHE STANDALONE USE_DEFSYM VERBOSE TIMING VERIFY)
     set(single_val_args )
     set(multi_val_args SUBJECT WRAPPERS BF_WRAPPERS)
     cmake_parse_arguments(PARSE_ARGV 1 BFARGS "${options}"
@@ -58,12 +60,12 @@ function(bind_fakes target_name)
     if (BFARGS_VERIFY)
         list(APPEND RUN_OPTIONS "--verify")
     endif()
+    if (BFARGS_STANDALONE)
+        list(APPEND RUN_OPTIONS "--standalone")
+    endif()
 
     if (MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 4)
         list(APPEND RUN_OPTIONS "--leading-underscore")
-    endif()
-    if (CMAKE_CROSSCOMPILING)
-        set(BFARGS_PASSIVE True)
     endif()
 
     if (NOT BFARGS_SUBJECT AND BFARGS_UNPARSED_ARGUMENTS)
@@ -82,45 +84,51 @@ function(bind_fakes target_name)
         list(APPEND wrap_lib_files $<TARGET_FILE:${wrap_lib}>)
     endforeach()
 
-    # Build bind_fakes executable
-    set(CMAKE_CROSSCOMPILING_EMULATOR "wine")
-
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
-    set(bind_fakes_tgt bind_fakes_${target_name})
-    add_executable(${bind_fakes_tgt} EXCLUDE_FROM_ALL
-        ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
-
-    # Remove __real_ & __wrap_ functions to prevent undefined reference errors
-    # These are not used by bind_fakes
-    set_property(TARGET ${bind_fakes_tgt} APPEND PROPERTY
-        LINK_FLAGS "-Wl,--gc-sections")
-
-    if (BFARGS_BF_WRAPPERS)
-        set(bf_wrap_lib ${BFARGS_BF_WRAPPERS})
-    elseif (MINGW)
-        # Create a duplicate target with BIND_FAKES flag set, as --gc-sections
-        # doesn't remove unused __wrap_ functions created by WRAP_FUNCTION()
-        # macros under MINGW
-        set(wrap_lib_copies)
-        foreach (wrap_lib IN LISTS BFARGS_WRAPPERS)
-            set(wcopy_name ${CMAKE_STATIC_LIBRARY_PREFIX}${wrap_lib}_copy${CMAKE_STATIC_LIBRARY_SUFFIX})
-            list(APPEND wrap_lib_copies ${wcopy_name})
-            add_custom_command(OUTPUT ${wcopy_name}
-                DEPENDS ${wrap_lib}
-                COMMAND objcopy --remove-section=*wrapper_*_alias_*
-                    $<TARGET_FILE:${wrap_lib}> ${wcopy_name} VERBATIM)
-            add_custom_target(${wrap_lib}_${target_name} DEPENDS ${wcopy_name})
-            add_dependencies(${bind_fakes_tgt} ${wrap_lib}_${target_name})
-        endforeach()
-
-        set(bf_wrap_lib "-L ." ${wrap_lib_copies})
+    if (BFARGS_STANDALONE)
+        set(bind_fakes_tgt bind_fakes)
     else()
-        set(bf_wrap_lib ${BFARGS_WRAPPERS})
-    endif()
+        # Build bind_fakes executable
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
+        set(bind_fakes_tgt bind_fakes_${target_name})
+        add_executable(${bind_fakes_tgt} EXCLUDE_FROM_ALL
+            ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
 
-    target_link_libraries(${bind_fakes_tgt} PowerFake::pw_bindfakes
-        -Wl,--whole-archive ${bf_wrap_lib} -Wl,--no-whole-archive
-        $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
+        # Remove __real_ & __wrap_ functions to prevent undefined reference errors
+        # These are not used by bind_fakes
+        set_property(TARGET ${bind_fakes_tgt} APPEND PROPERTY
+            LINK_FLAGS "-Wl,--gc-sections")
+
+        if (BFARGS_BF_WRAPPERS)
+            set(bf_wrap_lib ${BFARGS_BF_WRAPPERS})
+        elseif (MINGW)
+            # Create a duplicate target with BIND_FAKES flag set, as --gc-sections
+            # doesn't remove unused __wrap_ functions created by WRAP_FUNCTION()
+            # macros under MINGW
+            set(wrap_lib_copies)
+            foreach (wrap_lib IN LISTS BFARGS_WRAPPERS)
+                set(wcopy_name ${CMAKE_STATIC_LIBRARY_PREFIX}${wrap_lib}_copy${CMAKE_STATIC_LIBRARY_SUFFIX})
+                list(APPEND wrap_lib_copies ${wcopy_name})
+                add_custom_command(OUTPUT ${wcopy_name}
+                    DEPENDS ${wrap_lib}
+                    COMMAND objcopy --remove-section=*wrapper_*_pfkalias_*
+                        $<TARGET_FILE:${wrap_lib}> ${wcopy_name} VERBATIM)
+                add_custom_target(${wrap_lib}_${target_name} DEPENDS ${wcopy_name})
+                add_dependencies(${bind_fakes_tgt} ${wrap_lib}_${target_name})
+            endforeach()
+
+            set(bf_wrap_lib "-L ." ${wrap_lib_copies})
+        else()
+            set(bf_wrap_lib ${BFARGS_WRAPPERS})
+        endif()
+
+        target_link_libraries(${bind_fakes_tgt} PowerFake::pw_bindfakes
+            -Wl,--whole-archive ${bf_wrap_lib} -Wl,--no-whole-archive
+            $<TARGET_PROPERTY:${target_name},LINK_LIBRARIES>)
+
+        if (CMAKE_CROSSCOMPILING)
+            set(BFARGS_PASSIVE True)
+        endif()
+    endif()
 
     # Run bind_fakes on the libs and create final output
     set(link_flags_file ${target_name}.powerfake.link_flags)

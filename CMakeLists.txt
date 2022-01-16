@@ -42,6 +42,10 @@ add_compile_definitions(BOOST_ALL_DYN_LINK)
 # =============================================================================
 include(EmbedPowerFake.cmake)
 
+if (BIND_FAKES_ONLY)
+    return()
+endif()
+
 add_subdirectory(sample)
 add_subdirectory(test EXCLUDE_FROM_ALL)
 

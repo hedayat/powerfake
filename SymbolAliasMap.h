@@ -34,8 +34,10 @@ class SymbolAliasMap
         void Save(std::string_view filename);
         void AddSymbol(const char *symbol_name);
         bool FoundAllWrappedSymbols() const;
+        void PrintUnresolvedSymbols();
 
     private:
+        const Functions &functions;
         bool verbose;
         bool verify_mode;
         FunctionNames functions_map;
