@@ -60,4 +60,45 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
     BOOST_TEST(finfo.prototype.params == "(int)");
     BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
     BOOST_TEST(finfo.prototype.return_type == "void");
+
+    finfo_opt = GetFunctionInfo("PFKPrototypeStart: WRAPPED | "
+            "date::current_zone | PowerFakeWrap__pfkalias__29 | "
+            "const date::time_zone* (*)() | PFKPrototypeEnd");
+    BOOST_TEST(finfo_opt.has_value());
+
+    finfo = *finfo_opt;
+    BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
+    BOOST_TEST(finfo.prototype.name == "date::current_zone");
+    BOOST_TEST(finfo.prototype.alias == "PowerFakeWrap__pfkalias__29");
+    BOOST_TEST(finfo.prototype.params == "()");
+    BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(finfo.prototype.return_type == "const date::time_zone*");
+
+    finfo_opt = GetFunctionInfo("PFKPrototypeStart: WRAPPED | ConnectDB | "
+            "PowerFakeWrap__pfkalias__21 | "
+            "std::unique_ptr<pg_conn, PGConnectionDeleter> (*)(const DBInfo&) | "
+            "PFKPrototypeEnd");
+    BOOST_TEST(finfo_opt.has_value());
+
+    finfo = *finfo_opt;
+    BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
+    BOOST_TEST(finfo.prototype.name == "ConnectDB");
+    BOOST_TEST(finfo.prototype.alias == "PowerFakeWrap__pfkalias__21");
+    BOOST_TEST(finfo.prototype.params == "(DBInfo const&)");
+    BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(finfo.prototype.return_type == "std::unique_ptr<pg_conn, PGConnectionDeleter>");
+
+    /*
+Error: Cannot find symbol for function: std::unique_ptr<pg_result, PGResultDeleter> SQLQuery::Exec(std::__cxx11::basic_string<char>, bool)  (alias: PowerFakeWrap__pfkalias__18)
+Error: Cannot find symbol for function: bool TableExists(pg_conn*, const std::__cxx11::basic_string<char>&)  (alias: PowerFakeWrap__pfkalias__22)
+Error: Cannot find symbol for function: grpc::Status rpc::FlowReceiver::Stub::Hello(grpc::ClientContext*, const rpc::HelloRequest&, rpc::HelloResponse*)  (alias: PowerFakeWrap__pfkalias__30)
+ *
+ *
+ *Found Prototype: PFKPrototypeStart: WRAPPED | SQLQuery::Exec | PowerFakeWrap__pfkalias__18 | std::unique_ptr<pg_result, PGResultDeleter> (SQLQuery::*)(std::__cxx11::basic_string<char>, bool) | PFKPrototypeEnd
+Found Prototype: PFKPrototypeStart: WRAPPED | TableExists | PowerFakeWrap__pfkalias__22 | bool (*)(pg_conn*, const std::__cxx11::basic_string<char>&) | PFKPrototypeEnd
+Found Prototype: PFKPrototypeStart: WRAPPED | rpc::FlowReceiver::Stub::Hello | PowerFakeWrap__pfkalias__30 | grpc::Status (rpc::FlowReceiver::Stub::*)(grpc::ClientContext*, const rpc::HelloRequest&, rpc::HelloResponse*) | PFKPrototypeEnd
+
+ *
+ */
+
 }

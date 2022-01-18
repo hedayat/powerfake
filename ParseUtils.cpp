@@ -101,11 +101,10 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
         return {};
 
     is >> s >> s;
-    auto nstart = s.rfind("::");
+    finfo.prototype.name = s;
+    auto nstart = finfo.prototype.name.rfind("::");
     if (nstart == string::npos)
-        finfo.prototype.name = s;
-    else
-        finfo.prototype.name = s.substr(nstart);
+        nstart = 0;
 
     is >> s >> finfo.prototype.alias >> s;
     std::getline(is, s, '|');
@@ -116,7 +115,9 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     finfo.prototype.return_type = sv.substr(1, ret_end - 2);
     finfo.prototype.params = sv.substr(param_start, param_end - param_start + 1);
     if (sv.substr(ret_end, 3) != "(*)") // a class member
-        finfo.prototype.name = string(sv.substr(ret_end + 1, sv.rfind("::", param_start) - ret_end - 1)) + finfo.prototype.name;
+        finfo.prototype.name = string(
+            sv.substr(ret_end + 1, sv.rfind("::", param_start) - ret_end - 1))
+                + finfo.prototype.name.substr(nstart);
 
     istringstream qualis { s.substr(param_end + 1) };
     while (qualis >> s)
@@ -139,6 +140,6 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
 
     is >> s;
     if (s != PFK_PROTO_END)
-        finfo.prototype.name = s + finfo.prototype.name;
+        finfo.prototype.name = s + finfo.prototype.name.substr(nstart);
     return finfo;
 }
