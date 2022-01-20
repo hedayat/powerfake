@@ -22,4 +22,9 @@ Functions ReadFunctionsList(std::vector<std::string> wrapper_files,
 std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(
     std::string_view function_str);
 
+std::string FixConstPlacement(std::string_view compile_type);
+std::string FixParamsConstPlacement(std::string_view params);
+std::vector<std::string_view> SplitParams(std::string_view params);
+std::string FixSpaces(std::string_view type_str);
+
 #endif /* PARSEUTILS_H_ */

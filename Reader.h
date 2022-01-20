@@ -15,8 +15,10 @@
 
 #include <stdio.h>
 #include <string>
-#include <ext/stdio_filebuf.h>
 #include <istream>
+#ifdef __GLIBCXX__
+#include <ext/stdio_filebuf.h>
+#endif
 
 class Reader
 {

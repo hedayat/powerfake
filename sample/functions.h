@@ -15,6 +15,7 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace FakeTest
 {
@@ -27,7 +28,7 @@ void overloaded(float a);
 std::string overloaded2(int a);
 std::string overloaded2(float a);
 
-void normal_func(int b);
+void normal_func(int b, const char **const *c);
 
 void called_by_normal_func(int b);
 

@@ -112,8 +112,9 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     auto ret_end = sv.find('(');
     auto param_end = sv.rfind(')');
     auto param_start = sv.rfind('(', param_end);
-    finfo.prototype.return_type = sv.substr(1, ret_end - 2);
-    finfo.prototype.params = sv.substr(param_start, param_end - param_start + 1);
+    finfo.prototype.return_type = FixConstPlacement(sv.substr(1, ret_end - 2));
+    finfo.prototype.params = FixParamsConstPlacement(
+        sv.substr(param_start, param_end - param_start + 1));
     if (sv.substr(ret_end, 3) != "(*)") // a class member
         finfo.prototype.name = string(
             sv.substr(ret_end + 1, sv.rfind("::", param_start) - ret_end - 1))
@@ -142,4 +143,163 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     if (s != PFK_PROTO_END)
         finfo.prototype.name = s + finfo.prototype.name.substr(nstart);
     return finfo;
+}
+
+std::string FixConstPlacement(std::string_view compile_type)
+{
+    std::string suffix;
+    auto param_end = compile_type.find_last_of(")>");
+    if (param_end != string_view::npos && compile_type[param_end] == ')') // function type
+    {
+        auto fparan_start = compile_type.find('(');
+        auto param_start = compile_type.find('(', fparan_start + 1);
+        suffix = compile_type.substr(fparan_start, param_start - fparan_start);
+        suffix += FixParamsConstPlacement(
+            compile_type.substr(param_start, param_end - param_start + 1));
+        suffix += compile_type.substr(param_end + 1);
+        compile_type = compile_type.substr(0, fparan_start);
+    }
+
+    std::string res;
+    unsigned start_pos = 0;
+    bool add_const = false;
+
+    if (compile_type.substr(0, strlen("const ")) == "const ")
+    {
+        add_const = true;
+        start_pos = strlen("const ");
+    }
+
+    auto lookup = compile_type.find_first_of("*&<", start_pos);
+    if (lookup == string_view::npos)
+    {
+        res = compile_type.substr(start_pos);
+        if (add_const) // actually we don't expect this to happen! const without */&?!
+            res += (res.back() == ' ' ? "" : " ") + "const"s;
+        return res + suffix;
+    }
+
+    switch (compile_type[lookup])
+    {
+        case '&':
+        case '*':
+            if (add_const)
+            {
+                res = compile_type.substr(start_pos, lookup - start_pos);
+                res += (res.back() == ' ' ? "" : " ") + "const"s
+                        + FixSpaces(compile_type.substr(lookup));
+            }
+            else
+                res = compile_type;
+            break;
+        case '<':
+        {
+            auto tplend = compile_type.rfind('>');
+            res = compile_type.substr(start_pos, ++lookup - start_pos);
+            res += FixParamsConstPlacement(
+                compile_type.substr(lookup, tplend - lookup));
+            res += '>';
+            if (add_const)
+                res += (res.back() == ' ' ? "" : " ") + "const"s;
+            res += FixSpaces(compile_type.substr(tplend + 1));
+            break;
+        }
+    }
+    return res + suffix;
+}
+
+std::string FixParamsConstPlacement(std::string_view params)
+{
+    std::string res;
+    if (params[0] == '(')
+        res = '(';
+
+    bool first = true;
+    for (auto p: SplitParams(params))
+    {
+        if (!first)
+            res += ", ";
+        first = false;
+        res += FixConstPlacement(p);
+    }
+
+    if (res[0] == '(')
+        res += ')';
+    return res;
+}
+
+std::vector<std::string_view> SplitParams(std::string_view params)
+{
+    unsigned param_start = 0;
+    int nested = 0;
+    vector<string_view> res;
+
+    // Note: we assume valid input
+
+    if (params[0] == '(' && params.back() == ')')
+        params = params.substr(1, params.size() - 2);
+
+    unsigned i;
+    for (i = 0; i < params.size(); ++i)
+    {
+        switch (params[i])
+        {
+            case '(':
+            case '<':
+                ++nested;
+                break;
+            case ')':
+            case '>':
+                --nested;
+                break;
+            case ' ':
+                if (param_start == i)
+                    ++param_start;
+                break;
+            case ',':
+                if (nested)
+                    break;
+                if (i != param_start)
+                    res.push_back(params.substr(param_start, i - param_start));
+                param_start = i + 1;
+                break;
+        }
+    }
+    if (param_start < i) // no ending parenthesis
+        res.push_back(params.substr(param_start));
+
+    return res;
+}
+
+std::string FixSpaces(std::string_view type_str)
+{
+    std::string res;
+    bool word_mode = type_str[0] != '*' && type_str[0] != '&';
+    unsigned pos = 0;
+    do
+    {
+        if (word_mode)
+        {
+            auto next = type_str.find_first_of("*&", pos);
+            if (next == string_view::npos)
+                break;
+            int skip = (type_str[next - 1] == ' ' ? 1 : 0);
+            res += type_str.substr(pos, next - skip - pos);
+            pos = next;
+        }
+        else
+        {
+            auto next = type_str.find_first_not_of("*& ", pos);
+            if (next == string_view::npos)
+                break;
+            res += type_str.substr(pos, next - pos);
+            if (type_str[next - 1] != ' ')
+                res += ' ';
+            pos = next;
+        }
+        word_mode = !word_mode;
+    }
+    while (true);
+    res += type_str.substr(pos);
+    return res;
 }

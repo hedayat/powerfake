@@ -41,7 +41,7 @@ TAG_PRIVATE(OverloadedPrivateFloat, void (float),
 struct SampleStruct
 {
         FakePtr normal_fake =
-                MakeFake(normal_func, [this](int) {});
+                MakeFake(normal_func, [this](int, const char **const *) {});
         FakePtr ov = MakeFake<void (int)>(overloaded, [](int){});
 };
 
@@ -86,13 +86,13 @@ void FakeOverloaded()
     auto internalfk = MakeFake(called_by_normal_func,
         [](int) { cout << "Fake called for called_by_normal_func(int)" << endl; }
     );
-    normal_func(3);
+    normal_func(3, nullptr);
 #endif
 
     auto normalfk = MakeFake(normal_func,
-        [](int) { cout << "Fake called for normal_func(int)" << endl; }
+        [](int, const char **const *) { cout << "Fake called for normal_func(int)" << endl; }
     );
-    normal_func(3);
+    normal_func(3, nullptr);
 
     auto refret_fk = MakeFake(non_copyable_ref, []() -> unique_ptr<int> & {
         static unique_ptr<int> aa(new int(2));
@@ -254,12 +254,12 @@ void FakeItSamples()
                 "----------------------------------------------" << endl;
         PowerFakeIt<> pfk;
 
-        When(Function(pfk, normal_func)).Do([](int ){ cout << "WOW :) " << endl; });
+        When(Function(pfk, normal_func)).Do([](int, const char **const *){ cout << "WOW :) " << endl; });
 
 
-        normal_func(100);
+        normal_func(100, nullptr);
 
-        Verify(Function(pfk, normal_func).Using(100)).Exactly(Once);
+        Verify(Function(pfk, normal_func).Using(100, nullptr)).Exactly(Once);
 
         PowerFakeIt<SampleClass> pfk2;
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
