@@ -175,6 +175,16 @@ int main(int argc, char **argv)
         if (!symmap.FoundAllWrappedSymbols())
         {
             symmap.PrintUnresolvedSymbols();
+            if (standalone)
+                cerr << "\n------------------------------------------------------------------------------------------------------\n"
+                        "NOTICE: You are running in the experimental standalone "
+                        "mode, which might be unable to correctly match\n"
+                        "functions and their symbols.\nPlease report an issue "
+                        "in the project repository about this failure.\nPlease "
+                        "try running in normal (non-standalone) mode which is "
+                        "expected to be able to work correctly."
+                        "\n------------------------------------------------------------------------------------------------------\n"
+                    << endl;
             throw std::runtime_error("(BUG?) cannot find all wrapped "
                     "symbols in the given library file(s)");
         }
@@ -302,7 +312,7 @@ int main(int argc, char **argv)
     }
     catch (exception &e)
     {
-        cerr << "Exception: " << e.what() << endl;
+        cerr << "Exception: " << e.what() << '\n' << endl;
         return 1;
     }
 
