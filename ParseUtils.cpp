@@ -111,7 +111,7 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     string_view sv = s;
     auto ret_end = sv.find('(');
     auto param_end = sv.rfind(')');
-    auto param_start = sv.rfind('(', param_end);
+    auto param_start = sv.find('(', ret_end + 1);
     finfo.prototype.return_type = FixConstPlacement(sv.substr(1, ret_end - 2));
     finfo.prototype.params = FixParamsConstPlacement(
         sv.substr(param_start, param_end - param_start + 1));
@@ -153,7 +153,9 @@ std::string FixConstPlacement(std::string_view compile_type)
     {
         auto fparan_start = compile_type.find('(');
         auto param_start = compile_type.find('(', fparan_start + 1);
-        suffix = compile_type.substr(fparan_start, param_start - fparan_start);
+        if (compile_type[fparan_start - 1] != ' ')
+            suffix = ' ';
+        suffix += compile_type.substr(fparan_start, param_start - fparan_start);
         suffix += FixParamsConstPlacement(
             compile_type.substr(param_start, param_end - param_start + 1));
         suffix += compile_type.substr(param_end + 1);

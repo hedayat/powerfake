@@ -20,7 +20,6 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
             "SampleClass::CallThis | Folan__pfkalias__43 | "
             "void (FakeTest::SampleClass::*)() const noexcept | PFKPrototypeEnd");
     BOOST_TEST(finfo_opt.has_value());
-
     auto finfo = *finfo_opt;
     BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
     BOOST_TEST(finfo.prototype.name == "FakeTest::SampleClass::CallThis");
@@ -39,7 +38,6 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
             "const std::unique_ptr<int>& (*)(std::unique_ptr<int>&, float) | "
             "FakeTest::SampleClass | PFKPrototypeEnd");
     BOOST_TEST(finfo_opt.has_value());
-
     finfo = *finfo_opt;
     BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
     BOOST_TEST(finfo.prototype.name == "FakeTest::SampleClass::StaticFunc");
@@ -52,7 +50,6 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
             "called_by_normal_func | Folan__pfkalias__37 | void (*)(int) | "
             "PFKPrototypeEnd");
     BOOST_TEST(finfo_opt.has_value());
-
     finfo = *finfo_opt;
     BOOST_TEST((finfo.fake_type == FakeType::HIDDEN));
     BOOST_TEST(finfo.prototype.name == "called_by_normal_func");
@@ -65,7 +62,6 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
             "date::current_zone | PowerFakeWrap__pfkalias__29 | "
             "const date::time_zone* (*)() | PFKPrototypeEnd");
     BOOST_TEST(finfo_opt.has_value());
-
     finfo = *finfo_opt;
     BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
     BOOST_TEST(finfo.prototype.name == "date::current_zone");
@@ -79,7 +75,6 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
             "std::unique_ptr<pg_conn, PGConnectionDeleter> (*)(const DBInfo&) | "
             "PFKPrototypeEnd");
     BOOST_TEST(finfo_opt.has_value());
-
     finfo = *finfo_opt;
     BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
     BOOST_TEST(finfo.prototype.name == "ConnectDB");
@@ -88,25 +83,52 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
     BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
     BOOST_TEST(finfo.prototype.return_type == "std::unique_ptr<pg_conn, PGConnectionDeleter>");
 
-    /*
-Error: Cannot find symbol for function: std::unique_ptr<pg_result, PGResultDeleter> SQLQuery::Exec(std::__cxx11::basic_string<char>, bool)  (alias: PowerFakeWrap__pfkalias__18)
-Error: Cannot find symbol for function: bool TableExists(pg_conn*, const std::__cxx11::basic_string<char>&)  (alias: PowerFakeWrap__pfkalias__22)
-Error: Cannot find symbol for function: grpc::Status rpc::FlowReceiver::Stub::Hello(grpc::ClientContext*, const rpc::HelloRequest&, rpc::HelloResponse*)  (alias: PowerFakeWrap__pfkalias__30)
- *
- *
- *Found Prototype: PFKPrototypeStart: WRAPPED | SQLQuery::Exec | PowerFakeWrap__pfkalias__18 | std::unique_ptr<pg_result, PGResultDeleter> (SQLQuery::*)(std::__cxx11::basic_string<char>, bool) | PFKPrototypeEnd
-Found Prototype: PFKPrototypeStart: WRAPPED | TableExists | PowerFakeWrap__pfkalias__22 | bool (*)(pg_conn*, const std::__cxx11::basic_string<char>&) | PFKPrototypeEnd
-Found Prototype: PFKPrototypeStart: WRAPPED | rpc::FlowReceiver::Stub::Hello | PowerFakeWrap__pfkalias__30 | grpc::Status (rpc::FlowReceiver::Stub::*)(grpc::ClientContext*, const rpc::HelloRequest&, rpc::HelloResponse*) | PFKPrototypeEnd
+    finfo_opt = GetFunctionInfo("PFKPrototypeStart: HIDDEN | "
+            "rpc::FlowReceiver::Stub::Hello | PowerFakeWrap__pfkalias__30 | "
+            "grpc::Status (rpc::FlowReceiver::Stub::*)(grpc::ClientContext*, "
+            "const rpc::HelloRequest&, rpc::HelloResponse*) | PFKPrototypeEnd");
+    BOOST_TEST(finfo_opt.has_value());
+    finfo = *finfo_opt;
+    BOOST_TEST((finfo.fake_type == FakeType::HIDDEN));
+    BOOST_TEST(finfo.prototype.name == "rpc::FlowReceiver::Stub::Hello");
+    BOOST_TEST(finfo.prototype.alias == "PowerFakeWrap__pfkalias__30");
+    BOOST_TEST(finfo.prototype.params == "(grpc::ClientContext*, "
+            "rpc::HelloRequest const&, rpc::HelloResponse*)");
+    BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(finfo.prototype.return_type == "grpc::Status");
 
+    finfo_opt = GetFunctionInfo("PFKPrototypeStart: WRAPPED | SQLQuery::Exec | "
+            "PowerFakeWrap__pfkalias__18 | std::unique_ptr<pg_result, "
+            "PGResultDeleter> (SQLQuery::*)(std::__cxx11::basic_string<char>, "
+            "bool) | PFKPrototypeEnd");
+    BOOST_TEST(finfo_opt.has_value());
+    finfo = *finfo_opt;
+    BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
+    BOOST_TEST(finfo.prototype.name == "SQLQuery::Exec");
+    BOOST_TEST(finfo.prototype.alias == "PowerFakeWrap__pfkalias__18");
+    BOOST_TEST(finfo.prototype.params == "(std::__cxx11::basic_string<char>, bool)");
+    BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(finfo.prototype.return_type == "std::unique_ptr<pg_result, PGResultDeleter>");
 
-SQLQuery::Exec(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, bool)
-TableExists(pg_conn*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
-rpc::FlowReceiver::Stub::Hello(grpc::ClientContext*, rpc::HelloRequest const&, rpc::HelloResponse*)
- *
- */
+    finfo_opt = GetFunctionInfo("PFKPrototypeStart: WRAPPED | normal_func | "
+            "Folan__pfkalias__34 | void (*)(int, "
+            "const std::__cxx11::basic_string<char>&, "
+            "std::__cxx11::basic_string<char>, "
+            "const std::__cxx11::basic_string<char>*, const char** const*, "
+            "std::vector<const char*>, const char* (*)(const char*)) | "
+            "PFKPrototypeEnd");
+    BOOST_TEST(finfo_opt.has_value());
+    finfo = *finfo_opt;
+    BOOST_TEST((finfo.fake_type == FakeType::WRAPPED));
+    BOOST_TEST(finfo.prototype.name == "normal_func");
+    BOOST_TEST(finfo.prototype.alias == "Folan__pfkalias__34");
+    BOOST_TEST(finfo.prototype.params == "(int, std::__cxx11::basic_string<char> const&, "
+            "std::__cxx11::basic_string<char>, std::__cxx11::basic_string<char> const*, "
+            "char const** const*, std::vector<char const*>, char const* (*)(char const*))");
+    BOOST_TEST(finfo.prototype.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(finfo.prototype.return_type == "void");
 
 }
-
 
 BOOST_AUTO_TEST_CASE(SplitParamsTest)
 {
@@ -135,6 +157,18 @@ BOOST_AUTO_TEST_CASE(SplitParamsTest)
             "const std::__cxx11::basic_string<char>& (*)(const int*, bool))");
     BOOST_TEST(res[0] == "pg_conn*");
     BOOST_TEST(res[1] == "const std::__cxx11::basic_string<char>& (*)(const int*, bool)");
+}
+
+BOOST_AUTO_TEST_CASE(FixParamsConstPlacementTest)
+{
+    auto res = FixParamsConstPlacement("(int, "
+            "const std::__cxx11::basic_string<char>&, "
+            "std::__cxx11::basic_string<char>, "
+            "const std::__cxx11::basic_string<char>*, const char** const*, "
+            "std::vector<const char*>, const char* (*)(const char*))");
+    BOOST_TEST(res == "(int, std::__cxx11::basic_string<char> const&, "
+            "std::__cxx11::basic_string<char>, std::__cxx11::basic_string<char> const*, "
+            "char const** const*, std::vector<char const*>, char const* (*)(char const*))");
 }
 
 BOOST_AUTO_TEST_CASE(FixConstPlacementTest)
@@ -168,6 +202,13 @@ BOOST_AUTO_TEST_CASE(FixConstPlacementTest)
 
     res = FixConstPlacement("char (Folan::Bahman::*)(bool, const char* const*)");
     BOOST_TEST(res == "char (Folan::Bahman::*)(bool, char const* const*)");
+
+    res = FixConstPlacement("const std::vector<char> &(Folan::Bahman::*)"
+            "(std::vector<const bool&>, std::vector<const std::string &>, "
+            "std::vector<const std::string &(*)(const char*)>)");
+    BOOST_TEST(res == "std::vector<char> const& (Folan::Bahman::*)"
+            "(std::vector<bool const&>, std::vector<std::string const&>, "
+            "std::vector<std::string const& (*)(char const*)>)");
 
     // template & function types
     res = FixConstPlacement("std::vector<const char* (*)(bool, "
