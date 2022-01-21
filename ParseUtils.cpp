@@ -193,9 +193,23 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
 {
     start_pos = 0;
     end_pos = demangled.size();
-    auto name_end = demangled.find_first_of("[(");
+    auto name_end = demangled.find_first_of("<[(");
     if (name_end == string::npos)
         return demangled;
+
+    while (demangled[name_end] == '<')
+    {
+        unsigned tpl = 1;
+        for (++name_end; tpl; ++name_end)
+        {
+            if (demangled[name_end] == '>')
+                --tpl;
+            else if (demangled[name_end] == '<')
+                ++tpl;
+        }
+        name_end = demangled.find_first_of("<[(", name_end);
+    }
+
     end_pos = name_end;
     auto name_begin = demangled.find_last_of(" >:", name_end);
     if (name_begin == string::npos)
@@ -213,7 +227,7 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
                 tpl--;
         }
     }
-    auto op_begin = demangled.rfind(' ', name_begin-1);
+    auto op_begin = demangled.find_last_of(" :", name_begin-1);
     std::string op;
     if (op_begin == string::npos)
     {
@@ -221,11 +235,16 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
         op_begin = 0;
     }
     else
-        op = demangled.substr(op_begin, name_begin-op_begin);
+    {
+        ++op_begin;
+        op = demangled.substr(op_begin, name_begin - op_begin);
+    }
     if (op == "operator")
-        name_begin = op_begin-1;
-    start_pos = name_begin + 1;
-    return demangled.substr(name_begin+1, name_end-name_begin-1);
+        name_begin = op_begin;
+    else
+        ++name_begin;
+    start_pos = name_begin;
+    return demangled.substr(name_begin, name_end - name_begin);
 }
 
 PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs)

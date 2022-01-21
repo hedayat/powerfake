@@ -167,10 +167,10 @@ BOOST_AUTO_TEST_CASE(FunctionNameTest)
     auto res = FunctionName("char folan<char>(int)", name_start, name_end);
     BOOST_TEST(res == "folan<char>");
 
-//    res = FunctionName("std::function<std::unique_ptr<int, "
-//            "std::default_delete<int> >& (FakeTest::SampleClass*)>::operator bool() const",
-//            name_start, name_end);
-//    BOOST_TEST(res == "operator bool");
+    res = FunctionName("std::function<std::unique_ptr<int, "
+            "std::default_delete<int> >& (FakeTest::SampleClass*)>::operator bool() const",
+            name_start, name_end);
+    BOOST_TEST(res == "operator bool");
 
     res = FunctionName("std::__cxx11::basic_string<char, std::char_traits<char>, "
             "std::allocator<char> > std::operator+<char, std::char_traits<char>, "
@@ -179,6 +179,15 @@ BOOST_AUTO_TEST_CASE(FunctionNameTest)
             "std::char_traits<char>, std::allocator<char> > const&)", name_start,
             name_end);
     BOOST_TEST(res == "operator+<char, std::char_traits<char>, "
+            "std::allocator<char> >");
+
+    res = FunctionName("std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > operator bool<char, std::char_traits<char>, "
+            "std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, std::__cxx11::basic_string<char, "
+            "std::char_traits<char>, std::allocator<char> > const&)", name_start,
+            name_end);
+    BOOST_TEST(res == "operator bool<char, std::char_traits<char>, "
             "std::allocator<char> >");
 }
 
