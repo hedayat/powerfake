@@ -167,7 +167,8 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
     if (!IsFunction(symbol_name, demangled))
         return;
 
-    string name = FunctionName(demangled);
+    unsigned name_start, name_end;
+    auto name = FunctionName(demangled, name_start, name_end);
 
     auto range = unresolved_functions.equal_range(name);
     for (auto p = range.first; p != range.second; )
@@ -242,39 +243,4 @@ bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
     // TODO: Warn for similar symbols, e.g. <signature> [clone .cold]
 
     return false;
-}
-
-std::string SymbolAliasMap::FunctionName(const std::string &demangled)
-{
-    auto name_end = demangled.find_first_of("[(");
-    if (name_end == string::npos)
-        return demangled;
-    auto name_begin = demangled.find_last_of(" >:", name_end);
-    if (name_begin == string::npos)
-        return demangled.substr(0, name_end);
-    if (demangled[name_begin] == '>')
-    {
-        int tpl = 1;
-        for (name_begin--;
-                name_begin > 0 && (tpl || (demangled[name_begin] != ' '
-                        && demangled[name_begin] != ':')); --name_begin)
-        {
-            if (demangled[name_begin] == '>')
-                tpl++;
-            else if (demangled[name_begin] == '<')
-                tpl--;
-        }
-    }
-    auto op_begin = demangled.rfind(' ', name_begin-1);
-    std::string op;
-    if (op_begin == string::npos)
-    {
-        op = demangled.substr(0, name_begin);
-        op_begin = 0;
-    }
-    else
-        op = demangled.substr(op_begin, name_begin-op_begin);
-    if (op == "operator")
-        name_begin = op_begin-1;
-    return demangled.substr(name_begin+1, name_end-name_begin-1);
 }

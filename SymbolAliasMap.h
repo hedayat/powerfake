@@ -51,7 +51,6 @@ class SymbolAliasMap
         bool IsFunction(const char *symbol_name, const std::string &demangled);
         bool IsSameFunction(const std::string &demangled,
             const PowerFake::internal::FunctionPrototype &proto);
-        std::string FunctionName(const std::string &demangled);
 };
 
 

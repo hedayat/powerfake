@@ -130,6 +130,58 @@ BOOST_AUTO_TEST_CASE(GetFunctionInfoTest)
 
 }
 
+BOOST_AUTO_TEST_CASE(ParseDemangledFunctionTest)
+{
+    std::string demangled = "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > std::operator+<char, std::char_traits<char>, "
+            "std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, std::__cxx11::basic_string<char, "
+            "std::char_traits<char>, std::allocator<char> > const&)";
+    unsigned name_start, name_end;
+    FunctionName(demangled, name_start, name_end);
+    auto proto = ParseDemangledFunction(demangled, name_start, name_end);
+    BOOST_TEST(proto.qual == Qualifiers::NO_QUAL);
+    BOOST_TEST(proto.return_type == "std::__cxx11::basic_string<char, "
+            "std::char_traits<char>, std::allocator<char> >");
+    BOOST_TEST(proto.name == "std::operator+<char, std::char_traits<char>, "
+            "std::allocator<char> >");
+    BOOST_TEST(proto.expanded_params.size() == 2);
+    BOOST_TEST(proto.expanded_params[0] == proto.expanded_params[1]);
+    BOOST_TEST(proto.expanded_params[0] == "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&");
+
+    demangled = "FakeTest::SampleClass::OverloadedCall(int) const";
+    auto fname = FunctionName(demangled, name_start, name_end);
+    BOOST_TEST(fname == "OverloadedCall");
+    proto = ParseDemangledFunction(demangled, name_start, name_end);
+    BOOST_TEST(proto.qual == Qualifiers::CONST);
+    BOOST_TEST(proto.return_type.empty());
+    BOOST_TEST(proto.name == "FakeTest::SampleClass::OverloadedCall");
+    BOOST_TEST(proto.expanded_params.size() == 1);
+    BOOST_TEST(proto.expanded_params[0] == "int");
+}
+
+BOOST_AUTO_TEST_CASE(FunctionNameTest)
+{
+    unsigned name_start, name_end;
+    auto res = FunctionName("char folan<char>(int)", name_start, name_end);
+    BOOST_TEST(res == "folan<char>");
+
+//    res = FunctionName("std::function<std::unique_ptr<int, "
+//            "std::default_delete<int> >& (FakeTest::SampleClass*)>::operator bool() const",
+//            name_start, name_end);
+//    BOOST_TEST(res == "operator bool");
+
+    res = FunctionName("std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > std::operator+<char, std::char_traits<char>, "
+            "std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, std::__cxx11::basic_string<char, "
+            "std::char_traits<char>, std::allocator<char> > const&)", name_start,
+            name_end);
+    BOOST_TEST(res == "operator+<char, std::char_traits<char>, "
+            "std::allocator<char> >");
+}
+
 BOOST_AUTO_TEST_CASE(SplitParamsTest)
 {
     auto res = SplitParams("()");

@@ -15,6 +15,14 @@ using namespace std;
 using namespace PowerFake;
 using namespace PowerFake::internal;
 
+
+ExtendedPrototype::ExtendedPrototype(std::string ret, std::string name,
+    std::string params, uint32_t qual) :
+        FunctionPrototype(ret, name, params, qual), expanded_params(
+            SplitParams(this->params))
+{
+}
+
 Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
 {
     const string_view::size_type BUF_SIZE = 1 * 1024 * 1024;
@@ -143,6 +151,98 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     if (s != PFK_PROTO_END)
         finfo.prototype.name = s + finfo.prototype.name.substr(nstart);
     return finfo;
+}
+
+ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
+    unsigned name_start, unsigned name_end)
+{
+    std::string ret, name, params;
+    uint32_t qual = Qualifiers::NO_QUAL;
+    if (name_start > 0)
+    {
+        unsigned tpl = 0;
+        for (--name_start;
+                name_start > 0 && (tpl || demangled[name_start] != ' ');
+                --name_start)
+        {
+            if (demangled[name_start] == '>')
+                tpl++;
+            else if (demangled[name_start] == '<')
+                tpl--;
+        }
+        ret = demangled.substr(0, name_start);
+    }
+    if (name_start)
+        ++name_start;
+    name = demangled.substr(name_start, name_end - name_start);
+    auto pstart = demangled.find('(', name_end);
+    auto pend = demangled.rfind(')');
+    ++pend;
+    params = demangled.substr(pstart, pend - pstart);
+
+    istringstream is { string(demangled.substr(pend)) };
+    string w;
+    while (is >> w)
+        qual |= QualifierFromStr(w);
+
+    return { ret, name, params, qual };
+}
+
+std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
+    unsigned &end_pos)
+{
+    start_pos = 0;
+    end_pos = demangled.size();
+    auto name_end = demangled.find_first_of("[(");
+    if (name_end == string::npos)
+        return demangled;
+    end_pos = name_end;
+    auto name_begin = demangled.find_last_of(" >:", name_end);
+    if (name_begin == string::npos)
+        return demangled.substr(0, name_end);
+    if (demangled[name_begin] == '>')
+    {
+        int tpl = 1;
+        for (name_begin--;
+                name_begin > 0 && (tpl || (demangled[name_begin] != ' '
+                        && demangled[name_begin] != ':')); --name_begin)
+        {
+            if (demangled[name_begin] == '>')
+                tpl++;
+            else if (demangled[name_begin] == '<')
+                tpl--;
+        }
+    }
+    auto op_begin = demangled.rfind(' ', name_begin-1);
+    std::string op;
+    if (op_begin == string::npos)
+    {
+        op = demangled.substr(0, name_begin);
+        op_begin = 0;
+    }
+    else
+        op = demangled.substr(op_begin, name_begin-op_begin);
+    if (op == "operator")
+        name_begin = op_begin-1;
+    start_pos = name_begin + 1;
+    return demangled.substr(name_begin+1, name_end-name_begin-1);
+}
+
+PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs)
+{
+    if (qs == "&")
+        return Qualifiers::LV_REF;
+    else if (qs == "&&")
+        return Qualifiers::RV_REF;
+    else if (qs == "const&")
+        return Qualifiers::CONST_REF;
+    else if (qs == "const")
+        return Qualifiers::CONST;
+    else if (qs == "volatile")
+        return Qualifiers::VOLATILE;
+    else if (qs == "noexcept")
+        return Qualifiers::NOEXCEPT;
+    return Qualifiers::NO_QUAL;
 }
 
 std::string FixConstPlacement(std::string_view compile_type)
