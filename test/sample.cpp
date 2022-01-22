@@ -8,10 +8,12 @@
 
 extern "C" int test_function()
 {
+    return 0;
 }
 
 int test_function2()
 {
+    return 0;
 }
 
 class A {

@@ -144,8 +144,28 @@ void SymbolAliasMap::ApplyApproximateMatching()
     if (!approximate_matching)
         return;
 
+    /*
+     * In verify mode, unresolved_functions includes all symbols till now, lets
+     * remove resolved symbols from it
+     */
+    if (verify_mode)
+        for (auto it = unresolved_functions.begin();
+                it != unresolved_functions.end();
+                it = it->second->symbol.empty() ? std::next(it) :
+                        unresolved_functions.erase(it))
+        {
+        }
+
+    if (unresolved_functions.empty())
+        return;
+
+    if (verbose)
+        cout << "\nTry doing inexact function prototype matching "
+            << "\n----------------------------------------------------" << endl;
+
     unsigned prev_unresolved = unresolved_functions.size() + 1;
-    while (!unresolved_functions.empty() && prev_unresolved > unresolved_functions.size())
+    while (!unresolved_functions.empty()
+            && prev_unresolved > unresolved_functions.size())
     {
         prev_unresolved = unresolved_functions.size();
         bool erase = false;
@@ -153,22 +173,40 @@ void SymbolAliasMap::ApplyApproximateMatching()
                 it != unresolved_functions.end();
                 it = erase ? unresolved_functions.erase(it) : std::next(it))
         {
+            auto &finfo = *(it->second);
             erase = false;
-            if (!it->second->symbol.empty())
-            {
-                erase = true;
-                continue;
-            }
-            auto &v = candidates[it->second->prototype.name];
+            auto &v = candidates[finfo.prototype.name];
             if (v.empty())
-                continue;
+                continue; // unresolvable symbol found, skip for now
 
-            if (v.size() == 1)
+            int max_score = -1;
+            const ExtendedPrototype* best_candidate = nullptr;
+//            cout << "Looking for matches for: " << finfo.prototype.Str() << endl;
+            for (const auto &c: v)
             {
-                it->second->symbol = v.back().symbol;
-                v.clear();
+                if (!IsApproximate(finfo.prototype, c))
+                    continue;
+                int score = GetNumMatchingTypes(finfo.prototype, c);
+//                cout << "\t* " << c.Str() << " => Score = " << score << endl;
+                if (score == max_score)
+                    best_candidate = nullptr;
+                else if (score > max_score)
+                {
+                    max_score = score;
+                    best_candidate = &c;
+                }
+            }
+
+            if (best_candidate)
+            {
+                finfo.symbol = best_candidate->symbol;
                 erase = true;
-                continue;
+                if (verbose)
+                    cout << "Found symbol for " << finfo.prototype.Str()
+                            << " == " << best_candidate->symbol
+                            << " (" << best_candidate->Str() << ")("
+                            << max_score <<  ") \n";
+                v.erase(v.begin() + (best_candidate - &v[0]));
             }
         }
     }
@@ -245,10 +283,7 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
         else if (approximate_matching)
         {
             auto proto = ParseDemangledFunction(demangled, name_start, name_end);
-            if (proto.name == func.name
-                    && proto.qual == (func.qual & ~internal::Qualifiers::NOEXCEPT)
-                    && proto.expanded_params.size()
-                            == SplitParams(func.params).size())
+            if (IsApproximate(func, proto))
             {
                 auto &v = candidates[proto.name];
                 auto it = std::find_if(v.begin(), v.end(),
@@ -259,7 +294,7 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
                 if (it == v.end())
                 {
                     proto.symbol = symbol_name;
-                    v.push_back(proto);
+                    v.push_back(std::move(proto));
                     if (verbose)
                         cout << "Mark " << demangled
                             << " as candidate for matching: " << func.Str()
@@ -317,4 +352,29 @@ bool SymbolAliasMap::IsSameFunction(const std::string &demangled,
     // TODO: Warn for similar symbols, e.g. <signature> [clone .cold]
 
     return false;
+}
+
+bool SymbolAliasMap::IsApproximate(
+    const PowerFake::internal::FunctionPrototype &proto,
+    const ExtendedPrototype &ex_proto)
+{
+    return ex_proto.name == proto.name
+            && ex_proto.qual == (proto.qual & ~internal::Qualifiers::NOEXCEPT)
+            && ex_proto.expanded_params.size() == SplitParams(proto.params).size();
+}
+
+int SymbolAliasMap::GetNumMatchingTypes(
+    const PowerFake::internal::FunctionPrototype &proto,
+    const ExtendedPrototype &ex_proto)
+{
+    int score = 0;
+    if (!proto.return_type.empty() && proto.return_type == ex_proto.return_type)
+        ++score;
+    auto ref_params = SplitParams(proto.params);
+    for (unsigned i = 0; i < ref_params.size(); ++i)
+    {
+        if (ref_params[i] == ex_proto.expanded_params[i])
+            ++score;
+    }
+    return score;
 }

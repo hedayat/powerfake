@@ -57,7 +57,11 @@ class SymbolAliasMap
         bool IsFunction(const char *symbol_name, const std::string &demangled);
         bool IsSameFunction(const std::string &demangled,
             const PowerFake::internal::FunctionPrototype &proto);
+        bool IsApproximate(const PowerFake::internal::FunctionPrototype &proto,
+            const ExtendedPrototype &ex_proto);
+        int GetNumMatchingTypes(
+            const PowerFake::internal::FunctionPrototype &proto,
+            const ExtendedPrototype &ex_proto);
 };
-
 
 #endif /* SYMBOLALIASMAP_H_ */
