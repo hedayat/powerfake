@@ -1013,7 +1013,17 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
         typeid(FuncPtrType).name());
 
     // ptr_type example: char* (*)(int const*, int, int)
-    std::string params = ptr_type.substr(ptr_type.rfind('('));
+    unsigned num_pr = 1;
+    std::string::size_type i;
+    for (i = ptr_type.size() - 2; i > 0; --i)
+    {
+        if (ptr_type[i] == ')')
+            ++num_pr;
+        else if (ptr_type[i] == '(')
+            --num_pr;
+        if (num_pr == 0) break;
+    }
+    std::string params = ptr_type.substr(i);
     return FunctionPrototype(ret_type, func_name, params, fq);
 }
 

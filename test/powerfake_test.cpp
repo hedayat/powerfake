@@ -70,6 +70,17 @@ BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionTest)
     BOOST_TEST(proto_normal.params == "(int)");
 }
 
+BOOST_AUTO_TEST_CASE(PrototypeExtractorFunctionPtrParamTest)
+{
+    BOOST_TEST((std::is_same<PrototypeExtractor<void (*)(int (*)(char))>::FakeFunction,
+            function<void (int (*)(char))>>::value));
+
+    auto proto_normal = PrototypeExtractor<void (*)(int (*)(char))>::Extract("folan");
+    BOOST_TEST(proto_normal.return_type == "void");
+    BOOST_TEST(proto_normal.name == "folan");
+    BOOST_TEST(proto_normal.params == "(int (*)(char))");
+}
+
 BOOST_AUTO_TEST_CASE(PrototypeExtractorMemberFunctionTest)
 {
     BOOST_TEST((is_same<PrototypeExtractor<TestMemberFuncType>::FakeFunction,
