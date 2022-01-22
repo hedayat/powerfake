@@ -190,14 +190,44 @@ BOOST_AUTO_TEST_CASE(FunctionNameTest)
     BOOST_TEST(res == "operator bool<char, std::char_traits<char>, "
             "std::allocator<char> >");
 
+    res = FunctionName("std::ostream::operator>>(int)", name_start, name_end);
+    BOOST_TEST(res == "operator>>");
+
     res = FunctionName("std::ostream::operator<<(int)", name_start, name_end);
     BOOST_TEST(res == "operator<<");
+
+    res = FunctionName("Test::operator>(int)", name_start, name_end);
+    BOOST_TEST(res == "operator>");
+
+    res = FunctionName("Test::operator<(int)", name_start, name_end);
+    BOOST_TEST(res == "operator<");
 
     res = FunctionName("Folan<int>()", name_start, name_end);
     BOOST_TEST(res == "Folan<int>");
 
     res = FunctionName("Folan<int>", name_start, name_end);
     BOOST_TEST(res == "Folan<int>");
+
+    res = FunctionName("std::basic_istream<char, std::char_traits<char> >& "
+            "std::operator>><char, std::char_traits<char>, std::allocator<char> >("
+            "std::basic_istream<char, std::char_traits<char> >&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> >&)", name_start, name_end);
+    BOOST_TEST(res == "std::operator>><char, std::char_traits<char>, "
+            "std::allocator<char> >");
+
+    res = FunctionName("std::basic_ostream<char, std::char_traits<char> >& "
+            "std::operator<< <std::char_traits<char> >("
+            "std::basic_ostream<char, std::char_traits<char> >&, char const*)",
+            name_start, name_end);
+    BOOST_TEST(res == "std::operator<< <std::char_traits<char> >");
+
+    res = FunctionName("std::basic_ostream<char, std::char_traits<char> >& "
+            "std::operator<< <char, std::char_traits<char>, std::allocator<char> >("
+            "std::basic_ostream<char, std::char_traits<char> >&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&)", name_start, name_end);
+    BOOST_TEST(res == "std::operator<< <char, std::char_traits<char>, std::allocator<char> >");
 }
 
 BOOST_AUTO_TEST_CASE(SplitParamsTest)
