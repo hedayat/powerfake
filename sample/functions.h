@@ -28,7 +28,8 @@ void overloaded(float a);
 std::string overloaded2(int a);
 std::string overloaded2(float a);
 
-void normal_func(int b, const char **const *c);
+void normal_func(int b, const char **const *c, const std::string &d,
+    const char *(*e)(const char *));
 
 void called_by_normal_func(int b);
 

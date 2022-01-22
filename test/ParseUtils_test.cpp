@@ -189,6 +189,15 @@ BOOST_AUTO_TEST_CASE(FunctionNameTest)
             name_end);
     BOOST_TEST(res == "operator bool<char, std::char_traits<char>, "
             "std::allocator<char> >");
+
+    res = FunctionName("std::ostream::operator<<(int)", name_start, name_end);
+    BOOST_TEST(res == "operator<<");
+
+    res = FunctionName("Folan<int>()", name_start, name_end);
+    BOOST_TEST(res == "Folan<int>");
+
+    res = FunctionName("Folan<int>", name_start, name_end);
+    BOOST_TEST(res == "Folan<int>");
 }
 
 BOOST_AUTO_TEST_CASE(SplitParamsTest)

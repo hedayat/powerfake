@@ -199,9 +199,18 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
 
     while (demangled[name_end] == '<')
     {
+        auto checkop = demangled.find_first_of(" [(", name_end);
+        if (checkop - name_end <= 2) // <( | <<( | << < => should be operator definition
+        {
+            name_end = demangled.find_first_of("<[(", checkop);
+            continue;
+        }
         unsigned tpl = 1;
         for (++name_end; tpl; ++name_end)
         {
+            if (name_end >= demangled.size())
+                throw runtime_error(
+                    "(BUG) Error parsing function name for: " + string(demangled));
             if (demangled[name_end] == '>')
                 --tpl;
             else if (demangled[name_end] == '<')
@@ -227,22 +236,25 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
                 tpl--;
         }
     }
-    auto op_begin = demangled.find_last_of(" :", name_begin-1);
-    std::string op;
-    if (op_begin == string::npos)
+    if (name_begin > 0)
     {
-        op = demangled.substr(0, name_begin);
-        op_begin = 0;
+        auto op_begin = demangled.find_last_of(" :", name_begin-1);
+        std::string op;
+        if (op_begin == string::npos)
+        {
+            op = demangled.substr(0, name_begin);
+            op_begin = 0;
+        }
+        else
+        {
+            ++op_begin;
+            op = demangled.substr(op_begin, name_begin - op_begin);
+        }
+        if (op == "operator")
+            name_begin = op_begin;
+        else
+            ++name_begin;
     }
-    else
-    {
-        ++op_begin;
-        op = demangled.substr(op_begin, name_begin - op_begin);
-    }
-    if (op == "operator")
-        name_begin = op_begin;
-    else
-        ++name_begin;
     start_pos = name_begin;
     return demangled.substr(name_begin, name_end - name_begin);
 }

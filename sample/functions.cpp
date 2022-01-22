@@ -46,10 +46,11 @@ void overloaded(float a)
 }
 
 [[gnu::optimize("no-optimize-sibling-calls")]]
-void normal_func(int b, const char **const *c)
+void normal_func(int b, const char **const *c, const std::string &d,
+    const char *(*e)(const char *))
 {
     cout << "Normal function: " << __FUNCTION__ << " called with " << b
-            << endl;
+            << ' ' << c << ' ' << d << ' ' << e << endl;
     called_by_normal_func(b);
 }
 
