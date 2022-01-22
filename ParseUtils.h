@@ -22,6 +22,7 @@ struct ExtendedPrototype: public PowerFake::internal::FunctionPrototype
     ExtendedPrototype(std::string ret, std::string name, std::string params,
         uint32_t qual);
     std::vector<std::string_view> expanded_params;
+    std::string symbol;
 };
 
 Functions ReadFunctionsList(std::vector<std::string> wrapper_files,

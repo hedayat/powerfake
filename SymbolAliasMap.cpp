@@ -16,14 +16,16 @@
 #include <fstream>
 #include <string>
 #include "powerfake.h"
+#include "ParseUtils.h"
 
 using namespace PowerFake;
 using namespace std;
 
 
-SymbolAliasMap::SymbolAliasMap(Functions &functions, bool verbose,
-    bool verify_mode) :
-        functions(functions), verbose(verbose), verify_mode(verify_mode)
+SymbolAliasMap::SymbolAliasMap(Functions &functions, bool approximate_matching,
+    bool verbose, bool verify_mode) :
+        functions(functions), approximate_matching(approximate_matching),
+        verbose(verbose), verify_mode(verify_mode)
 {
     CreateFunctionMap(functions);
 }
@@ -137,6 +139,38 @@ void SymbolAliasMap::PrintUnresolvedSymbols()
     }
 }
 
+void SymbolAliasMap::ApplyApproximateMatching()
+{
+    if (!approximate_matching)
+        return;
+
+    unsigned prev_unresolved = unresolved_functions.size() + 1;
+    while (!unresolved_functions.empty() && prev_unresolved > unresolved_functions.size())
+    {
+        prev_unresolved = unresolved_functions.size();
+        for (auto it = unresolved_functions.begin();
+                it != unresolved_functions.end();
+                )
+        {
+            if (!it->second->symbol.empty())
+            {
+                it = unresolved_functions.erase(it);
+                continue;
+            }
+            auto &v = candidates[it->second->prototype.name];
+            if (v.empty())
+                continue;
+
+            if (v.size() == 1)
+            {
+                it->second->symbol = v.back().symbol;
+                v.clear();
+                it = unresolved_functions.erase(it);
+            }
+        }
+    }
+}
+
 void SymbolAliasMap::CreateFunctionMap(Functions &functions)
 {
     for (auto it = functions.begin(); it != functions.end(); ++it)
@@ -171,7 +205,7 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
     auto name = FunctionName(demangled, name_start, name_end);
 
     auto range = unresolved_functions.equal_range(name);
-    for (auto p = range.first; p != range.second; )
+    for (auto p = range.first; p != range.second; ++p)
     {
         auto func = p->second->prototype;
         if (IsSameFunction(demangled, func))
@@ -189,10 +223,47 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
             if (verbose)
                 cout << "Found symbol for " << func.return_type << ' ' << sig
                         << " == " << symbol_name << " (" << demangled << ") \n";
-            p = verify_mode ? std::next(p) : unresolved_functions.erase(p);
+            if (approximate_matching)
+            {
+                auto &v = candidates[func.name];
+                auto it = std::remove_if(v.begin(), v.end(),
+                    [symbol_name](const auto &p)
+                    {
+                        return p.symbol == symbol_name;
+                    });
+                v.erase(it, v.end());
+            }
+            if (!verify_mode)
+            {
+                unresolved_functions.erase(p);
+                break;
+            }
         }
-        else
-            ++p;
+        else if (approximate_matching)
+        {
+            auto proto = ParseDemangledFunction(demangled, name_start, name_end);
+            if (proto.name == func.name
+                    && proto.qual == (func.qual & ~internal::Qualifiers::NOEXCEPT)
+                    && proto.expanded_params.size()
+                            == SplitParams(func.params).size())
+            {
+                auto &v = candidates[proto.name];
+                auto it = std::find_if(v.begin(), v.end(),
+                    [symbol_name](const auto &p)
+                    {
+                        return p.symbol == symbol_name;
+                    });
+                if (it == v.end())
+                {
+                    proto.symbol = symbol_name;
+                    v.push_back(proto);
+                    if (verbose)
+                        cout << "Mark " << demangled
+                            << " as candidate for matching: " << func.Str()
+                            << endl;
+                }
+            }
+        }
     }
 }
 

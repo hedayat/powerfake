@@ -199,7 +199,7 @@ static FakePtr MakeFake(Functor f);
 namespace internal
 {
 
-enum Qualifiers
+enum Qualifiers: unsigned
 {
     NO_QUAL = 0,
     CONST = 1,

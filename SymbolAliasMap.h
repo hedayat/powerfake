@@ -17,6 +17,8 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <vector>
+#include "ParseUtils.h"
 
 using PowerFake::internal::WrapperBase;
 
@@ -25,23 +27,27 @@ class SymbolAliasMap
     public:
         using Functions = WrapperBase::Functions;
         using FunctionNames = std::multimap<std::string_view, Functions::iterator>;
+        using CandidateFunctions = std::map<std::string, std::vector<ExtendedPrototype>>;
 
     public:
-        SymbolAliasMap(Functions &functions, bool verbose = false,
-            bool verify_mode = false);
+        SymbolAliasMap(Functions &functions, bool approximate_matching,
+            bool verbose = false, bool verify_mode = false);
 
         void Load(std::string_view filename);
         void Save(std::string_view filename);
         void AddSymbol(const char *symbol_name);
         bool FoundAllWrappedSymbols() const;
         void PrintUnresolvedSymbols();
+        void ApplyApproximateMatching();
 
     private:
         const Functions &functions;
-        bool verbose;
-        bool verify_mode;
+        const bool approximate_matching;
+        const bool verbose;
+        const bool verify_mode;
         FunctionNames functions_map;
         FunctionNames unresolved_functions;
+        CandidateFunctions candidates;
 
         void CreateFunctionMap(Functions &functions);
         std::string_view GetSimpleName(

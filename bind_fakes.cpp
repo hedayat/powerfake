@@ -127,7 +127,7 @@ int main(int argc, char **argv)
         Functions functions =
                 standalone ? ReadFunctionsList(wrapper_files, verbose) :
                         std::move(WrapperBase::WrappedFunctions());
-        SymbolAliasMap symmap(functions, verbose, verify);
+        SymbolAliasMap symmap(functions, standalone, verbose, verify);
 
         if (enable_symcache)
             symmap.Load(output_prefix + ".symcache");
@@ -172,6 +172,7 @@ int main(int argc, char **argv)
                 symmap.AddSymbol(symbol);
         }
 
+        symmap.ApplyApproximateMatching();
         if (!symmap.FoundAllWrappedSymbols())
         {
             symmap.PrintUnresolvedSymbols();
