@@ -148,13 +148,15 @@ void SymbolAliasMap::ApplyApproximateMatching()
     while (!unresolved_functions.empty() && prev_unresolved > unresolved_functions.size())
     {
         prev_unresolved = unresolved_functions.size();
+        bool erase = false;
         for (auto it = unresolved_functions.begin();
                 it != unresolved_functions.end();
-                )
+                it = erase ? unresolved_functions.erase(it) : std::next(it))
         {
+            erase = false;
             if (!it->second->symbol.empty())
             {
-                it = unresolved_functions.erase(it);
+                erase = true;
                 continue;
             }
             auto &v = candidates[it->second->prototype.name];
@@ -165,7 +167,8 @@ void SymbolAliasMap::ApplyApproximateMatching()
             {
                 it->second->symbol = v.back().symbol;
                 v.clear();
-                it = unresolved_functions.erase(it);
+                erase = true;
+                continue;
             }
         }
     }

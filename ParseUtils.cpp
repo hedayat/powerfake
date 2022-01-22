@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <set>
 
 using namespace std;
 using namespace PowerFake;
@@ -31,6 +32,7 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
     const string_view START_MARKER { PFK_PROTO_START };
     const string_view END_MARKER { PFK_PROTO_END };
     Functions functions;
+    set<string> found_prototypes;
     char buff_mem[BUF_SIZE];
     for (const auto &wf_name: wrapper_files)
     {
@@ -60,13 +62,13 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
 
                 if (p_end != string_view::npos)
                 {
-                    auto infostr = strbuf.substr(p_start, p_end - p_start + END_MARKER.size());
-                    if (verbose)
-                        cout << "Found Prototype: " << infostr << endl;
-                    if (auto finfo = GetFunctionInfo(infostr))
-                        functions.push_back(finfo.value());
-                    else
-                        cout << "Skipped: " << infostr << endl;
+                    auto infostr = strbuf.substr(p_start,
+                        p_end - p_start + END_MARKER.size());
+                    /*
+                     * There can be duplicate entries in the binary, so we
+                     * use an std::set to eliminate duplicates
+                     */
+                    found_prototypes.insert(string(infostr));
                 }
                 else
                     break;
@@ -85,6 +87,16 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                 read_start = handover_data.size();
             }
         } while (wfile);
+    }
+
+    for (const auto &infostr: found_prototypes)
+    {
+        if (verbose)
+            cout << "Found Prototype: " << infostr << endl;
+        if (auto finfo = GetFunctionInfo(infostr))
+            functions.push_back(finfo.value());
+        else
+            cout << "Skipped: " << infostr << endl;
     }
     return functions;
 }
