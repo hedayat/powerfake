@@ -210,6 +210,38 @@ void SymbolAliasMap::ApplyApproximateMatching()
             }
         }
     }
+
+    // Log unmatched functions
+    for (auto it = unresolved_functions.begin();
+            it != unresolved_functions.end(); ++it)
+    {
+        int max_score = -1;
+        auto &finfo = *(it->second);
+        auto &v = candidates[finfo.prototype.name];
+        vector<const ExtendedPrototype*> best_candidate;
+        for (const auto &c: v)
+        {
+            if (!IsApproximate(finfo.prototype, c))
+                continue;
+            int score = GetNumMatchingTypes(finfo.prototype, c);
+            if (score == max_score)
+                best_candidate.push_back(&c);
+            else if (score > max_score)
+            {
+                max_score = score;
+                best_candidate.clear();
+                best_candidate.push_back(&c);
+            }
+        }
+
+        if (!best_candidate.empty())
+        {
+            cout << "Cannot find matching prototype for: "
+                    << finfo.prototype.Str() << ", candidates: " << endl;
+            for (auto c: best_candidate)
+                cout << "\t" << c->Str() << '(' << max_score << ')' << endl;
+        }
+    }
 }
 
 void SymbolAliasMap::CreateFunctionMap(Functions &functions)
@@ -223,7 +255,7 @@ std::string_view SymbolAliasMap::GetSimpleName(
     const PowerFake::internal::FunctionPrototype &prototype)
 {
     std::string_view name = prototype.name;
-    auto nstart = name.rfind(':', prototype.name.length()-1);
+    auto nstart = name.rfind(':', prototype.name.length() - 1);
     if (nstart != std::string::npos)
         return name.substr(nstart + 1);
     return name;
