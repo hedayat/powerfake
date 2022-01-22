@@ -205,54 +205,62 @@ std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
 {
     start_pos = 0;
     end_pos = demangled.size();
-    auto name_end = demangled.find_first_of("<[(");
-    if (name_end == string::npos)
+    auto name_end = demangled.rfind(")");
+    if (name_end == string_view::npos)
         return demangled;
 
-    while (demangled[name_end] == '<')
+    int num_pr = 1;
+    for (--name_end; name_end > 0; --name_end)
     {
-        auto checkop = demangled.find_first_of(" [(", name_end);
-        if (checkop - name_end <= 2) // <( | <<( | << < => should be operator definition
-        {
-            name_end = demangled.find_first_of("<[(", checkop);
-            continue;
-        }
-        unsigned tpl = 1;
-        for (++name_end; tpl; ++name_end)
-        {
-            if (name_end >= demangled.size())
-                throw runtime_error(
-                    "(BUG) Error parsing function name for: " + string(demangled));
-            if (demangled[name_end] == '>')
-                --tpl;
-            else if (demangled[name_end] == '<')
-                ++tpl;
-        }
-        name_end = demangled.find_first_of("<[(", name_end);
+        if (demangled[name_end] == ')')
+            ++num_pr;
+        else if (demangled[name_end] == '(')
+            --num_pr;
+        if (num_pr == 0) break;
     }
+    if (num_pr)
+        throw runtime_error(
+            "(BUG) Error parsing function name for: " + string(demangled));
 
+    // look for ABI tag, but not operator[]
+    if (demangled[name_end - 1] == ']' && demangled[name_end - 2] != '[')
+        name_end = demangled.rfind('[', name_end - 1);
     end_pos = name_end;
+    if (name_end == string_view::npos)
+        throw runtime_error(
+            "(BUG) Error parsing function name for: " + string(demangled));
+
     auto name_begin = demangled.find_last_of(" >:", name_end);
-    if (name_begin == string::npos)
+    if (name_begin == string_view::npos)
         return demangled.substr(0, name_end);
+
     if (demangled[name_begin] == '>')
     {
         int tpl = 1;
-        for (name_begin--;
-                name_begin > 0 && (tpl || (demangled[name_begin] != ' '
-                        && demangled[name_begin] != ':')); --name_begin)
+        for (name_begin--; name_begin > 0 && tpl; --name_begin)
         {
-            if (demangled[name_begin] == '>')
+            if ((demangled[name_begin] == ' ' || demangled[name_begin] == ':')
+                    && demangled.substr(name_begin + 1, strlen("operator>"))
+                            == "operator>")
+            {
+                tpl = 0;
+                break;
+            }
+            else if (demangled[name_begin] == '>')
                 tpl++;
             else if (demangled[name_begin] == '<')
                 tpl--;
         }
+        // "operator<< <>"
+        if (demangled[name_begin] == ' ' && demangled[name_begin + 1] == '<')
+            --name_begin;
+        name_begin = demangled.find_last_of(" :", name_begin);
     }
     if (name_begin > 0)
     {
         auto op_begin = demangled.find_last_of(" :", name_begin-1);
         std::string op;
-        if (op_begin == string::npos)
+        if (op_begin == string_view::npos)
         {
             op = demangled.substr(0, name_begin);
             op_begin = 0;

@@ -208,26 +208,59 @@ BOOST_AUTO_TEST_CASE(FunctionNameTest)
     res = FunctionName("Folan<int>", name_start, name_end);
     BOOST_TEST(res == "Folan<int>");
 
+    res = FunctionName("std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> >::operator[](unsigned long) const",
+            name_start, name_end);
+    BOOST_TEST(res == "operator[]");
+
+    res = FunctionName("bool operator><char>("
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&)", name_start, name_end);
+    BOOST_TEST(res == "operator><char>");
+
+    res = FunctionName("bool operator< <char>("
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&)", name_start, name_end);
+    BOOST_TEST(res == "operator< <char>");
+
+    res = FunctionName("bool Class::operator><char>("
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&)", name_start, name_end);
+    BOOST_TEST(res == "operator><char>");
+
+    res = FunctionName("bool Class::operator< <char>("
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&, "
+            "std::__cxx11::basic_string<char, std::char_traits<char>, "
+            "std::allocator<char> > const&)", name_start, name_end);
+    BOOST_TEST(res == "operator< <char>");
+
     res = FunctionName("std::basic_istream<char, std::char_traits<char> >& "
             "std::operator>><char, std::char_traits<char>, std::allocator<char> >("
             "std::basic_istream<char, std::char_traits<char> >&, "
             "std::__cxx11::basic_string<char, std::char_traits<char>, "
             "std::allocator<char> >&)", name_start, name_end);
-    BOOST_TEST(res == "std::operator>><char, std::char_traits<char>, "
+    BOOST_TEST(res == "operator>><char, std::char_traits<char>, "
             "std::allocator<char> >");
 
     res = FunctionName("std::basic_ostream<char, std::char_traits<char> >& "
             "std::operator<< <std::char_traits<char> >("
             "std::basic_ostream<char, std::char_traits<char> >&, char const*)",
             name_start, name_end);
-    BOOST_TEST(res == "std::operator<< <std::char_traits<char> >");
+    BOOST_TEST(res == "operator<< <std::char_traits<char> >");
 
     res = FunctionName("std::basic_ostream<char, std::char_traits<char> >& "
             "std::operator<< <char, std::char_traits<char>, std::allocator<char> >("
             "std::basic_ostream<char, std::char_traits<char> >&, "
             "std::__cxx11::basic_string<char, std::char_traits<char>, "
             "std::allocator<char> > const&)", name_start, name_end);
-    BOOST_TEST(res == "std::operator<< <char, std::char_traits<char>, std::allocator<char> >");
+    BOOST_TEST(res == "operator<< <char, std::char_traits<char>, std::allocator<char> >");
 }
 
 BOOST_AUTO_TEST_CASE(SplitParamsTest)
