@@ -29,7 +29,6 @@
 #include <typeindex>
 #include <type_traits>
 #include <boost/core/demangle.hpp>
-#include <ctti/nameof.hpp>
 #include <array>
 
 namespace PowerFake
@@ -669,7 +668,7 @@ class Wrapper: public WrapperBase
 
 // constexpr string concat
 // https://stackoverflow.com/a/62823211/3936307
-template <ctti::detail::cstring const&... Strs>
+template <std::string_view const&... Strs>
 struct CStringJoin
 {
     static constexpr auto impl() noexcept
@@ -688,14 +687,35 @@ struct CStringJoin
 };
 
 // Helper to get the value out
-template <ctti::detail::cstring const&... Strs>
+template <std::string_view const&... Strs>
 static constexpr auto CStringJoin_v = CStringJoin<Strs...>::value;
 
+#ifdef __clang__
+#define PFK_CTYPE_PREFIX "[T = "sv
+#else
+#define PFK_CTYPE_PREFIX "[with T = "sv
+#endif
 #define PFK_PROTO_PREFIX    "PFKPrototype"
 #define PFK_PROTO_START     PFK_PROTO_PREFIX "Start: "
 #define PFK_PROTO_END       PFK_PROTO_PREFIX "End"
-constexpr static ctti::detail::cstring STR_SEPARATOR = " | ";
-constexpr static ctti::detail::cstring PROTO_END = " | " PFK_PROTO_END;
+constexpr static std::string_view STR_SEPARATOR = " | ";
+constexpr static std::string_view PROTO_END = " | " PFK_PROTO_END;
+
+// borrowed (& modified) from
+// https://en.cppreference.com/w/cpp/utility/source_location/source_location
+template <typename T>
+constexpr auto TypeName()
+{
+    using std::operator""sv;
+    constexpr std::string_view func_name { __PRETTY_FUNCTION__ };
+    constexpr auto prefix { PFK_CTYPE_PREFIX };
+    constexpr auto type_begin { func_name.find(prefix) };
+    static_assert(type_begin != std::string_view::npos, "Cannot determine type name!");
+    static_assert(func_name.back() == ']', "Cannot determine type name!");
+    const std::size_t first { type_begin + prefix.length() };
+    return std::string_view { func_name.cbegin() + first, func_name.cend()
+                                      - func_name.cbegin() - first - 1 };
+}
 
 } // namespace internal
 
@@ -797,7 +817,7 @@ constexpr static ctti::detail::cstring PROTO_END = " | " PFK_PROTO_END;
 
 #define DEFINE_WRAPPER_OBJECT_2(FTYPE, FNAME, FADDR, ALIAS, FAKE_TYPE, FCLASS) \
     STATIC_PROTOTYPE_HDR(FTYPE, FNAME, ALIAS, FAKE_TYPE); \
-    constexpr static auto CTYPE_##ALIAS = ctti::nameof<FCLASS>(); \
+    constexpr static auto CTYPE_##ALIAS = PowerFake::internal::TypeName<FCLASS>(); \
     constexpr static auto SPROTO_##ALIAS = PowerFake::internal::CStringJoin_v< \
             PREFIX_##ALIAS, FUNCTYPE_##ALIAS, PowerFake::internal::STR_SEPARATOR, \
             CTYPE_##ALIAS, PowerFake::internal::PROTO_END>; \
@@ -837,8 +857,8 @@ constexpr static ctti::detail::cstring PROTO_END = " | " PFK_PROTO_END;
 #endif
 
 #define STATIC_PROTOTYPE_HDR(FTYPE, FNAME, ALIAS, FAKE_TYPE) \
-    constexpr static auto FUNCTYPE_##ALIAS = ctti::nameof<FTYPE>(); \
-    constexpr static ctti::detail::cstring PREFIX_##ALIAS = PFK_PROTO_START \
+    constexpr static auto FUNCTYPE_##ALIAS = PowerFake::internal::TypeName<FTYPE>(); \
+    constexpr static std::string_view PREFIX_##ALIAS = PFK_PROTO_START \
         #FAKE_TYPE " | " #FNAME " | " #ALIAS " | "
 
 // -----------------------------------------------------------------------------

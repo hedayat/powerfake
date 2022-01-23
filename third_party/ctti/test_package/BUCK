@@ -1,9 +1,0 @@
-cxx_binary(
-  name = 'test_package',
-  srcs = [
-    'main.cpp',
-  ],
-  deps = [
-    '//:ctti',
-  ],
-)
