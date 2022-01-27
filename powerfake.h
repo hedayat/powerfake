@@ -695,9 +695,16 @@ static constexpr auto CStringJoin_v = CStringJoin<Strs...>::value;
 #else
 #define PFK_CTYPE_PREFIX "[with T = "sv
 #endif
-#define PFK_PROTO_PREFIX    "PFKPrototype"
-#define PFK_PROTO_START     PFK_PROTO_PREFIX "Start: "
-#define PFK_PROTO_END       PFK_PROTO_PREFIX "End"
+#define PFK_TAG_PREFIX      "PFK"
+#define PFK_TAG_START       "Start: "
+#define PFK_TAG_END         "End"
+#define PFK_TYPEHINT_PREFIX PFK_TAG_PREFIX      "TypeHint"
+#define PFK_PROTO_PREFIX    PFK_TAG_PREFIX      "Prototype"
+
+#define PFK_PROTO_START     PFK_PROTO_PREFIX    PFK_TAG_START
+#define PFK_PROTO_END       PFK_PROTO_PREFIX    PFK_TAG_END
+#define PFK_TYPEHINT_START  PFK_TYPEHINT_PREFIX PFK_TAG_START
+#define PFK_TYPEHINT_END    PFK_TYPEHINT_PREFIX PFK_TAG_END
 constexpr static std::string_view STR_SEPARATOR = " | ";
 constexpr static std::string_view PROTO_END = " | " PFK_PROTO_END;
 
@@ -743,6 +750,10 @@ constexpr auto TypeName()
 #ifndef POWRFAKE_WRAP_NAMESPACE
 #define POWRFAKE_WRAP_NAMESPACE PowerFakeWrap
 #endif
+
+#define PFK_TYPE_HINT(CTNAME, DEMANGLED_NAME) \
+    auto PFK_BUILD_NAME(POWRFAKE_WRAP_NAMESPACE, __pfktypehint__, __LINE__) = \
+        PFK_TYPEHINT_START CTNAME " | " DEMANGLED_NAME " | " PFK_TYPEHINT_END
 
 // -----------------------------------------------------------------------------
 // Main implementation for wrapping/hiding functions
