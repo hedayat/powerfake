@@ -28,11 +28,14 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
 {
     const string_view::size_type BUF_SIZE = 1 * 1024 * 1024;
     const string_view::size_type MIN_ACCEPTABLE_INCOMPLETE_POS = BUF_SIZE - 10 * 1024;
-    const string_view PREFIX { PFK_PROTO_PREFIX };
-    const string_view START_MARKER { PFK_PROTO_START };
-    const string_view END_MARKER { PFK_PROTO_END };
+    const string_view PREFIX { PFK_TAG_PREFIX };
+    const string_view PT_START_MARKER { PFK_PROTO_START };
+    const string_view PT_END_MARKER { PFK_PROTO_END };
+    const string_view TH_START_MARKER { PFK_TYPEHINT_START };
+    const string_view TH_END_MARKER { PFK_TYPEHINT_END };
     Functions functions;
     set<string> found_prototypes;
+    set<string> found_typehints;
     char buff_mem[BUF_SIZE];
     for (const auto &wf_name: wrapper_files)
     {
@@ -48,38 +51,48 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
             if (wfile.gcount() <= 0) continue;
 
             string_view strbuf(buff_mem, read_start + wfile.gcount());
-            auto p_start = strbuf.find(START_MARKER);
+            auto [p_start, found] = FindStrings(PREFIX, { PT_START_MARKER,
+                TH_START_MARKER }, strbuf);
             while (p_start != string_view::npos)
             {
-                auto p_end = strbuf.find(PREFIX, p_start + START_MARKER.size());
-                while (p_end != string_view::npos &&
-                        strbuf.substr(p_end, END_MARKER.size()) != END_MARKER)
+                string_view start_marker = found ? TH_START_MARKER : PT_START_MARKER;
+                string_view end_marker = found ? TH_END_MARKER : PT_END_MARKER;
+                auto [p_end, marker_found] = FindStrings(PREFIX, { end_marker,
+                        PT_START_MARKER, TH_START_MARKER }, strbuf,
+                    p_start + start_marker.size());
+                while (p_end != string_view::npos && marker_found)
                 {
-                    if (strbuf.substr(p_end, START_MARKER.size()) == START_MARKER)
-                        p_start = p_end;
+                    found = marker_found - 1;
+                    tie(p_end, marker_found) = FindStrings(PREFIX, { end_marker,
+                            PT_START_MARKER, TH_START_MARKER }, strbuf,
+                        p_end + PREFIX.size());
                     p_end = strbuf.find(PREFIX, p_end + PREFIX.size());
                 }
 
                 if (p_end != string_view::npos)
                 {
                     auto infostr = strbuf.substr(p_start,
-                        p_end - p_start + END_MARKER.size());
+                        p_end - p_start + end_marker.size());
                     /*
                      * There can be duplicate entries in the binary, so we
                      * use an std::set to eliminate duplicates
                      */
-                    found_prototypes.insert(string(infostr));
+                    if (found)
+                        found_typehints.insert(string(infostr));
+                    else
+                        found_prototypes.insert(string(infostr));
                 }
                 else
                     break;
-                p_start = strbuf.find(START_MARKER, p_end + END_MARKER.size());
+                std::tie(p_start, found) = FindStrings(PREFIX, { PT_START_MARKER,
+                    TH_START_MARKER }, strbuf, p_end + end_marker.size());
             }
 
             if (wfile)
             {
                 string_view::size_type keep_start;
                 if (p_start == string_view::npos || p_start < MIN_ACCEPTABLE_INCOMPLETE_POS)
-                    keep_start = strbuf.size() - START_MARKER.size();
+                    keep_start = strbuf.size() - PT_START_MARKER.size();
                 else
                     keep_start = p_start;
                 auto handover_data = strbuf.substr(keep_start);
@@ -87,6 +100,24 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                 read_start = handover_data.size();
             }
         } while (wfile);
+    }
+
+    map<string, string> type_hints;
+    for (const auto &infostr: found_typehints)
+    {
+        if (verbose)
+            cout << "Found Type Hint: " << infostr << endl;
+        if (auto tinfo = GetTypeHint(infostr))
+        {
+            auto [it, inserted] = type_hints.insert(tinfo.value());
+            if (!inserted)
+            {
+                cerr << "Duplicate type hint for type: " << tinfo.value().first
+                        << " => " << tinfo.value().second;
+            }
+        }
+        else
+            cout << "Skipped: " << infostr << endl;
     }
 
     for (const auto &infostr: found_prototypes)
@@ -128,6 +159,7 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
 
     is >> s >> finfo.prototype.alias >> s;
     std::getline(is, s, '|');
+    if (!is) return {};
     string_view sv = s;
     auto ret_end = sv.find('(');
     auto param_end = sv.rfind(')');
@@ -163,6 +195,31 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     if (s != PFK_PROTO_END)
         finfo.prototype.name = s + finfo.prototype.name.substr(nstart);
     return finfo;
+}
+
+std::optional<std::pair<std::string, std::string>> GetTypeHint(
+    std::string_view typehint_str)
+{
+    /*
+     * PFKTypeHintStart: std::string | std::basic_string<char, allocator<char> > | PFKTypeHintEnd
+     */
+    string ct_type, demangled_type, s;
+
+    istringstream is { string(typehint_str) };
+    is >> s;
+
+    is.ignore(10, ' ');
+    std::getline(is, ct_type, '|');
+    if (!is) return {};
+    auto ltrim = ct_type.find_last_not_of(' ');
+    ct_type.resize(ltrim + 1);
+
+    is.ignore(10, ' ');
+    std::getline(is, demangled_type, '|');
+    if (!is) return {};
+    ltrim = demangled_type.find_last_not_of(' ');
+    demangled_type.resize(ltrim + 1);
+    return pair{ ct_type, demangled_type };
 }
 
 ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
@@ -455,4 +512,23 @@ std::string FixSpaces(std::string_view type_str)
     while (true);
     res += type_str.substr(pos);
     return res;
+}
+
+std::pair<std::string_view::size_type, int> FindStrings(std::string_view prefix,
+    std::vector<std::string_view> srch, std::string_view str,
+    std::string_view::size_type start_pos)
+{
+    auto pos = str.find(prefix, start_pos);
+
+    while (pos != string_view::npos)
+    {
+        for (unsigned i = 0; i < srch.size(); ++i)
+        {
+            if (str.substr(pos, srch[i].size()) == srch[i])
+                return { pos, i };
+        }
+        pos = str.find(prefix, pos + prefix.size());
+    }
+
+    return { pos, -1 };
 }

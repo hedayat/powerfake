@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "powerfake.h"
@@ -29,6 +30,8 @@ Functions ReadFunctionsList(std::vector<std::string> wrapper_files,
     bool verbose = false);
 std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(
     std::string_view function_str);
+std::optional<std::pair<std::string, std::string>> GetTypeHint(
+    std::string_view typehint_str);
 
 ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
     unsigned name_start, unsigned name_end);
@@ -39,5 +42,8 @@ std::string FixConstPlacement(std::string_view compile_type);
 std::string FixParamsConstPlacement(std::string_view params);
 std::vector<std::string_view> SplitParams(std::string_view params);
 std::string FixSpaces(std::string_view type_str);
+std::pair<std::string_view::size_type, int> FindStrings(std::string_view prefix,
+    std::vector<std::string_view> srch, std::string_view str,
+    std::string_view::size_type start_pos = 0);
 
 #endif /* PARSEUTILS_H_ */
