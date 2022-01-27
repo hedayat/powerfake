@@ -164,8 +164,8 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     auto ret_end = sv.find('(');
     auto param_end = sv.rfind(')');
     auto param_start = sv.find('(', ret_end + 1);
-    finfo.prototype.return_type = FixConstPlacement(sv.substr(1, ret_end - 2));
-    finfo.prototype.params = FixParamsConstPlacement(
+    finfo.prototype.return_type = NormalizeType(sv.substr(1, ret_end - 2));
+    finfo.prototype.params = NormalizeParameters(
         sv.substr(param_start, param_end - param_start + 1));
     if (sv.substr(ret_end, 3) != "(*)") // a class member
         finfo.prototype.name = string(
@@ -353,7 +353,7 @@ PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs)
     return Qualifiers::NO_QUAL;
 }
 
-std::string FixConstPlacement(std::string_view compile_type)
+std::string NormalizeType(std::string_view compile_type)
 {
     std::string suffix;
     auto param_end = compile_type.find_last_of(")>");
@@ -364,7 +364,7 @@ std::string FixConstPlacement(std::string_view compile_type)
         if (compile_type[fparan_start - 1] != ' ')
             suffix = ' ';
         suffix += compile_type.substr(fparan_start, param_start - fparan_start);
-        suffix += FixParamsConstPlacement(
+        suffix += NormalizeParameters(
             compile_type.substr(param_start, param_end - param_start + 1));
         suffix += compile_type.substr(param_end + 1);
         compile_type = compile_type.substr(0, fparan_start);
@@ -406,7 +406,7 @@ std::string FixConstPlacement(std::string_view compile_type)
         {
             auto tplend = compile_type.rfind('>');
             res = compile_type.substr(start_pos, ++lookup - start_pos);
-            res += FixParamsConstPlacement(
+            res += NormalizeParameters(
                 compile_type.substr(lookup, tplend - lookup));
             res += '>';
             if (add_const)
@@ -418,7 +418,7 @@ std::string FixConstPlacement(std::string_view compile_type)
     return res + suffix;
 }
 
-std::string FixParamsConstPlacement(std::string_view params)
+std::string NormalizeParameters(std::string_view params)
 {
     std::string res;
     if (params[0] == '(')
@@ -430,7 +430,7 @@ std::string FixParamsConstPlacement(std::string_view params)
         if (!first)
             res += ", ";
         first = false;
-        res += FixConstPlacement(p);
+        res += NormalizeType(p);
     }
 
     if (res[0] == '(')

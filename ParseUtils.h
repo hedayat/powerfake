@@ -38,8 +38,8 @@ ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
 std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
     unsigned &end_pos);
 PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs);
-std::string FixConstPlacement(std::string_view compile_type);
-std::string FixParamsConstPlacement(std::string_view params);
+std::string NormalizeType(std::string_view compile_type);
+std::string NormalizeParameters(std::string_view params);
 std::vector<std::string_view> SplitParams(std::string_view params);
 std::string FixSpaces(std::string_view type_str);
 std::pair<std::string_view::size_type, int> FindStrings(std::string_view prefix,

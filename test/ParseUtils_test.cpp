@@ -292,9 +292,9 @@ BOOST_AUTO_TEST_CASE(SplitParamsTest)
     BOOST_TEST(res[1] == "const std::__cxx11::basic_string<char>& (*)(const int*, bool)");
 }
 
-BOOST_AUTO_TEST_CASE(FixParamsConstPlacementTest)
+BOOST_AUTO_TEST_CASE(NormalizeParametersTest)
 {
-    auto res = FixParamsConstPlacement("(int, "
+    auto res = NormalizeParameters("(int, "
             "const std::__cxx11::basic_string<char>&, "
             "std::__cxx11::basic_string<char>, "
             "const std::__cxx11::basic_string<char>*, const char** const*, "
@@ -304,39 +304,39 @@ BOOST_AUTO_TEST_CASE(FixParamsConstPlacementTest)
             "char const** const*, std::vector<char const*>, char const* (*)(char const*))");
 }
 
-BOOST_AUTO_TEST_CASE(FixConstPlacementTest)
+BOOST_AUTO_TEST_CASE(NormalizeTypeTest)
 {
     // simple types
-    auto res = FixConstPlacement("const std::__cxx11::basic_string<char>&");
+    auto res = NormalizeType("const std::__cxx11::basic_string<char>&");
     BOOST_TEST(res == "std::__cxx11::basic_string<char> const&");
 
-    res = FixConstPlacement("const rpc::HelloRequest&");
+    res = NormalizeType("const rpc::HelloRequest&");
     BOOST_TEST(res == "rpc::HelloRequest const&");
 
-    res = FixConstPlacement("const rpc::HelloRequest*");
+    res = NormalizeType("const rpc::HelloRequest*");
     BOOST_TEST(res == "rpc::HelloRequest const*");
 
-    res = FixConstPlacement("const char* const*");
+    res = NormalizeType("const char* const*");
     BOOST_TEST(res == "char const* const*");
 
     // template types
-    res = FixConstPlacement("std::vector<const char*, std::allocator<const char*> >");
+    res = NormalizeType("std::vector<const char*, std::allocator<const char*> >");
     BOOST_TEST(res == "std::vector<char const*, std::allocator<char const*> >");
 
     // function types
-    res = FixConstPlacement("const char* (*)(bool, const char* const*)");
+    res = NormalizeType("const char* (*)(bool, const char* const*)");
     BOOST_TEST(res == "char const* (*)(bool, char const* const*)");
 
-    res = FixConstPlacement("const char* (Folan::Bahman::*)(bool, const char* const*)");
+    res = NormalizeType("const char* (Folan::Bahman::*)(bool, const char* const*)");
     BOOST_TEST(res == "char const* (Folan::Bahman::*)(bool, char const* const*)");
 
-    res = FixConstPlacement("char (*)(bool, const char* const*)");
+    res = NormalizeType("char (*)(bool, const char* const*)");
     BOOST_TEST(res == "char (*)(bool, char const* const*)");
 
-    res = FixConstPlacement("char (Folan::Bahman::*)(bool, const char* const*)");
+    res = NormalizeType("char (Folan::Bahman::*)(bool, const char* const*)");
     BOOST_TEST(res == "char (Folan::Bahman::*)(bool, char const* const*)");
 
-    res = FixConstPlacement("const std::vector<char> &(Folan::Bahman::*)"
+    res = NormalizeType("const std::vector<char> &(Folan::Bahman::*)"
             "(std::vector<const bool&>, std::vector<const std::string &>, "
             "std::vector<const std::string &(*)(const char*)>)");
     BOOST_TEST(res == "std::vector<char> const& (Folan::Bahman::*)"
@@ -344,12 +344,12 @@ BOOST_AUTO_TEST_CASE(FixConstPlacementTest)
             "std::vector<std::string const& (*)(char const*)>)");
 
     // template & function types
-    res = FixConstPlacement("std::vector<const char* (*)(bool, "
+    res = NormalizeType("std::vector<const char* (*)(bool, "
             "const char* const*)>");
     BOOST_TEST(res == "std::vector<char const* (*)(bool, "
             "char const* const*)>");
 
-    res = FixConstPlacement("std::vector<const char* (Folan::Bahman::*)(bool, "
+    res = NormalizeType("std::vector<const char* (Folan::Bahman::*)(bool, "
             "const char* const*)>");
     BOOST_TEST(res == "std::vector<char const* (Folan::Bahman::*)(bool, "
             "char const* const*)>");
