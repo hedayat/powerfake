@@ -158,12 +158,13 @@ static FakePtr MakeFake(Functor f);
 
 #ifndef DISABLE_PFK_SIMPLE_NAMES
 /*
- * Define very simple macro names to specify static/private functions,
- * if DISABLE_PFK_SIMPLE_NAMES is not defined
+ * Define very simple macro names for some macros, for example to specify
+ * static/private functions, if DISABLE_PFK_SIMPLE_NAMES is not defined
  */
 
-#define PRIVATE PFK_PRIVATE
-#define STATIC PFK_STATIC
+#define PRIVATE     PFK_PRIVATE
+#define STATIC      PFK_STATIC
+#define TYPE_HINT   PFK_TYPE_HINT
 #endif
 
 /**

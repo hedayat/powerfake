@@ -355,6 +355,74 @@ BOOST_AUTO_TEST_CASE(NormalizeTypeTest)
             "char const* const*)>");
 }
 
+BOOST_AUTO_TEST_CASE(NormalizeTypeWithTypeHintTest)
+{
+    // simple types
+    auto res = NormalizeType("char", {{"char", "char_t"}});
+    BOOST_TEST(res == "char_t");
+
+    res = NormalizeType("const std::__cxx11::basic_string<char>&",
+        {
+            {"std::__cxx11::basic_string<char>",
+            "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >"}
+        });
+    BOOST_TEST(res == "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&");
+
+    res = NormalizeType("const char* const*", {{"char", "char_t"}});
+    BOOST_TEST(res == "char_t const* const*");
+
+    // template types
+    res = NormalizeType("std::vector<const char*, std::allocator<const char*> >",
+        {{"char", "char_t"}});
+    BOOST_TEST(res == "std::vector<char_t const*, std::allocator<char_t const*> >");
+
+    res = NormalizeType("std::vector<const char*, std::allocator<const char*> >",
+        {{"std::vector", "std::vector_t"}});
+    BOOST_TEST(res == "std::vector_t<char const*, std::allocator<char const*> >");
+
+    res = NormalizeType("const std::string &",
+            {{"std::string", "std::string_t"}});
+    BOOST_TEST(res == "std::string_t const&");
+
+    res = NormalizeType("std::vector<const std::string &>",
+            {{"std::string", "std::string_t"}, {"std::vector", "std::vector_t"}});
+    BOOST_TEST(res == "std::vector_t<std::string_t const&>");
+
+    // function types
+    res = NormalizeType("const char* (*)(bool, const char* const*)",
+        {{"char", "char_t"}});
+    BOOST_TEST(res == "char_t const* (*)(bool, char_t const* const*)");
+
+    res = NormalizeType("const char* (Folan::Bahman::*)(bool, const char* const*)",
+        {{"char", "char_t"}});
+    BOOST_TEST(res == "char_t const* (Folan::Bahman::*)(bool, char_t const* const*)");
+
+    res = NormalizeType("char (*)(bool, const char* const*)",
+        {{"char", "char_t"}});
+    BOOST_TEST(res == "char_t (*)(bool, char_t const* const*)");
+
+    res = NormalizeType("const std::vector<char> &(Folan::Bahman::*)"
+            "(std::vector<const bool&>, std::vector<const std::string &>, "
+            "std::vector<const std::string &(*)(const char*)>)",
+            {{"std::string", "std::string_t"}, {"std::vector", "std::vector_t"}});
+    BOOST_TEST(res == "std::vector_t<char> const& (Folan::Bahman::*)"
+            "(std::vector_t<bool const&>, std::vector_t<std::string_t const&>, "
+            "std::vector_t<std::string_t const& (*)(char const*)>)");
+
+    // template & function types
+    res = NormalizeType("std::vector<const char* (*)(bool, "
+            "const char* const*)>", {{"char", "char_t"}, {"bool", "bool_t"},
+                    {"std::vector", "std::vector_t"}});
+    BOOST_TEST(res == "std::vector_t<char_t const* (*)(bool_t, "
+            "char_t const* const*)>");
+
+    res = NormalizeType("std::vector<const char* (Folan::Bahman::*)(bool, "
+            "const char* const*)>", {{"char", "char_t"}, {"bool", "bool_t"},
+                    {"std::vector", "std::vector_t"}});
+    BOOST_TEST(res == "std::vector_t<char_t const* (Folan::Bahman::*)(bool_t, "
+            "char_t const* const*)>");
+}
+
 BOOST_AUTO_TEST_CASE(FixSpacesTest)
 {
     auto res = FixSpaces("**const *");

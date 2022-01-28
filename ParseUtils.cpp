@@ -124,7 +124,7 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
     {
         if (verbose)
             cout << "Found Prototype: " << infostr << endl;
-        if (auto finfo = GetFunctionInfo(infostr))
+        if (auto finfo = GetFunctionInfo(infostr, type_hints))
             functions.push_back(finfo.value());
         else
             cout << "Skipped: " << infostr << endl;
@@ -132,7 +132,8 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
     return functions;
 }
 
-std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view function_str)
+std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(
+    string_view function_str, const TypeHintMap &type_hints)
 {
     /*
      * Found Prototype: PFKPrototypeStart: WRAPPED | SampleClass::CallThis | Folan__pfkalias__43 | void (FakeTest::SampleClass::*)() const | PFKPrototypeEnd
@@ -164,9 +165,10 @@ std::optional<PowerFake::internal::FunctionInfo> GetFunctionInfo(string_view fun
     auto ret_end = sv.find('(');
     auto param_end = sv.rfind(')');
     auto param_start = sv.find('(', ret_end + 1);
-    finfo.prototype.return_type = NormalizeType(sv.substr(1, ret_end - 2));
+    finfo.prototype.return_type = NormalizeType(sv.substr(1, ret_end - 2),
+        type_hints);
     finfo.prototype.params = NormalizeParameters(
-        sv.substr(param_start, param_end - param_start + 1));
+        sv.substr(param_start, param_end - param_start + 1), type_hints);
     if (sv.substr(ret_end, 3) != "(*)") // a class member
         finfo.prototype.name = string(
             sv.substr(ret_end + 1, sv.rfind("::", param_start) - ret_end - 1))
@@ -353,7 +355,8 @@ PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs)
     return Qualifiers::NO_QUAL;
 }
 
-std::string NormalizeType(std::string_view compile_type)
+std::string NormalizeType(std::string_view compile_type,
+    const TypeHintMap &type_hints)
 {
     std::string suffix;
     auto param_end = compile_type.find_last_of(")>");
@@ -361,12 +364,14 @@ std::string NormalizeType(std::string_view compile_type)
     {
         auto fparan_start = compile_type.find('(');
         auto param_start = compile_type.find('(', fparan_start + 1);
-        if (compile_type[fparan_start - 1] != ' ')
-            suffix = ' ';
+        suffix = ' ';
         suffix += compile_type.substr(fparan_start, param_start - fparan_start);
         suffix += NormalizeParameters(
-            compile_type.substr(param_start, param_end - param_start + 1));
+            compile_type.substr(param_start, param_end - param_start + 1),
+            type_hints);
         suffix += compile_type.substr(param_end + 1);
+        if (compile_type[fparan_start - 1] == ' ')
+            --fparan_start;
         compile_type = compile_type.substr(0, fparan_start);
     }
 
@@ -380,12 +385,20 @@ std::string NormalizeType(std::string_view compile_type)
         start_pos = strlen("const ");
     }
 
+    auto translate = [&type_hints](string_view t) {
+        if (t.back() == ' ')
+            t = t.substr(0, t.size() - 1);
+        auto f = type_hints.find(string(t));
+        if (f != type_hints.end())
+            return f->second;
+        return string(t);
+    };
     auto lookup = compile_type.find_first_of("*&<", start_pos);
     if (lookup == string_view::npos)
     {
-        res = compile_type.substr(start_pos);
+        res = translate(compile_type.substr(start_pos));
         if (add_const) // actually we don't expect this to happen! const without */&?!
-            res += (res.back() == ' ' ? "" : " ") + "const"s;
+            res += " const";
         return res + suffix;
     }
 
@@ -395,22 +408,23 @@ std::string NormalizeType(std::string_view compile_type)
         case '*':
             if (add_const)
             {
-                res = compile_type.substr(start_pos, lookup - start_pos);
-                res += (res.back() == ' ' ? "" : " ") + "const"s
-                        + FixSpaces(compile_type.substr(lookup));
+                res = translate(
+                    compile_type.substr(start_pos, lookup - start_pos));
+                res += " const" + FixSpaces(compile_type.substr(lookup));
             }
             else
-                res = compile_type;
+                res = translate(compile_type);
             break;
         case '<':
         {
             auto tplend = compile_type.rfind('>');
-            res = compile_type.substr(start_pos, ++lookup - start_pos);
-            res += NormalizeParameters(
-                compile_type.substr(lookup, tplend - lookup));
+            res = translate(compile_type.substr(start_pos, lookup++ - start_pos));
+            res += '<' + NormalizeParameters(
+                compile_type.substr(lookup, tplend - lookup), type_hints);
             res += '>';
+            res = translate(res);
             if (add_const)
-                res += (res.back() == ' ' ? "" : " ") + "const"s;
+                res += " const";
             res += FixSpaces(compile_type.substr(tplend + 1));
             break;
         }
@@ -418,7 +432,8 @@ std::string NormalizeType(std::string_view compile_type)
     return res + suffix;
 }
 
-std::string NormalizeParameters(std::string_view params)
+std::string NormalizeParameters(std::string_view params,
+    const TypeHintMap &type_hints)
 {
     std::string res;
     if (params[0] == '(')
@@ -430,7 +445,7 @@ std::string NormalizeParameters(std::string_view params)
         if (!first)
             res += ", ";
         first = false;
-        res += NormalizeType(p);
+        res += NormalizeType(p, type_hints);
     }
 
     if (res[0] == '(')
