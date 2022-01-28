@@ -59,7 +59,7 @@ class SymbolAliasMap
             const PowerFake::internal::FunctionPrototype &proto);
         bool IsApproximate(const PowerFake::internal::FunctionPrototype &proto,
             const ExtendedPrototype &ex_proto);
-        int GetNumMatchingTypes(
+        std::vector<int> GetNumMatchingTypes(
             const PowerFake::internal::FunctionPrototype &proto,
             const ExtendedPrototype &ex_proto);
 };

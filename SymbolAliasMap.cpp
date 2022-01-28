@@ -402,7 +402,7 @@ bool SymbolAliasMap::IsApproximate(
             && ex_proto.expanded_params.size() == SplitParams(proto.params).size();
 }
 
-int SymbolAliasMap::GetNumMatchingTypes(
+std::vector<int> SymbolAliasMap::GetNumMatchingTypes(
     const PowerFake::internal::FunctionPrototype &proto,
     const ExtendedPrototype &ex_proto)
 {
@@ -415,5 +415,5 @@ int SymbolAliasMap::GetNumMatchingTypes(
         if (ref_params[i] == ex_proto.expanded_params[i])
             ++score;
     }
-    return score;
+    return { score };
 }
