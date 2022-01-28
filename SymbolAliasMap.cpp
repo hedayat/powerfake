@@ -404,6 +404,7 @@ std::vector<int> SymbolAliasMap::GetNumMatchingTypes(
     const ExtendedPrototype &ex_proto)
 {
     int score = 0;
+    int tpl_name_score = 0;
     if (!proto.return_type.empty() && proto.return_type == ex_proto.return_type)
         ++score;
     auto ref_params = SplitParams(proto.params);
@@ -411,6 +412,26 @@ std::vector<int> SymbolAliasMap::GetNumMatchingTypes(
     {
         if (ref_params[i] == ex_proto.expanded_params[i])
             ++score;
+        else
+        {
+            auto ref_type = ref_params[i];
+            auto ex_type = ex_proto.expanded_params[i];
+            auto tpos = ref_type.find_last_of(")>");
+            // skip function types and detect templates
+            if (tpos != string_view::npos && ref_type[tpos] == '>')
+            {
+                auto ex_tpos = ex_type.find_last_of(")>");
+                if (ex_tpos == string_view::npos || ex_type[ex_tpos] != '>')
+                    continue;
+                auto tpl_type = ref_type.substr(0, ref_type.find('<'));
+                auto ex_tpl_type = ex_type.substr(0, ex_type.find('<'));
+                if (tpl_type == ex_tpl_type)
+                    ++tpl_name_score;
+            }
+        }
     }
-    return { score };
+    if (tpl_name_score)
+        return { score, tpl_name_score };
+    else
+        return { score };
 }

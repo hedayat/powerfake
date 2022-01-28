@@ -17,6 +17,7 @@ using namespace PowerFake::internal;
 
 
 TAG_PRIVATE(FindWrappedSymbolFunc, SymbolAliasMap::FindWrappedSymbol);
+TAG_PRIVATE(GetNumMatchingTypesFunc, SymbolAliasMap::GetNumMatchingTypes);
 
 BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
 {
@@ -56,4 +57,26 @@ BOOST_AUTO_TEST_CASE(FindWrappedSymbolTest)
         BOOST_TEST(
             (a != protos.end() && a->symbol == "symbol_for_alias" + no));
     }
+}
+
+BOOST_AUTO_TEST_CASE(GetNumMatchingTypesTest)
+{
+    WrapperBase::Functions protos;
+    SymbolAliasMap sm(protos, true);
+    FunctionPrototype proto;
+    ExtendedPrototype ex_proto("", "", "(char)", 0);
+
+    proto.params = "(char)";
+    ex_proto.expanded_params = {"char"};
+    BOOST_TEST(GetNumMatchingTypesFunc::Call(sm, proto, ex_proto) == vector{ 1 });
+
+    proto.params = "(std::vector<int>)";
+    ex_proto.expanded_params = {"std::vector<bool>"};
+    vector vv { 0, 1 };
+    BOOST_TEST(GetNumMatchingTypesFunc::Call(sm, proto, ex_proto) == vv);
+
+    proto.params = "(int, std::mtpl<int, bool>)";
+    ex_proto.expanded_params = {"int", "std::mtpl<int, char>"};
+    vv = { 1, 1 };
+    BOOST_TEST(GetNumMatchingTypesFunc::Call(sm, proto, ex_proto) == vv);
 }
