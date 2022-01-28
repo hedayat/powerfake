@@ -62,11 +62,14 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                     p_start + start_marker.size());
                 while (p_end != string_view::npos && marker_found)
                 {
+                    p_start = p_end;
                     found = marker_found - 1;
+                    start_marker = found ? TH_START_MARKER : PT_START_MARKER;
+                    end_marker = found ? TH_END_MARKER : PT_END_MARKER;
+
                     tie(p_end, marker_found) = FindStrings(PREFIX, { end_marker,
                             PT_START_MARKER, TH_START_MARKER }, strbuf,
-                        p_end + PREFIX.size());
-                    p_end = strbuf.find(PREFIX, p_end + PREFIX.size());
+                        p_start + start_marker.size());
                 }
 
                 if (p_end != string_view::npos)
