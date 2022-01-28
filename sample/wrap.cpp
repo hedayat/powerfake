@@ -27,6 +27,11 @@ using namespace FakeTest;
 #undef POWRFAKE_WRAP_NAMESPACE
 #define POWRFAKE_WRAP_NAMESPACE Folan
 
+// You can use type hints if standalone mode have problems in overload resolution
+// Example:
+//TYPE_HINT("std::__cxx11::basic_string<char>",
+//    "std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >");
+
 WRAP_FUNCTION(std::string (int), overloaded2);
 WRAP_FUNCTION(std::string (float), overloaded2);
 WRAP_FUNCTION(void (int), overloaded);

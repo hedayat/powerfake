@@ -212,6 +212,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
     }
 
     // Log unmatched functions
+    bool type_resolution_error = false;
     for (auto it = unresolved_functions.begin();
             it != unresolved_functions.end(); ++it)
     {
@@ -236,12 +237,18 @@ void SymbolAliasMap::ApplyApproximateMatching()
 
         if (!best_candidate.empty())
         {
-            cout << "Cannot find matching prototype for: "
+            type_resolution_error = true;
+            cout << "\nCannot find matching prototype for: "
                     << finfo.prototype.Str() << ", candidates: " << endl;
             for (auto c: best_candidate)
                 cout << "\t" << c->Str() << '(' << max_score << ')' << endl;
         }
     }
+
+    if (type_resolution_error)
+        cout << "\nConsider using TYPE_HINT() macro to guide PowerFake in"
+                " overload resolution in standalone mode.\n" << endl;
+
 }
 
 void SymbolAliasMap::CreateFunctionMap(Functions &functions)
