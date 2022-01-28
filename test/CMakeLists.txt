@@ -25,7 +25,8 @@ add_library(sample_lib STATIC sample.cpp)
 
 # Test sources
 # =============================================================================
-set(test_sources test_main.cpp powerfake_test.cpp ParseUtils_test.cpp)
+set(test_sources test_main.cpp powerfake_test.cpp ParseUtils_test.cpp
+    SymbolAliasMap_test.cpp)
 
 # Normal test runner
 # =============================================================================
