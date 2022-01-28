@@ -179,15 +179,13 @@ void SymbolAliasMap::ApplyApproximateMatching()
             if (v.empty())
                 continue; // unresolvable symbol found, skip for now
 
-            int max_score = -1;
+            vector<int> max_score;
             const ExtendedPrototype* best_candidate = nullptr;
-//            cout << "Looking for matches for: " << finfo.prototype.Str() << endl;
             for (const auto &c: v)
             {
                 if (!IsApproximate(finfo.prototype, c))
                     continue;
-                int score = GetNumMatchingTypes(finfo.prototype, c);
-//                cout << "\t* " << c.Str() << " => Score = " << score << endl;
+                auto score = GetNumMatchingTypes(finfo.prototype, c);
                 if (score == max_score)
                     best_candidate = nullptr;
                 else if (score > max_score)
@@ -204,8 +202,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
                 if (verbose)
                     cout << "Found symbol for " << finfo.prototype.Str()
                             << " == " << best_candidate->symbol
-                            << " (" << best_candidate->Str() << ")("
-                            << max_score <<  ") \n";
+                            << " (" << best_candidate->Str() << ") \n";
                 v.erase(v.begin() + (best_candidate - &v[0]));
             }
         }
@@ -216,7 +213,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
     for (auto it = unresolved_functions.begin();
             it != unresolved_functions.end(); ++it)
     {
-        int max_score = -1;
+        vector<int> max_score;
         auto &finfo = *(it->second);
         auto &v = candidates[finfo.prototype.name];
         vector<const ExtendedPrototype*> best_candidate;
@@ -224,7 +221,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
         {
             if (!IsApproximate(finfo.prototype, c))
                 continue;
-            int score = GetNumMatchingTypes(finfo.prototype, c);
+            auto score = GetNumMatchingTypes(finfo.prototype, c);
             if (score == max_score)
                 best_candidate.push_back(&c);
             else if (score > max_score)
@@ -241,7 +238,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
             cout << "\nCannot find matching prototype for: "
                     << finfo.prototype.Str() << ", candidates: " << endl;
             for (auto c: best_candidate)
-                cout << "\t" << c->Str() << '(' << max_score << ')' << endl;
+                cout << "\t" << c->Str() << endl;
         }
     }
 
