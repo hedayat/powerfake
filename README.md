@@ -1,12 +1,16 @@
 PowerFake
 =============
 PowerFake is a faking library/tool for faking free functions and non-virtual
-member functions. It is built on top of GNU Linker's --wrap option.
+member functions. Using its FakeIt integration support, it allows mocking
+non-virtual member functions and free functions.
+
+It is built on top of GNU Linker's --wrap option and linker scripts.
 
 ## Features
 * Faking C/C++ free functions
 * Faking static class member functions
-* Faking member functions of a class
+* Faking non-virtual member functions of a class
+* Faking non-virtual dispatch of virtual functions
 * Provides control over the life time of faking
 * Provides integration with FakeIt(https://github.com/eranpeer/FakeIt)
 
