@@ -50,7 +50,7 @@ add_subdirectory(sample)
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 # =============================================================================
-install(TARGETS powerfake pw_bindfakes EXPORT PowerFakeTargets
+install(TARGETS powerfake pw_bindfakes bind_fakes EXPORT PowerFakeTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin

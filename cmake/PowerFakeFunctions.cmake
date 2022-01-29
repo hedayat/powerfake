@@ -85,7 +85,7 @@ function(bind_fakes target_name)
     endforeach()
 
     if (BFARGS_STANDALONE)
-        set(bind_fakes_tgt bind_fakes)
+        set(bind_fakes_tgt PowerFake::bind_fakes)
     else()
         # Build bind_fakes executable
         file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")

@@ -31,6 +31,10 @@ endif()
 
 # Build standalone bind_fakes executable
 # -----------------------------------------------------------------------------
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
+add_executable(bind_fakes ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
+target_link_libraries(bind_fakes PowerFake::pw_bindfakes)
+
 if (CMAKE_CROSSCOMPILING)
     include(ExternalProject)
     ExternalProject_Add(host_bind_fakes PREFIX host_bind_fakes
@@ -40,12 +44,11 @@ if (CMAKE_CROSSCOMPILING)
         INSTALL_COMMAND "" EXCLUDE_FROM_ALL ON)
 
     # Add an imported library for date
-    add_executable(bind_fakes IMPORTED)
-    add_dependencies(bind_fakes host_bind_fakes)
-    set_target_properties(bind_fakes PROPERTIES
+    add_executable(native_bind_fakes IMPORTED)
+    add_dependencies(native_bind_fakes host_bind_fakes)
+    set_target_properties(native_bind_fakes PROPERTIES
         IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/host_bind_fakes/build/bind_fakes)
+    add_executable(PowerFake::bind_fakes ALIAS native_bind_fakes)
 else()
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp "")
-    add_executable(bind_fakes ${CMAKE_CURRENT_BINARY_DIR}/dummy.cpp)
-    target_link_libraries(bind_fakes PowerFake::pw_bindfakes)
+    add_executable(PowerFake::bind_fakes ALIAS bind_fakes)
 endif()
