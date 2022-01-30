@@ -123,7 +123,7 @@ void FakeOverloaded()
     }
 
     auto ccfk = MakeFake(&SampleClass::CallThis,
-        []() { cout << "Fake called for SampleClass::CallThis" << endl; }
+        [](const SampleClass *this_ptr) { cout << "Fake called for SampleClass::CallThis for object: " << this_ptr << endl; }
     );
     auto cnxfk = MakeFake(&SampleClass::CallThisNoExcept,
         []() { cout << "Fake called for SampleClass::CallThisNoExcept" << endl; }

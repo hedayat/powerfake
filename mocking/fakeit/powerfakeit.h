@@ -249,6 +249,9 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
         };
 };
 
+/**
+ * Extends fakeit::Mock<> to support mocking private virtual member functions
+ */
 template<typename C, typename ... baseclasses>
 class ExMock: public fakeit::Mock<C, baseclasses...> {
     public:
