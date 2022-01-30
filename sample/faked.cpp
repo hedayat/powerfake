@@ -14,7 +14,7 @@
 #include <powerfake.h>
 
 #ifdef ENABLE_FAKEIT
-#include <fakeit/powerfakeit.h>
+#include <mocking/fakeit/powerfakeit.h>
 using namespace fakeit;
 #endif
 
