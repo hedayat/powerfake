@@ -273,9 +273,9 @@ void FakeItSamples()
                 });
 
 
-        normal_func(100, nullptr, "", nullptr);
+        normal_func(100, nullptr, string(), nullptr);
 
-        Verify(Function(pfk, normal_func).Using(100, nullptr, "", nullptr)).Exactly(Once);
+        Verify(Function(pfk, normal_func).Using(100, nullptr, string(), nullptr)).Exactly(Once);
 
         PowerFakeIt<SampleClass> pfk2;
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
