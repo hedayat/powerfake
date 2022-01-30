@@ -1,17 +1,17 @@
 /*
- * PowerFakeIt.h
+ * powerfakeit.h
  *
  *  Created on: ۱۹ بهمن ۱۳۹۶
  *
- *  Copyright Hedayat Vatankhah 2018-2020.
+ *  Copyright Hedayat Vatankhah <hedayat.fwd@gmail.com>, 2018-2022.
  *
  *  Distributed under the Boost Software License, Version 1.0.
  *     (See accompanying file LICENSE_1_0.txt or copy at
  *           http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef FAKEIT_POWERFAKEIT_H_
-#define FAKEIT_POWERFAKEIT_H_
+#ifndef MOCKING_FAKEIT_POWERFAKEIT_H_
+#define MOCKING_FAKEIT_POWERFAKEIT_H_
 
 #include <powerfake.h>
 #include <fakeit.hpp>
@@ -265,5 +265,5 @@ class ExMock: public fakeit::Mock<C, baseclasses...> {
 
 } /* namespace PowerFake */
 
-#endif /* FAKEIT_POWERFAKEIT_H_ */
+#endif /* MOCKING_FAKEIT_POWERFAKEIT_H_ */
 

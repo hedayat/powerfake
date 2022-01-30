@@ -1,3 +1,7 @@
+#  Distributed under the Boost Software License, Version 1.0.
+#       (See accompanying file LICENSE_1_0.txt or copy at
+#             http://www.boost.org/LICENSE_1_0.txt)
+
 #! bind_fakes : builds and runs bind_fakes binary for the given libraries
 #
 # This function builds bind_fakes binary and runs it on code libraries and

@@ -23,6 +23,7 @@ option(ENABLE_FAKEIT "Enable building FakeIt integration samples" OFF)
 # Look for dependencies
 # =============================================================================
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+find_package(GTest)
 
 if(TEST_COVERAGE AND NOT GCOVR_EXEC)
     message(STATUS "Test coverage report enabled")
@@ -58,7 +59,7 @@ install(TARGETS powerfake pw_bindfakes bind_fakes EXPORT PowerFakeTargets
 )
 
 install(FILES powerfake.h DESTINATION include/powerfake)
-install(DIRECTORY fakeit DESTINATION include/powerfake)
+install(DIRECTORY mocking/ DESTINATION include/powerfake)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(

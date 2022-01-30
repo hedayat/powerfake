@@ -3,7 +3,7 @@
  *
  *  Created on: ۱۱ دی ۱۳۹۶
  *
- *  Copyright Hedayat Vatankhah 2017.
+ *  Copyright Hedayat Vatankhah <hedayat.fwd@gmail.com>, 2017-2022.
  *
  *  Distributed under the Boost Software License, Version 1.0.
  *     (See accompanying file LICENSE_1_0.txt or copy at
@@ -16,6 +16,11 @@
 #ifdef ENABLE_FAKEIT
 #include <fakeit/powerfakeit.h>
 using namespace fakeit;
+#endif
+
+#ifdef ENABLE_GMOCK
+#include <gmock/gpowerfake.h>
+using namespace testing;
 #endif
 
 #include "functions.h"
@@ -49,14 +54,18 @@ struct SampleStruct
 
 void FakeOverloaded();
 void FakeItSamples();
+void GMockSamples();
 
 int main(/*int argc, char **argv*/)
 {
     FakeOverloaded();
+#ifdef ENABLE_FAKEIT
     FakeItSamples();
+#endif
+#ifdef ENABLE_GMOCK
+    GMockSamples();
+#endif
 }
-
-
 
 void FakeOverloaded()
 {
@@ -247,9 +256,9 @@ void FakeOverloaded()
 }
 
 
+#ifdef ENABLE_FAKEIT
 void FakeItSamples()
 {
-#ifdef ENABLE_FAKEIT
     try
     {
 
@@ -264,9 +273,9 @@ void FakeItSamples()
                 });
 
 
-        normal_func(100, nullptr, "", nullptr);
+        normal_func(100, nullptr, string(), nullptr);
 
-        Verify(Function(pfk, normal_func).Using(100, nullptr, "", nullptr)).Exactly(Once);
+        Verify(Function(pfk, normal_func).Using(100, nullptr, string(), nullptr)).Exactly(Once);
 
         PowerFakeIt<SampleClass> pfk2;
         When(Method(pfk2, CallThis)).Do([]() { cout << "WOW2" << endl; });
@@ -310,6 +319,42 @@ void FakeItSamples()
     {
         cerr << "Unknown error" << endl;
     }
-
-#endif
 }
+#endif
+
+#ifdef ENABLE_GMOCK
+class MockSample: public GPowerFake<SampleClass>
+{
+    public:
+        GPFK_MOCK_METHOD(void, CallThis, (), (const));
+        GPFK_MOCK_METHOD(int, OverloadedCall, ());
+        GPFK_MOCK_FUNCTION(void, normal_func, (int b, const char **const *c, const std::string &d,
+                const char *(*e)(const char *)));
+        GPFK_MOCK_FUNCTION(std::string, overloaded2, (int b));
+        GPFK_MOCK_FUNCTION(void, noexcept_func, ());
+};
+
+void GMockSamples()
+{
+    cout << "\n GMock tests\n"
+            "----------------------------------------------" << endl;
+    MockSample mock;
+    EXPECT_CALL(mock, CallThis())
+        .Times(AtLeast(1));
+    EXPECT_CALL(mock, OverloadedCall())
+        .Times(AtLeast(1));
+    EXPECT_CALL(mock, normal_func(1, nullptr, "", nullptr))
+        .Times(AtLeast(1));
+    EXPECT_CALL(mock, overloaded2(testing::_))
+        .Times(AtLeast(1));
+    EXPECT_CALL(mock, noexcept_func())
+        .Times(AtLeast(1));
+
+    normal_func(1, nullptr, "", nullptr);
+    noexcept_func();
+    SampleClass s;
+    s.CallThis();
+    s.OverloadedCall();
+    overloaded2(60);
+}
+#endif
