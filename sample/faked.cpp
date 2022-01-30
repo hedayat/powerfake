@@ -323,14 +323,21 @@ void FakeItSamples()
 #endif
 
 #ifdef ENABLE_GMOCK
+class MockFreeFunctions
+{
+    public:
+        GPFK_MOCK_FUNCTION(void, normal_func, (int b, const char **const *c,
+                const std::string &d, const char *(*e)(const char *)));
+        GPFK_MOCK_FUNCTION(std::string, overloaded2, (int b));
+};
+
 class MockSample: public GPowerFake<SampleClass>
 {
     public:
         GPFK_MOCK_METHOD(void, CallThis, (), (const));
         GPFK_MOCK_METHOD(int, OverloadedCall, ());
-        GPFK_MOCK_FUNCTION(void, normal_func, (int b, const char **const *c, const std::string &d,
-                const char *(*e)(const char *)));
-        GPFK_MOCK_FUNCTION(std::string, overloaded2, (int b));
+
+        // free functions can be mocked here too
         GPFK_MOCK_FUNCTION(void, noexcept_func, ());
 };
 
@@ -339,13 +346,14 @@ void GMockSamples()
     cout << "\n GMock tests\n"
             "----------------------------------------------" << endl;
     MockSample mock;
+    MockFreeFunctions freemock;
     EXPECT_CALL(mock, CallThis())
         .Times(AtLeast(1));
     EXPECT_CALL(mock, OverloadedCall())
         .Times(AtLeast(1));
-    EXPECT_CALL(mock, normal_func(1, nullptr, "", nullptr))
+    EXPECT_CALL(freemock, normal_func(1, nullptr, "", nullptr))
         .Times(AtLeast(1));
-    EXPECT_CALL(mock, overloaded2(testing::_))
+    EXPECT_CALL(freemock, overloaded2(testing::_))
         .Times(AtLeast(1));
     EXPECT_CALL(mock, noexcept_func())
         .Times(AtLeast(1));
