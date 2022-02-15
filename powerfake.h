@@ -45,6 +45,8 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
  *  @{
  */
 
+#define MFK_DISCARD_WARNING "MakeFake is effective until the return value is alive"
+
 /**
  * Creates the fake object for the given function, faked with function object
  * @p f
@@ -55,6 +57,7 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
  * while this object lives
  */
 template <typename Signature, typename Functor>
+[[nodiscard(MFK_DISCARD_WARNING)]]
 static FakePtr MakeFake(Signature *func_ptr, Functor f);
 
 /**
@@ -67,6 +70,7 @@ static FakePtr MakeFake(Signature *func_ptr, Functor f);
  * while this object lives
  */
 template<typename Signature, typename Class, typename Functor>
+[[nodiscard(MFK_DISCARD_WARNING)]]
 static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
@@ -81,7 +85,10 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
  * Fake is in effect while this object lives
  */
 template <typename PrivateMemberTag, typename Functor>
+[[nodiscard(MFK_DISCARD_WARNING)]]
 static FakePtr MakeFake(Functor f);
+
+#undef MFK_DISCARD_WARNING
 
 /**
  * Define a wrapper for the given function. For normal functions, it should be
