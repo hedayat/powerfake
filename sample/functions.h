@@ -37,6 +37,6 @@ void call_virtual_func(FakeTest::SampleClass2 *sc);
 
 std::unique_ptr<int> &non_copyable_ref();
 
-void noexcept_func() noexcept;
+void noexcept_func(int * = nullptr) noexcept;
 
 #endif /* SAMPLE_FUNCTIONS_H_ */

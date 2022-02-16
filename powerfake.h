@@ -35,7 +35,16 @@ namespace PowerFake
 {
 
 namespace internal {
+
 class FakeBase;
+
+template <typename FT, typename = void>
+struct functor_helper {};
+
+template <typename FT, typename = std::enable_if_t<
+        bool(sizeof(typename functor_helper<FT>::std_func_sig_t::member_ptr))>>
+struct class_functor_helper;
+
 }
 
 using FakePtr = std::unique_ptr<internal::FakeBase>;
@@ -49,7 +58,7 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
 
 /**
  * Creates the fake object for the given function, faked with function object
- * @p f
+ * @p f. You can specify the function signature explicitly.
  * @param func_ptr Pointer to the function to be faked
  * @param f the fake function, which should have the same signature as the faked
  * function
@@ -87,6 +96,39 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 template <typename PrivateMemberTag, typename Functor>
 [[nodiscard(MFK_DISCARD_WARNING)]]
 static FakePtr MakeFake(Functor f);
+
+/**
+ * Creates the fake object for the given function, faked with function object
+ * @p f. This overload derives the type of @p func_ptr from the signature
+ * of @p f, so you won't need to specify the type of overload you need.
+ * @param func_ptr Pointer to the function to be faked
+ * @param f the fake function, which should have the same signature as the faked
+ * function
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
+ */
+template <typename Functor>
+[[nodiscard(MFK_DISCARD_WARNING)]]
+static FakePtr MakeFake(
+    typename internal::functor_helper<Functor>::type func_ptr, Functor f);
+
+/**
+ * Creates the fake object for the given member function, faked with @p f. It
+ * derives the type of @p func_ptr from @p f to select the appropriate overload
+ * automatically from available member functions.
+ *
+ * @param func_ptr Pointer to the function to be faked
+ * @param f the fake function, which must receive object's this pointer as its
+ * first parameter; which is cv-qualified pointer to @p Class which is used
+ * to select appropriate cv-qualified overload
+ * @return A fake object faking the given function with @p f. Fake is in effect
+ * while this object lives
+ */
+template<typename Functor>
+[[nodiscard(MFK_DISCARD_WARNING)]]
+static FakePtr MakeFake(
+    typename internal::class_functor_helper<Functor>::member_ptr func_ptr,
+    Functor f);
 
 #undef MFK_DISCARD_WARNING
 
@@ -732,6 +774,46 @@ constexpr auto TypeName()
                                       - func_name.cbegin() - first - 1 };
 }
 
+// Helper types to extract signature from a functor
+template <typename Sig, typename Class, typename = void>
+struct member_type_helper { using type = void; };
+
+template <typename Sig, typename Class>
+struct member_type_helper<Sig, Class, std::enable_if_t<std::is_class_v<Class>>>
+{
+    using type = Sig Class::*;
+};
+
+template <typename T>
+struct std_func_signature;
+
+template <typename R, typename... Args>
+struct std_func_signature<std::function<R(Args...)>> {
+    using type = R(Args...);
+};
+
+template <typename R, typename Class, typename... Args>
+struct std_func_signature<std::function<R(Class *, Args...)>> {
+    using type = R(Args...);
+    using cv_qualified_type = std::conditional_t<std::is_const_v<Class>,
+            std::conditional_t<std::is_volatile_v<Class>, R(Args...) const volatile, R(Args...) const>,
+            std::conditional_t<std::is_volatile_v<Class>, R(Args...) volatile, type>>;
+    using member_ptr = typename member_type_helper<cv_qualified_type, Class>::type;
+};
+
+template <typename FT>
+struct functor_helper<FT, std::enable_if_t<bool(sizeof(decltype(std::function{std::declval<FT>()})))>>
+{
+    using std_func_sig_t = std_func_signature<decltype(std::function{std::declval<FT>()})>;
+    using type = typename std_func_sig_t::type*;
+};
+
+template <typename FT, typename>
+struct class_functor_helper: functor_helper<FT>
+{
+    using member_ptr = typename functor_helper<FT>::std_func_sig_t::member_ptr;
+};
+
 } // namespace internal
 
 
@@ -1024,6 +1106,25 @@ template <typename PrivateMemberTag, typename Functor>
 static FakePtr MakeFake(Functor f)
 {
     return MakeFake(GetAddress(PrivateMemberTag()), f);
+}
+
+template <typename Functor>
+static FakePtr MakeFake(
+    typename internal::functor_helper<Functor>::type func_ptr, Functor f)
+{
+    typedef internal::remove_func_cv_t<decltype(func_ptr)> FuncType;
+    return std::make_unique<internal::Fake<FuncType>>(
+        internal::Wrapper<FuncType>::WrapperObject(func_ptr), f);
+}
+
+template<typename Functor>
+static FakePtr MakeFake(
+    typename internal::class_functor_helper<Functor>::member_ptr func_ptr,
+    Functor f)
+{
+    typedef internal::remove_func_cv_t<decltype(func_ptr)> FuncType;
+    return std::make_unique<internal::Fake<FuncType>>(
+        internal::Wrapper<FuncType>::WrapperObject(internal::unify_pmf(func_ptr)), f);
 }
 
 // -----------------------------------------------------------------------------

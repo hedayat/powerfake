@@ -72,7 +72,7 @@ std::unique_ptr<int> &non_copyable_ref()
 	return felfel;
 }
 
-void noexcept_func() noexcept
+void noexcept_func(int *) noexcept
 {
     cout << "A noexcept function: " << __FUNCTION__ << endl;
 }

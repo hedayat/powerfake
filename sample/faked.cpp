@@ -48,7 +48,7 @@ struct SampleStruct
         FakePtr normal_fake =
                 MakeFake(normal_func, [this](int, const char **const *,
                         const std::string &, const char *(*)(const char *)) {});
-        FakePtr ov = MakeFake<void (int)>(overloaded, [](int){});
+        FakePtr ov = MakeFake(overloaded, [](int){});
 };
 
 
@@ -76,16 +76,17 @@ void FakeOverloaded()
     overloaded(6.0F);
     noexcept_func();
 
-    auto oifk = MakeFake<void (int)>(overloaded,
+    auto oifk = MakeFake(overloaded,
         [](int) { cout << "Fake called for overloaded(int)" << endl; }
     );
 
+    // explicit overload specification is possible, but mostly unnecessary
     auto offk = MakeFake<void (float)>(overloaded,
         [](float) { cout << "Fake called for overloaded(float)" << endl; }
     );
 
     auto noexfk = MakeFake(noexcept_func,
-        []() { cout << "Fake called for noexcept_func()" << endl; });
+        [](int *) { cout << "Fake called for noexcept_func()" << endl; });
 
     cout << "-> Fake calls" << endl;
     overloaded(5);
@@ -134,8 +135,8 @@ void FakeOverloaded()
             return 0;
         }
     );
-    auto oc2fk = MakeFake<int (int) const>(&SampleClass::OverloadedCall,
-        [](int) {
+    auto oc2fk = MakeFake(&SampleClass::OverloadedCall,
+        [](const SampleClass *, int) {
             cout << "Fake called for SampleClass::OverloadedCall(int) const" << endl;
             return 0;
         }
@@ -189,8 +190,8 @@ void FakeOverloaded()
         );
         sc2.CallThis(4);
         {
-            auto ct2fk = MakeFake<void (int)>(&SampleClass2::CallThis,
-                [](int) { cout << "Nested Fake called for SampleClass2::CallThis" << endl; }
+            auto ct2fk = MakeFake(&SampleClass2::CallThis,
+                [](SampleClass2 *, int) { cout << "Nested Fake called for SampleClass2::CallThis" << endl; }
             );
             cout << "-> Nested fake call" << endl;
             sc2.CallThis(4);
@@ -338,7 +339,7 @@ class MockSample: public GPowerFake<SampleClass>
         GPFK_MOCK_METHOD(int, OverloadedCall, ());
 
         // free functions can be mocked here too
-        GPFK_MOCK_FUNCTION(void, noexcept_func, ());
+        GPFK_MOCK_FUNCTION(void, noexcept_func, (int *));
 };
 
 void GMockSamples()
@@ -355,7 +356,7 @@ void GMockSamples()
         .Times(AtLeast(1));
     EXPECT_CALL(freemock, overloaded2(testing::_))
         .Times(AtLeast(1));
-    EXPECT_CALL(mock, noexcept_func())
+    EXPECT_CALL(mock, noexcept_func(nullptr))
         .Times(AtLeast(1));
 
     normal_func(1, nullptr, "", nullptr);
