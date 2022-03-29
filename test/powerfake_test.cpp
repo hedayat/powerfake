@@ -48,7 +48,7 @@ struct SampleLibConfig
             }
         }
 
-        std::string sample_lib;
+        std::string sample_lib = "libsample_lib.a";
 };
 
 struct WrapperCleanup

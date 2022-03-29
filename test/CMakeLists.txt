@@ -28,37 +28,32 @@ add_library(sample_lib STATIC sample.cpp)
 set(test_sources test_main.cpp powerfake_test.cpp ParseUtils_test.cpp
     SymbolAliasMap_test.cpp)
 
-# Normal test runner
+# Test runner
 # =============================================================================
 add_executable(test_runner ${test_sources})
-target_link_libraries(test_runner pw_bindfakes Boost::unit_test_framework)
+target_link_libraries(test_runner Boost::unit_test_framework)
 
-# Normal test target
-add_custom_target(test_normal
+if(NOT TEST_COVERAGE)
+    target_link_libraries(test_runner pw_bindfakes)
+else()
+    target_link_libraries(test_runner bindfakes_core_coverage --coverage)
+endif()
+
+# Test run target
+add_custom_target(run_tests
     COMMAND test_runner ${TEST_LOG_PARAMS} --log_level=test_suite --color_output
         -- --sample-lib $<TARGET_FILE:sample_lib>
     DEPENDS test_runner)
 
-# Test runner with test coverage report
-# =============================================================================
-add_executable(test_runner_coverage ${test_sources})
-target_link_libraries(test_runner_coverage bindfakes_core_coverage --coverage
-   Boost::unit_test_framework)
-
-# Coverage test target
-add_custom_target(test_coverage
-    COMMAND test_runner_coverage ${TEST_LOG_PARAMS} --log_level=test_suite
-        --color_output
-        -- --sample-lib $<TARGET_FILE:sample_lib>
+# Coverage report target
+add_custom_target(coverage_report
     COMMAND gcovr -e ${CMAKE_SOURCE_DIR}/third_party -e ${CMAKE_BINARY_DIR}
         -r ${CMAKE_SOURCE_DIR}
-    DEPENDS test_runner_coverage)
-
+    DEPENDS run_tests)
 
 # Define test target
 # =============================================================================
+add_custom_target(test DEPENDS run_tests)
 if(TEST_COVERAGE)
-    add_custom_target(test DEPENDS test_coverage)
-else()
-    add_custom_target(test DEPENDS test_normal)
+    add_dependencies(test coverage_report)
 endif()
