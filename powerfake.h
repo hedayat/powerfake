@@ -54,7 +54,11 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
  *  @{
  */
 
-#define MFK_DISCARD_WARNING "MakeFake is effective until the return value is alive"
+#if __cplusplus > 201703L
+#define MFK_DISCARD_WARNING ("MakeFake is effective until the return value is alive")
+#else
+#define MFK_DISCARD_WARNING
+#endif
 
 /**
  * Creates the fake object for the given function, faked with function object
@@ -66,7 +70,7 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
  * while this object lives
  */
 template <typename Signature, typename Functor>
-[[nodiscard(MFK_DISCARD_WARNING)]]
+[[nodiscard MFK_DISCARD_WARNING]]
 static FakePtr MakeFake(Signature *func_ptr, Functor f);
 
 /**
@@ -79,7 +83,7 @@ static FakePtr MakeFake(Signature *func_ptr, Functor f);
  * while this object lives
  */
 template<typename Signature, typename Class, typename Functor>
-[[nodiscard(MFK_DISCARD_WARNING)]]
+[[nodiscard MFK_DISCARD_WARNING]]
 static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
 
 /**
@@ -94,7 +98,7 @@ static FakePtr MakeFake(Signature Class::*func_ptr, Functor f);
  * Fake is in effect while this object lives
  */
 template <typename PrivateMemberTag, typename Functor>
-[[nodiscard(MFK_DISCARD_WARNING)]]
+[[nodiscard MFK_DISCARD_WARNING]]
 static FakePtr MakeFake(Functor f);
 
 /**
@@ -108,7 +112,7 @@ static FakePtr MakeFake(Functor f);
  * while this object lives
  */
 template <typename Functor>
-[[nodiscard(MFK_DISCARD_WARNING)]]
+[[nodiscard MFK_DISCARD_WARNING]]
 static FakePtr MakeFake(
     typename internal::functor_helper<Functor>::type func_ptr, Functor f);
 
@@ -125,7 +129,7 @@ static FakePtr MakeFake(
  * while this object lives
  */
 template<typename Functor>
-[[nodiscard(MFK_DISCARD_WARNING)]]
+[[nodiscard MFK_DISCARD_WARNING]]
 static FakePtr MakeFake(
     typename internal::class_functor_helper<Functor>::member_ptr func_ptr,
     Functor f);
