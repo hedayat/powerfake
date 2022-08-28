@@ -54,7 +54,7 @@ using FakePtr = std::unique_ptr<internal::FakeBase>;
  *  @{
  */
 
-#if __cplusplus > 201703L
+#if __has_cpp_attribute(nodiscard) >= 201907L
 #define MFK_DISCARD_WARNING ("MakeFake is effective until the return value is alive")
 #else
 #define MFK_DISCARD_WARNING
