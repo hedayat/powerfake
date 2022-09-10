@@ -242,7 +242,12 @@ class PowerFakeIt: public fakeit::ActualInvocationsSource
                     return fake.template MethodRecorder<R, Args...>();
                 }
 
-                virtual std::function<R(Args&...)> getOriginalMethod() override
+                virtual std::function<R(Args&...)> getOriginalMethodCopyArgs() override
+                {
+                    throw std::runtime_error("Not supported!");
+                }
+
+                virtual std::function<R(Args&...)> getOriginalMethodForwardArgs() override
                 {
                     throw std::runtime_error("Not supported!");
                 }
