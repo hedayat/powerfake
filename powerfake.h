@@ -729,7 +729,7 @@ struct CStringJoin
     {
         constexpr std::size_t len = (Strs.size() + ... + 0);
         std::array<char, len + 1> arr{};
-        auto append = [i = 0, &arr](auto const& s) mutable {
+        auto append = [i = 0UL, &arr](auto const& s) mutable {
             for (unsigned j = 0; j < s.size(); j++) arr[i++] = s[j];
         };
         (append(Strs), ...);

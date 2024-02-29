@@ -230,7 +230,7 @@ void FakeOverloaded()
     SamplePrivateValue::Value(sc2) = 25;
     SamplePrivate::Call(sc2);
     OverloadedPrivateInt::Call(sc2, 10);
-    OverloadedPrivateFloat::Call(sc2, 5);
+    OverloadedPrivateFloat::Call(sc2, 5.0f);
 
     cout << "-> Fake calls" << endl;
     auto pfk = MakeFake<SamplePrivate>([]() { cout << "Faked call for SamplePrivate" << endl; });

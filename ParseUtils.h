@@ -40,9 +40,9 @@ std::optional<std::pair<std::string, std::string>> GetTypeHint(
     std::string_view typehint_str);
 
 ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
-    unsigned name_start, unsigned name_end);
-std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
-    unsigned &end_pos);
+    size_t name_start, size_t name_end);
+std::string_view FunctionName(std::string_view demangled, size_t &start_pos,
+    size_t &end_pos);
 PowerFake::internal::Qualifiers QualifierFromStr(std::string_view qs);
 std::string NormalizeType(std::string_view compile_type,
     const TypeHintMap &type_hints = {});

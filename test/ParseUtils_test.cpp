@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(ParseDemangledFunctionTest)
             "std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, "
             "std::allocator<char> > const&, std::__cxx11::basic_string<char, "
             "std::char_traits<char>, std::allocator<char> > const&)";
-    unsigned name_start, name_end;
+    size_t name_start, name_end;
     FunctionName(demangled, name_start, name_end);
     auto proto = ParseDemangledFunction(demangled, name_start, name_end);
     BOOST_TEST(proto.qual == Qualifiers::NO_QUAL);
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(ParseDemangledFunctionTest)
 
 BOOST_AUTO_TEST_CASE(FunctionNameTest)
 {
-    unsigned name_start, name_end;
+    size_t name_start, name_end;
     auto res = FunctionName("char folan<char>(int)", name_start, name_end);
     BOOST_TEST(res == "folan<char>");
 

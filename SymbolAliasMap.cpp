@@ -164,7 +164,7 @@ void SymbolAliasMap::ApplyApproximateMatching()
         cout << "\nTry doing inexact function prototype matching "
             << "\n----------------------------------------------------" << endl;
 
-    unsigned prev_unresolved = unresolved_functions.size() + 1;
+    size_t prev_unresolved = unresolved_functions.size() + 1;
     while (!unresolved_functions.empty()
             && prev_unresolved > unresolved_functions.size())
     {
@@ -279,7 +279,7 @@ void SymbolAliasMap::FindWrappedSymbol(const std::string &demangled,
     if (!IsFunction(symbol_name, demangled))
         return;
 
-    unsigned name_start, name_end;
+    size_t name_start, name_end;
     auto name = FunctionName(demangled, name_start, name_end);
 
     auto range = unresolved_functions.equal_range(name);

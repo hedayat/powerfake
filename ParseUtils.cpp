@@ -49,7 +49,7 @@ Functions ReadFunctionsList(vector<string> wrapper_files, bool verbose)
                 << "\n------------------------------------------------------------------------------------------------------"
                 << endl;
         ifstream wfile(wf_name, ios::binary);
-        int read_start = 0;
+        size_t read_start = 0;
         do
         {
             wfile.read(buff_mem + read_start, BUF_SIZE - read_start);
@@ -233,7 +233,7 @@ std::optional<std::pair<std::string, std::string>> GetTypeHint(
 }
 
 ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
-    unsigned name_start, unsigned name_end)
+    size_t name_start, size_t name_end)
 {
     std::string ret, name, params;
     uint32_t qual = Qualifiers::NO_QUAL;
@@ -267,8 +267,8 @@ ExtendedPrototype ParseDemangledFunction(std::string_view demangled,
     return { ret, name, params, qual };
 }
 
-std::string_view FunctionName(std::string_view demangled, unsigned &start_pos,
-    unsigned &end_pos)
+std::string_view FunctionName(std::string_view demangled, size_t &start_pos,
+    size_t &end_pos)
 {
     start_pos = 0;
     end_pos = demangled.size();
@@ -508,7 +508,7 @@ std::string FixSpaces(std::string_view type_str)
 {
     std::string res;
     bool word_mode = type_str[0] != '*' && type_str[0] != '&';
-    unsigned pos = 0;
+    size_t pos = 0;
     do
     {
         if (word_mode)
