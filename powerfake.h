@@ -563,7 +563,7 @@ template <typename T> struct PrototypeExtractor;
 template <typename T, typename R , typename ...Args>
 struct PrototypeExtractor<R (T::*)(Args...)>
 {
-    typedef std::function<R (T *o, Args... args)> FakeFunction;
+    typedef std::function<R (T *o, Args...)> FakeFunction;
 
     static FunctionPrototype Extract(const std::string &func_name,
         uint32_t fq = internal::Qualifiers::NO_QUAL);
@@ -576,7 +576,7 @@ struct PrototypeExtractor<R (T::*)(Args...)>
 template <typename R , typename ...Args>
 struct PrototypeExtractor<R (*)(Args...)>
 {
-    typedef std::function<R (Args... args)> FakeFunction;
+    typedef std::function<R (Args...)> FakeFunction;
     typedef R (*FuncPtrType)(Args...);
 
     static FunctionPrototype Extract(const std::string &func_name,
