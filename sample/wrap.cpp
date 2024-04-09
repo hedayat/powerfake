@@ -37,6 +37,7 @@ WRAP_FUNCTION(std::string (float), overloaded2);
 WRAP_FUNCTION(void (int), overloaded);
 WRAP_FUNCTION(void (float), overloaded);
 WRAP_FUNCTION(normal_func);
+WRAP_FUNCTION(vararg_func);
 
 #ifdef HIDE_FUNCTION
 HIDE_FUNCTION(called_by_normal_func);

@@ -112,6 +112,13 @@ void FakeOverloaded()
         return aa;
     });
 
+    vararg_func(3);
+    auto varargfk = MakeFake(vararg_func,
+        [](int, va_list)
+            {   cout << "Fake called for vararg(int)" << endl;}
+    );
+    vararg_func(3);
+
     cout << "\n SampleClass Tests\n"
             "----------------------------------------------" << endl;
     {

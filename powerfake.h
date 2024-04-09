@@ -19,6 +19,7 @@
 #ifndef POWERFAKE_H_
 #define POWERFAKE_H_
 
+#include <cstdarg>
 #include <cstring>
 #include <map>
 #include <memory>
@@ -287,10 +288,24 @@ struct func_cv_processor<R (*)(Args...)>
     static const uint32_t q = Qualifiers::NO_QUAL;
 };
 
+template <typename R , typename ...Args>
+struct func_cv_processor<R (*)(Args..., ...)>
+{
+    typedef R (*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::NO_QUAL;
+};
+
 template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...)>
 {
     typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::NO_QUAL;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...)>
+{
+    typedef R (T::*base_type)(Args..., ...);
     static const uint32_t q = Qualifiers::NO_QUAL;
 };
 
@@ -302,6 +317,13 @@ struct func_cv_processor<R (T::*)(Args...) const>
 };
 
 template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) const>
+{
+    typedef R (T::*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::CONST;
+};
+
+template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) volatile>
 {
     typedef R (T::*base_type)(Args...);
@@ -309,9 +331,23 @@ struct func_cv_processor<R (T::*)(Args...) volatile>
 };
 
 template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) volatile>
+{
+    typedef R (T::*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::VOLATILE;
+};
+
+template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) const volatile>
 {
     typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) const volatile>
+{
+    typedef R (T::*base_type)(Args..., ...);
     static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE;
 };
 
@@ -323,10 +359,24 @@ struct func_cv_processor<R (*)(Args...) noexcept>
     static const uint32_t q = Qualifiers::NOEXCEPT;
 };
 
+template <typename R , typename ...Args>
+struct func_cv_processor<R (*)(Args..., ...) noexcept>
+{
+    typedef R (*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::NOEXCEPT;
+};
+
 template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) noexcept>
 {
     typedef R (T::*base_type)(Args...);
+    static const uint32_t q = Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) noexcept>
+{
+    typedef R (T::*base_type)(Args..., ...);
     static const uint32_t q = Qualifiers::NOEXCEPT;
 };
 
@@ -338,6 +388,13 @@ struct func_cv_processor<R (T::*)(Args...) const noexcept>
 };
 
 template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) const noexcept>
+{
+    typedef R (T::*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::CONST | Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) volatile noexcept>
 {
     typedef R (T::*base_type)(Args...);
@@ -345,9 +402,24 @@ struct func_cv_processor<R (T::*)(Args...) volatile noexcept>
 };
 
 template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) volatile noexcept>
+{
+    typedef R (T::*base_type)(Args..., ...);
+    static const uint32_t q = Qualifiers::VOLATILE | Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
 struct func_cv_processor<R (T::*)(Args...) const volatile noexcept>
 {
         typedef R (T::*base_type)(Args...);
+        static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE
+                | Qualifiers::NOEXCEPT;
+};
+
+template <typename T, typename R , typename ...Args>
+struct func_cv_processor<R (T::*)(Args..., ...) const volatile noexcept>
+{
+        typedef R (T::*base_type)(Args..., ...);
         static const uint32_t q = Qualifiers::CONST | Qualifiers::VOLATILE
                 | Qualifiers::NOEXCEPT;
 };
@@ -570,6 +642,18 @@ struct PrototypeExtractor<R (T::*)(Args...)>
 };
 
 /**
+ * PrototypeExtractor specialization for variadic member functions
+ */
+template <typename T, typename R , typename ...Args>
+struct PrototypeExtractor<R (T::*)(Args..., ...)>
+{
+    typedef std::function<R (T *o, Args..., va_list)> FakeFunction;
+
+    static FunctionPrototype Extract(const std::string &func_name,
+        uint32_t fq = internal::Qualifiers::NO_QUAL);
+};
+
+/**
  * PrototypeExtractor specialization for normal functions and static member
  * functions
  */
@@ -578,6 +662,24 @@ struct PrototypeExtractor<R (*)(Args...)>
 {
     typedef std::function<R (Args...)> FakeFunction;
     typedef R (*FuncPtrType)(Args...);
+
+    static FunctionPrototype Extract(const std::string &func_name,
+        uint32_t fq = internal::Qualifiers::NO_QUAL);
+
+    template <typename Class>
+    static FunctionPrototype Extract(const std::string &func_name,
+        uint32_t fq = internal::Qualifiers::NO_QUAL);
+};
+
+/**
+ * PrototypeExtractor specialization for variadic normal functions and static
+ * member functions
+ */
+template <typename R , typename ...Args>
+struct PrototypeExtractor<R (*)(Args..., ...)>
+{
+    typedef std::function<R (Args..., va_list)> FakeFunction;
+    typedef R (*FuncPtrType)(Args..., ...);
 
     static FunctionPrototype Extract(const std::string &func_name,
         uint32_t fq = internal::Qualifiers::NO_QUAL);
@@ -896,6 +998,39 @@ struct class_functor_helper: functor_helper<FT>
                     "for hidden function: " #FNAME); \
         } \
     }; \
+    template <typename R , typename ...Args> \
+    struct wrapper_##ALIAS<R (*)(Args..., ...)> \
+    { \
+        static R TMP_WRAPPER_NAME(ALIAS)(Args... args, ...) \
+        { \
+            if (ALIAS.Callable()) \
+            { \
+                va_list vargs; \
+                va_start(vargs, (args, ...)); \
+                if constexpr (std::is_same_v<R, void>) \
+                { \
+                    ALIAS.Call(args..., vargs); \
+                    va_end(vargs); \
+                    return; \
+                } \
+                else \
+                { \
+                    R result = ALIAS.Call(args..., vargs); \
+                    va_end(vargs); \
+                    return result; \
+                } \
+            } \
+            if constexpr (PowerFake::internal::FakeType::FAKE_TYPE \
+                == PowerFake::internal::FakeType::WRAPPED) \
+            { \
+                R TMP_REAL_NAME(ALIAS)(Args... args); \
+                return TMP_REAL_NAME(ALIAS)(args...); \
+            } \
+            else \
+                throw std::logic_error("PowerFake: No implementation provided " \
+                    "for hidden function: " #FNAME); \
+        } \
+    }; \
     auto PROTO_INSTANTIATE_##ALIAS = SPROTO_##ALIAS; \
     /* Explicitly instantiate the wrapper_##ALIAS struct, so that the appropriate
      * wrapper function and real function symbol is actually generated by the
@@ -1148,6 +1283,13 @@ FunctionPrototype PrototypeExtractor<R (T::*)(Args...)>::Extract(
     return PrototypeExtractor<R (*)(Args...)>::Extract(class_type + f, fq);
 }
 
+template<typename T, typename R, typename ...Args>
+FunctionPrototype PrototypeExtractor<R (T::*)(Args..., ...)>::Extract(
+    const std::string &func_name, uint32_t fq)
+{
+    return PrototypeExtractor<R (T::*)(Args...)>::Extract(func_name, fq);
+}
+
 template<typename R, typename ...Args>
 FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
     const std::string &func_name, uint32_t fq)
@@ -1174,6 +1316,21 @@ FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
 template<typename R, typename ...Args>
 template<typename Class>
 FunctionPrototype PrototypeExtractor<R (*)(Args...)>::Extract(
+    const std::string &func_name, uint32_t fq)
+{
+    return PrototypeExtractor<R (Class::*)(Args...)>::Extract(func_name, fq);
+}
+
+template<typename R, typename ...Args>
+FunctionPrototype PrototypeExtractor<R (*)(Args..., ...)>::Extract(
+    const std::string &func_name, uint32_t fq)
+{
+    return PrototypeExtractor<R (*)(Args...)>::Extract(func_name, fq);
+}
+
+template<typename R, typename ...Args>
+template<typename Class>
+FunctionPrototype PrototypeExtractor<R (*)(Args..., ...)>::Extract(
     const std::string &func_name, uint32_t fq)
 {
     return PrototypeExtractor<R (Class::*)(Args...)>::Extract(func_name, fq);

@@ -54,6 +54,11 @@ void normal_func(int b, const char **const *c, const std::string &d,
     called_by_normal_func(b);
 }
 
+void vararg_func(int count, ...)
+{
+    cout << "VarArg func: " << __FUNCTION__ << " called with: " << count << endl;
+}
+
 [[gnu::noinline]]
 void called_by_normal_func(int b)
 {

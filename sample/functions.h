@@ -30,6 +30,7 @@ std::string overloaded2(float a);
 
 void normal_func(int b, const char **const *c, const std::string &d,
     const char *(*e)(const char *));
+void vararg_func(int count, ...);
 
 void called_by_normal_func(int b);
 
