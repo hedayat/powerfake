@@ -469,6 +469,7 @@ std::vector<std::string_view> SplitParams(std::string_view params)
 
     // Note: we assume valid input
 
+    if (params.empty()) return res;
     if (params[0] == '(' && params.back() == ')')
         params = params.substr(1, params.size() - 2);
 
@@ -506,6 +507,8 @@ std::vector<std::string_view> SplitParams(std::string_view params)
 
 std::string FixSpaces(std::string_view type_str)
 {
+    if (type_str.empty()) return ""s;
+
     std::string res;
     bool word_mode = type_str[0] != '*' && type_str[0] != '&';
     size_t pos = 0;
