@@ -20,6 +20,7 @@
 #define POWERFAKE_H_
 
 #include <cstdarg>
+#include <cstdint>
 #include <cstring>
 #include <map>
 #include <memory>
