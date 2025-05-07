@@ -47,7 +47,7 @@ if (CMAKE_CROSSCOMPILING)
     add_executable(native_bind_fakes IMPORTED)
     add_dependencies(native_bind_fakes host_bind_fakes)
     set_target_properties(native_bind_fakes PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/host_bind_fakes/build/bind_fakes)
+        IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/host_bind_fakes/build/bind_fakes)
     add_executable(PowerFake::bind_fakes ALIAS native_bind_fakes)
 else()
     add_executable(PowerFake::bind_fakes ALIAS bind_fakes)
